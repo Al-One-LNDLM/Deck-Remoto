@@ -14,14 +14,25 @@
           "id": "page1",
           "name": "Página 1",
           "grid": {
-            "rows": 4,
-            "cols": 3
+            "rows": 3,
+            "cols": 2
           },
           "background": {
             "type": "solid",
             "color": "#111111"
           },
-          "controls": [],
+          "controls": [
+            {
+              "id": "button1",
+              "type": "button",
+              "name": "hola"
+            },
+            {
+              "id": "fader1",
+              "type": "fader",
+              "name": "adios"
+            }
+          ],
           "folders": []
         }
       ],
