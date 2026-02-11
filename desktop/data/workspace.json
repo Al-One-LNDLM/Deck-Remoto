@@ -64,7 +64,8 @@
               "rowSpan": 1,
               "colSpan": 1
             }
-          ]
+          ],
+          "showGrid": true
         },
         {
           "id": "page3",
@@ -74,9 +75,8 @@
             "cols": 3
           },
           "background": {
-            "type": "image",
-            "imagePath": "assets/backgrounds/1770838881283-g5.jpg",
-            "fit": "cover"
+            "type": "solid",
+            "color": "#004bad"
           },
           "controls": [
             {
@@ -95,7 +95,8 @@
               "rowSpan": 1,
               "colSpan": 1
             }
-          ]
+          ],
+          "showGrid": false
         }
       ],
       "iconPath": "assets/icons/1770827837729-LOGO-SIMPLIFICADO-BLANCO-TRANSPARENTE.png"
@@ -117,7 +118,8 @@
           },
           "controls": [],
           "folders": [],
-          "placements": []
+          "placements": [],
+          "showGrid": true
         }
       ]
     }
