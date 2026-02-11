@@ -1,9 +1,9 @@
 {
-  "activeProfileId": "profile2",
-  "activePageId": "page4",
+  "activeProfileId": "profile1",
+  "activePageId": "page1",
   "lastSession": {
-    "activeProfileId": "profile2",
-    "activePageId": "page4"
+    "activeProfileId": "profile1",
+    "activePageId": "page1"
   },
   "profiles": [
     {
@@ -23,83 +23,9 @@
           },
           "controls": [],
           "folders": []
-        },
-        {
-          "id": "page2",
-          "name": "Página 2",
-          "grid": {
-            "rows": 4,
-            "cols": 3
-          },
-          "background": {
-            "type": "solid",
-            "color": "#111111"
-          },
-          "controls": [],
-          "folders": []
-        },
-        {
-          "id": "page3",
-          "name": "Página 3",
-          "grid": {
-            "rows": 4,
-            "cols": 3
-          },
-          "background": {
-            "type": "solid",
-            "color": "#111111"
-          },
-          "controls": [],
-          "folders": []
         }
       ],
       "iconPath": "assets/icons/1770827837729-LOGO-SIMPLIFICADO-BLANCO-TRANSPARENTE.png"
-    },
-    {
-      "id": "profile2",
-      "name": "Perfil 2",
-      "pages": [
-        {
-          "id": "page4",
-          "name": "Página 4",
-          "grid": {
-            "rows": 4,
-            "cols": 3
-          },
-          "background": {
-            "type": "solid",
-            "color": "#111111"
-          },
-          "controls": [],
-          "folders": []
-        }
-      ]
-    },
-    {
-      "id": "profile3",
-      "name": "Perfil 3",
-      "pages": [
-        {
-          "id": "page5",
-          "name": "Página 5",
-          "grid": {
-            "rows": 4,
-            "cols": 3
-          },
-          "background": {
-            "type": "solid",
-            "color": "#111111"
-          },
-          "controls": [],
-          "folders": [
-            {
-              "id": "folder1",
-              "name": "Carpeta 1",
-              "items": []
-            }
-          ]
-        }
-      ]
     }
   ]
 }
