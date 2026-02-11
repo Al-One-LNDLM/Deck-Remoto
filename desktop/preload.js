@@ -34,6 +34,8 @@ contextBridge.exposeInMainWorld("runtime", {
     ipcRenderer.invoke("workspace:setPageGrid", profileId, pageId, rows, cols),
   setPageShowGrid: (profileId, pageId, showGrid) =>
     ipcRenderer.invoke("workspace:setPageShowGrid", profileId, pageId, showGrid),
+  setPageStyle: (profileId, pageId, partialStyle) =>
+    ipcRenderer.invoke("workspace:setPageStyle", profileId, pageId, partialStyle),
   setPageBackgroundSolid: (profileId, pageId, color) =>
     ipcRenderer.invoke("workspace:setPageBackgroundSolid", profileId, pageId, color),
   setPageBackgroundImage: (profileId, pageId, imagePath, fit) =>

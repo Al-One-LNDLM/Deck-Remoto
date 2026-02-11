@@ -63,6 +63,11 @@ function createRuntimeServer({ onLog }) {
               name: activePage.name,
               grid: activePage.grid,
               showGrid: activePage.showGrid !== false,
+              style: activePage.style || {
+                buttonShowBackground: true,
+                buttonShowLabel: true,
+                faderShowLabel: true,
+              },
               background: activePage.background,
               placements: activePage.placements || [],
               elements: activePage.elements || activePage.controls || [],
