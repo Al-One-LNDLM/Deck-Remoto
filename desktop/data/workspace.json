@@ -1,0 +1,25 @@
+{
+  "activeProfileId": "profile1",
+  "activePageId": "page1",
+  "profiles": [
+    {
+      "id": "profile1",
+      "name": "Perfil 1",
+      "pages": [
+        {
+          "id": "page1",
+          "name": "Página 1",
+          "grid": {
+            "rows": 4,
+            "cols": 3
+          },
+          "background": {
+            "type": "solid",
+            "color": "#111111"
+          },
+          "controls": []
+        }
+      ]
+    }
+  ]
+}

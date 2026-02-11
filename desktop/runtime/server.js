@@ -3,6 +3,7 @@ const http = require("http");
 const path = require("path");
 const os = require("os");
 const { WebSocketServer } = require("ws");
+const { loadWorkspace, getActiveState } = require("./workspace");
 
 const PORT = 3030;
 
@@ -44,6 +45,26 @@ function createRuntimeServer({ onLog }) {
     }
 
     app = express();
+    const workspace = loadWorkspace();
+    app.get("/api/state", (_request, response) => {
+      const { activeProfileId, activePageId, activeProfile, activePage } =
+        getActiveState(workspace);
+
+      response.json({
+        activeProfileId,
+        activePageId,
+        profiles: workspace.profiles.map(({ id, name }) => ({ id, name })),
+        pages: (activeProfile?.pages || []).map(({ id, name }) => ({ id, name })),
+        activePage: activePage
+          ? {
+              id: activePage.id,
+              name: activePage.name,
+              grid: activePage.grid,
+              background: activePage.background,
+            }
+          : null,
+      });
+    });
     const mobilePath = path.resolve(__dirname, "../../mobile");
     app.use(express.static(mobilePath));
 
