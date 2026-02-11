@@ -21,6 +21,16 @@ const applyGridBtn = document.getElementById("applyGridBtn");
 const gridShowCheckbox = document.getElementById("gridShowCheckbox");
 const styleButtonShowBackgroundCheckbox = document.getElementById("styleButtonShowBackgroundCheckbox");
 const styleButtonShowLabelCheckbox = document.getElementById("styleButtonShowLabelCheckbox");
+const styleButtonBackgroundColorInput = document.getElementById("styleButtonBackgroundColorInput");
+const styleButtonShowBorderCheckbox = document.getElementById("styleButtonShowBorderCheckbox");
+const styleButtonBorderColorInput = document.getElementById("styleButtonBorderColorInput");
+const styleButtonBorderColorRow = document.getElementById("styleButtonBorderColorRow");
+const styleFaderShowBackgroundCheckbox = document.getElementById("styleFaderShowBackgroundCheckbox");
+const styleFaderBackgroundColorInput = document.getElementById("styleFaderBackgroundColorInput");
+const styleFaderBackgroundColorRow = document.getElementById("styleFaderBackgroundColorRow");
+const styleFaderShowBorderCheckbox = document.getElementById("styleFaderShowBorderCheckbox");
+const styleFaderBorderColorInput = document.getElementById("styleFaderBorderColorInput");
+const styleFaderBorderColorRow = document.getElementById("styleFaderBorderColorRow");
 const styleFaderShowLabelCheckbox = document.getElementById("styleFaderShowLabelCheckbox");
 const gridBgColorInput = document.getElementById("gridBgColorInput");
 const addBackgroundImageBtn = document.getElementById("addBackgroundImageBtn");
@@ -55,6 +65,21 @@ function getPageStyle(page) {
   return {
     buttonShowBackground: page?.style?.buttonShowBackground !== false,
     buttonShowLabel: page?.style?.buttonShowLabel !== false,
+    buttonBackgroundColor: /^#[0-9a-fA-F]{6}$/.test(page?.style?.buttonBackgroundColor || "")
+      ? page.style.buttonBackgroundColor
+      : "#2b2b2b",
+    buttonShowBorder: page?.style?.buttonShowBorder !== false,
+    buttonBorderColor: /^#[0-9a-fA-F]{6}$/.test(page?.style?.buttonBorderColor || "")
+      ? page.style.buttonBorderColor
+      : "#444444",
+    faderShowBackground: page?.style?.faderShowBackground !== false,
+    faderBackgroundColor: /^#[0-9a-fA-F]{6}$/.test(page?.style?.faderBackgroundColor || "")
+      ? page.style.faderBackgroundColor
+      : "#2b2b2b",
+    faderShowBorder: page?.style?.faderShowBorder !== false,
+    faderBorderColor: /^#[0-9a-fA-F]{6}$/.test(page?.style?.faderBorderColor || "")
+      ? page.style.faderBorderColor
+      : "#444444",
     faderShowLabel: page?.style?.faderShowLabel !== false,
   };
 }
@@ -216,20 +241,21 @@ function drawPlacement(ctx2d, page, placement, element, metrics, selectedPlaceme
   const isSelected = placement.id === selectedPlacementId;
   const isFader = element?.type === "fader";
   const pageStyle = getPageStyle(page);
-  const showButtonBackground = pageStyle.buttonShowBackground || isFader;
+  const showBackground = isFader ? pageStyle.faderShowBackground : pageStyle.buttonShowBackground;
+  const backgroundColor = isFader ? pageStyle.faderBackgroundColor : pageStyle.buttonBackgroundColor;
+  const showBorder = isFader ? pageStyle.faderShowBorder : pageStyle.buttonShowBorder;
+  const borderColor = isFader ? pageStyle.faderBorderColor : pageStyle.buttonBorderColor;
 
-  if (showButtonBackground) {
-    ctx2d.fillStyle = isFader ? "rgba(56,166,255,0.35)" : "rgba(101,217,122,0.30)";
+  if (showBackground) {
+    ctx2d.fillStyle = backgroundColor;
     ctx2d.fillRect(x + 2, y + 2, width - 4, height - 4);
   }
 
-  ctx2d.lineWidth = isSelected ? 3 : 1;
-  if (!showButtonBackground && !isFader) {
-    ctx2d.strokeStyle = isSelected ? "#ffd166" : "rgba(255,255,255,0.25)";
-  } else {
-    ctx2d.strokeStyle = isSelected ? "#ffd166" : "rgba(255,255,255,0.65)";
+  if (showBorder || isSelected) {
+    ctx2d.lineWidth = isSelected ? 3 : 1;
+    ctx2d.strokeStyle = isSelected ? "#ffd166" : borderColor;
+    ctx2d.strokeRect(x + 2.5, y + 2.5, width - 5, height - 5);
   }
-  ctx2d.strokeRect(x + 2.5, y + 2.5, width - 5, height - 5);
 
   const showLabel = isFader ? pageStyle.faderShowLabel : pageStyle.buttonShowLabel;
   if (!showLabel) {
@@ -520,7 +546,17 @@ async function renderGridTab() {
   gridShowCheckbox.checked = ctx.page.showGrid !== false;
   const pageStyle = getPageStyle(ctx.page);
   styleButtonShowBackgroundCheckbox.checked = pageStyle.buttonShowBackground;
+  styleButtonBackgroundColorInput.value = pageStyle.buttonBackgroundColor;
+  styleButtonShowBorderCheckbox.checked = pageStyle.buttonShowBorder;
+  styleButtonBorderColorInput.value = pageStyle.buttonBorderColor;
+  styleButtonBorderColorRow.hidden = !pageStyle.buttonShowBorder;
   styleButtonShowLabelCheckbox.checked = pageStyle.buttonShowLabel;
+  styleFaderShowBackgroundCheckbox.checked = pageStyle.faderShowBackground;
+  styleFaderBackgroundColorInput.value = pageStyle.faderBackgroundColor;
+  styleFaderBackgroundColorRow.hidden = !pageStyle.faderShowBackground;
+  styleFaderShowBorderCheckbox.checked = pageStyle.faderShowBorder;
+  styleFaderBorderColorInput.value = pageStyle.faderBorderColor;
+  styleFaderBorderColorRow.hidden = !pageStyle.faderShowBorder;
   styleFaderShowLabelCheckbox.checked = pageStyle.faderShowLabel;
   const background = ctx.page.background || { type: "solid", color: "#111111" };
   gridBgColorInput.value = background.color || "#111111";
@@ -1536,8 +1572,36 @@ styleButtonShowBackgroundCheckbox.addEventListener("change", async (event) => {
   await applyPageStyle({ buttonShowBackground: event.target.checked });
 });
 
+styleButtonBackgroundColorInput.addEventListener("input", async (event) => {
+  await applyPageStyle({ buttonBackgroundColor: event.target.value });
+});
+
+styleButtonShowBorderCheckbox.addEventListener("change", async (event) => {
+  await applyPageStyle({ buttonShowBorder: event.target.checked });
+});
+
+styleButtonBorderColorInput.addEventListener("input", async (event) => {
+  await applyPageStyle({ buttonBorderColor: event.target.value });
+});
+
 styleButtonShowLabelCheckbox.addEventListener("change", async (event) => {
   await applyPageStyle({ buttonShowLabel: event.target.checked });
+});
+
+styleFaderShowBackgroundCheckbox.addEventListener("change", async (event) => {
+  await applyPageStyle({ faderShowBackground: event.target.checked });
+});
+
+styleFaderBackgroundColorInput.addEventListener("input", async (event) => {
+  await applyPageStyle({ faderBackgroundColor: event.target.value });
+});
+
+styleFaderShowBorderCheckbox.addEventListener("change", async (event) => {
+  await applyPageStyle({ faderShowBorder: event.target.checked });
+});
+
+styleFaderBorderColorInput.addEventListener("input", async (event) => {
+  await applyPageStyle({ faderBorderColor: event.target.value });
 });
 
 styleFaderShowLabelCheckbox.addEventListener("change", async (event) => {
