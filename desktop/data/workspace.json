@@ -47,6 +47,22 @@
               "col": 1,
               "rowSpan": 2,
               "colSpan": 1
+            },
+            {
+              "id": "placement2",
+              "elementId": "button2",
+              "row": 1,
+              "col": 2,
+              "rowSpan": 1,
+              "colSpan": 1
+            },
+            {
+              "id": "placement3",
+              "elementId": "button1",
+              "row": 2,
+              "col": 2,
+              "rowSpan": 1,
+              "colSpan": 1
             }
           ]
         }
