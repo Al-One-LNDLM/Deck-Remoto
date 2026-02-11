@@ -76,6 +76,8 @@
         padding: 8px;
         display: grid;
         gap: 8px;
+        position: relative;
+        min-height: 200px;
       }
 
       .grid-cell {
@@ -83,6 +85,42 @@
         border-radius: 6px;
         min-height: 48px;
         background: rgba(255, 255, 255, 0.03);
+      }
+
+      .placement-layer {
+        position: absolute;
+        inset: 8px;
+      }
+
+      .placement {
+        position: absolute;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        text-align: center;
+        background: rgba(22, 22, 22, 0.9);
+        color: #ffffff;
+        font-size: 13px;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .placement.fader {
+        background: linear-gradient(180deg, rgba(56, 76, 156, 0.92), rgba(36, 36, 52, 0.92));
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+      }
+
+      .placement.pressed {
+        filter: brightness(1.4);
+        transform: scale(0.98);
+      }
+
+      .placement.fader.pressed {
+        transform: rotate(180deg) scale(0.98);
       }
     </style>
   </head>
@@ -92,12 +130,12 @@
     <section class="header">
       <div class="selector-row">
         <label for="profileSelect">Perfil</label>
-        <select id="profileSelect" title="próximamente" disabled></select>
+        <select id="profileSelect"></select>
       </div>
 
       <div class="selector-row">
         <label for="pageSelect">Página</label>
-        <select id="pageSelect" title="próximamente" disabled></select>
+        <select id="pageSelect"></select>
       </div>
 
       <p id="activeSummary">Perfil activo: - | Página activa: -</p>
@@ -122,6 +160,7 @@
       const socketUrl = `${protocol}://${window.location.hostname}:3030/ws`;
 
       let socket;
+      let currentState = null;
 
       function setStatus(connected) {
         statusEl.textContent = connected ? "Conectado" : "Desconectado";
@@ -170,17 +209,50 @@
         });
       }
 
-      function renderSummaryFromIds(profileName, pageName) {
-        activeSummaryEl.textContent = `Perfil activo: ${profileName} | Página activa: ${pageName}`;
-      }
-
       function renderSummary(state) {
         const activeProfile = state.profiles.find(
           (profile) => profile.id === state.activeProfileId,
         );
         const activePage = state.pages.find((page) => page.id === state.activePageId);
 
-        renderSummaryFromIds(activeProfile ? activeProfile.name : "-", activePage ? activePage.name : "-");
+        activeSummaryEl.textContent = `Perfil activo: ${activeProfile ? activeProfile.name : "-"} | Página activa: ${activePage ? activePage.name : "-"}`;
+      }
+
+      function sendControlPress(elementId, placementId) {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          return;
+        }
+
+        socket.send(
+          JSON.stringify({
+            type: "event",
+            payload: {
+              kind: "controlPress",
+              elementId,
+              placementId,
+            },
+          }),
+        );
+      }
+
+      function createPlacementElement(placement, element, metrics) {
+        const itemEl = document.createElement("button");
+        itemEl.className = `placement ${element?.type === "fader" ? "fader" : "button"}`;
+        itemEl.textContent = element?.name || placement.elementId;
+        itemEl.type = "button";
+
+        itemEl.style.left = `${metrics.left}px`;
+        itemEl.style.top = `${metrics.top}px`;
+        itemEl.style.width = `${metrics.width}px`;
+        itemEl.style.height = `${metrics.height}px`;
+
+        itemEl.addEventListener("pointerdown", () => {
+          itemEl.classList.add("pressed");
+          window.setTimeout(() => itemEl.classList.remove("pressed"), 150);
+          sendControlPress(placement.elementId, placement.id);
+        });
+
+        return itemEl;
       }
 
       function renderGrid(activePage) {
@@ -190,8 +262,8 @@
           return;
         }
 
-        const rows = Number(activePage.grid.rows) || 0;
-        const cols = Number(activePage.grid.cols) || 0;
+        const rows = Math.max(1, Number(activePage.grid.rows) || 1);
+        const cols = Math.max(1, Number(activePage.grid.cols) || 1);
         const totalCells = rows * cols;
 
         gridEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
@@ -202,16 +274,86 @@
           cell.className = "grid-cell";
           gridEl.appendChild(cell);
         }
+
+        const placements = Array.isArray(activePage.placements) ? activePage.placements : [];
+        const elementList = Array.isArray(activePage.elements)
+          ? activePage.elements
+          : Array.isArray(activePage.controls)
+            ? activePage.controls
+            : [];
+
+        if (placements.length === 0 || elementList.length === 0) {
+          return;
+        }
+
+        const elementById = new Map(elementList.map((element) => [element.id, element]));
+        const layer = document.createElement("div");
+        layer.className = "placement-layer";
+
+        const gap = 8;
+        const layerRect = gridEl.getBoundingClientRect();
+        const innerWidth = Math.max(0, layerRect.width - 16);
+        const innerHeight = Math.max(0, layerRect.height - 16);
+        const cellWidth = cols > 0 ? (innerWidth - gap * (cols - 1)) / cols : 0;
+        const cellHeight = rows > 0 ? (innerHeight - gap * (rows - 1)) / rows : 0;
+
+        placements.forEach((placement) => {
+          const row = Math.max(1, Number(placement.row) || 1);
+          const col = Math.max(1, Number(placement.col) || 1);
+          const rowSpan = Math.max(1, Number(placement.rowSpan) || 1);
+          const colSpan = Math.max(1, Number(placement.colSpan) || 1);
+          const element = elementById.get(placement.elementId);
+
+          if (!element) {
+            return;
+          }
+
+          const left = (col - 1) * (cellWidth + gap);
+          const top = (row - 1) * (cellHeight + gap);
+          const width = cellWidth * colSpan + gap * (colSpan - 1);
+          const height = cellHeight * rowSpan + gap * (rowSpan - 1);
+
+          layer.appendChild(
+            createPlacementElement(placement, element, {
+              left,
+              top,
+              width,
+              height,
+            }),
+          );
+        });
+
+        gridEl.appendChild(layer);
+      }
+
+      async function fetchState() {
+        const response = await fetch("/api/state");
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        return response.json();
+      }
+
+      async function postSetActive(payload) {
+        const response = await fetch("/api/setActive", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const body = await response.json();
+        if (!response.ok || !body.ok) {
+          throw new Error(body.message || `HTTP ${response.status}`);
+        }
       }
 
       async function loadState() {
         try {
-          const response = await fetch("/api/state");
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-
-          const state = await response.json();
+          const state = await fetchState();
+          currentState = state;
           renderSelectors(state);
           renderSummary(state);
           renderGrid(state.activePage);
@@ -220,15 +362,26 @@
         }
       }
 
-      profileSelectEl.addEventListener("change", () => {
-        const profileName = profileSelectEl.selectedOptions[0]?.textContent || "-";
-        const pageName = pageSelectEl.selectedOptions[0]?.textContent || "-";
-        renderSummaryFromIds(profileName, pageName);
+      profileSelectEl.addEventListener("change", async () => {
+        try {
+          await postSetActive({ profileId: profileSelectEl.value });
+          await loadState();
+        } catch (error) {
+          lastAckEl.textContent = `No se pudo cambiar de perfil: ${error.message}`;
+        }
       });
-      pageSelectEl.addEventListener("change", () => {
-        const profileName = profileSelectEl.selectedOptions[0]?.textContent || "-";
-        const pageName = pageSelectEl.selectedOptions[0]?.textContent || "-";
-        renderSummaryFromIds(profileName, pageName);
+
+      pageSelectEl.addEventListener("change", async () => {
+        try {
+          const profileId = currentState?.activeProfileId || profileSelectEl.value;
+          await postSetActive({
+            profileId,
+            pageId: pageSelectEl.value,
+          });
+          await loadState();
+        } catch (error) {
+          lastAckEl.textContent = `No se pudo cambiar de página: ${error.message}`;
+        }
       });
 
       sendEventBtn.addEventListener("click", () => {
