@@ -32,6 +32,7 @@ function createDefaultWorkspace() {
             },
             controls: [],
             folders: [],
+            placements: [],
           },
         ],
       },
@@ -51,6 +52,7 @@ function normalizeWorkspace(workspace) {
       page.background = page.background || { type: "solid", color: "#111111" };
       page.controls = Array.isArray(page.controls) ? page.controls : [];
       page.folders = Array.isArray(page.folders) ? page.folders : [];
+      page.placements = Array.isArray(page.placements) ? page.placements : [];
 
       page.folders.forEach((folder) => {
         folder.items = Array.isArray(folder.items) ? folder.items : [];
@@ -186,6 +188,67 @@ function getFolder(profileId, pageId, folderId) {
   return { workspace, page, folder };
 }
 
+
+function getDefaultPlacementSpan(elementType) {
+  if (elementType === "fader") {
+    return { rowSpan: 4, colSpan: 1 };
+  }
+
+  return { rowSpan: 1, colSpan: 1 };
+}
+
+function canPlacePlacement(page, placement, options = {}) {
+  const rows = Math.max(1, Number(page.grid?.rows) || 1);
+  const cols = Math.max(1, Number(page.grid?.cols) || 1);
+  const row = Number(placement.row);
+  const col = Number(placement.col);
+  const rowSpan = Math.max(1, Number(placement.rowSpan) || 1);
+  const colSpan = Math.max(1, Number(placement.colSpan) || 1);
+
+  if (!Number.isInteger(row) || !Number.isInteger(col)) {
+    return false;
+  }
+
+  if (row < 1 || col < 1) {
+    return false;
+  }
+
+  if (row + rowSpan - 1 > rows || col + colSpan - 1 > cols) {
+    return false;
+  }
+
+  const excludePlacementId = options.excludePlacementId || null;
+
+  return !page.placements.some((item) => {
+    if (item.id === excludePlacementId) {
+      return false;
+    }
+
+    const overlapRows = row < item.row + item.rowSpan && row + rowSpan > item.row;
+    const overlapCols = col < item.col + item.colSpan && col + colSpan > item.col;
+    return overlapRows && overlapCols;
+  });
+}
+
+function nextPlacementId() {
+  const workspace = getWorkspace();
+  const used = new Set();
+
+  workspace.profiles.forEach((profile) => {
+    profile.pages.forEach((page) => {
+      (page.placements || []).forEach((placement) => {
+        used.add(placement.id);
+      });
+    });
+  });
+
+  let index = 1;
+  while (used.has(`placement${index}`)) {
+    index += 1;
+  }
+
+  return `placement${index}`;
+}
 function addProfile() {
   const workspace = getWorkspace();
   const profileId = nextIdFromWorkspace("profile");
@@ -202,6 +265,7 @@ function addProfile() {
         background: { type: "solid", color: "#111111" },
         controls: [],
         folders: [],
+        placements: [],
       },
     ],
   };
@@ -229,6 +293,7 @@ function addPage(profileId) {
     background: { type: "solid", color: "#111111" },
     controls: [],
     folders: [],
+    placements: [],
   };
 
   profile.pages.push(page);
@@ -285,6 +350,7 @@ function deletePageElement(profileId, pageId, elementId) {
   }
 
   page.controls.splice(elementIndex, 1);
+  page.placements = page.placements.filter((placement) => placement.elementId !== elementId);
   scheduleSave();
 
   return workspace;
@@ -299,6 +365,84 @@ function renamePageElement(profileId, pageId, elementId, name) {
   }
 
   element.name = name;
+  scheduleSave();
+
+  return workspace;
+}
+
+function addPlacement(profileId, pageId, elementId, row, col) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const element = page.controls.find((item) => item.id === elementId);
+
+  if (!element) {
+    throw new Error("Elemento no encontrado");
+  }
+
+  if (page.placements.some((placement) => placement.elementId === elementId)) {
+    throw new Error("El elemento ya está colocado");
+  }
+
+  const { rowSpan, colSpan } = getDefaultPlacementSpan(element.type);
+  const placement = {
+    id: nextPlacementId(),
+    elementId,
+    row: Number(row),
+    col: Number(col),
+    rowSpan,
+    colSpan,
+  };
+
+  if (!canPlacePlacement(page, placement)) {
+    throw new Error("No cabe en la celda seleccionada");
+  }
+
+  page.placements.push(placement);
+  scheduleSave();
+
+  return { workspace, created: { type: "placement", id: placement.id } };
+}
+
+function updatePlacementSpan(profileId, pageId, placementId, rowSpan, colSpan) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const placement = page.placements.find((item) => item.id === placementId);
+
+  if (!placement) {
+    throw new Error("Placement no encontrado");
+  }
+
+  const element = page.controls.find((item) => item.id === placement.elementId);
+  if (!element) {
+    throw new Error("Elemento no encontrado");
+  }
+
+  const safeRowSpan = Math.max(1, Number(rowSpan) || 1);
+  const safeColSpan = element.type === "fader" ? 1 : Math.max(1, Number(colSpan) || 1);
+  const candidate = {
+    ...placement,
+    rowSpan: safeRowSpan,
+    colSpan: safeColSpan,
+  };
+
+  if (!canPlacePlacement(page, candidate, { excludePlacementId: placement.id })) {
+    throw new Error("El span no cabe o solapa");
+  }
+
+  placement.rowSpan = safeRowSpan;
+  placement.colSpan = safeColSpan;
+  scheduleSave();
+
+  return workspace;
+}
+
+function deletePlacement(profileId, pageId, placementId) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const placementIndex = page.placements.findIndex((item) => item.id === placementId);
+
+  if (placementIndex === -1) {
+    throw new Error("Placement no encontrado");
+  }
+
+  page.placements.splice(placementIndex, 1);
   scheduleSave();
 
   return workspace;
@@ -377,6 +521,7 @@ function ensureValidActiveSelection() {
       background: { type: "solid", color: "#111111" },
       controls: [],
       folders: [],
+      placements: [],
     });
     workspace.activePageId = pageId;
   }
@@ -648,6 +793,9 @@ module.exports = {
   addPage,
   addFolder,
   addPageElement,
+  addPlacement,
+  updatePlacementSpan,
+  deletePlacement,
   deletePageElement,
   renamePageElement,
   addFolderItem,

@@ -20,6 +20,9 @@ const gridColsInput = document.getElementById("gridColsInput");
 const applyGridBtn = document.getElementById("applyGridBtn");
 const gridBgColorInput = document.getElementById("gridBgColorInput");
 const gridCanvas = document.getElementById("gridCanvas");
+const gridCanvasHost = document.getElementById("gridCanvasHost");
+const gridPreviewModeSelect = document.getElementById("gridPreviewModeSelect");
+const gridPlacementInspector = document.getElementById("gridPlacementInspector");
 
 const state = {
   workspace: null,
@@ -28,6 +31,9 @@ const state = {
   gridSelection: {
     profileId: null,
     pageId: null,
+    selectedElementId: null,
+    selectedPlacementId: null,
+    previewMode: "fill",
   },
 };
 
@@ -66,39 +72,276 @@ function getGridContextWorkspace() {
   };
 }
 
+function getElementById(page, elementId) {
+  return (page.controls || []).find((element) => element.id === elementId) || null;
+}
+
+function getPlacementById(page, placementId) {
+  return (page.placements || []).find((placement) => placement.id === placementId) || null;
+}
+
+function canPlaceOnGrid(page, row, col, rowSpan, colSpan, excludePlacementId = null) {
+  const rows = clampGridValue(page.grid?.rows || 1);
+  const cols = clampGridValue(page.grid?.cols || 1);
+
+  if (row < 1 || col < 1 || rowSpan < 1 || colSpan < 1) {
+    return false;
+  }
+
+  if (row + rowSpan - 1 > rows || col + colSpan - 1 > cols) {
+    return false;
+  }
+
+  return !(page.placements || []).some((placement) => {
+    if (placement.id === excludePlacementId) {
+      return false;
+    }
+
+    const overlapRows = row < placement.row + placement.rowSpan && row + rowSpan > placement.row;
+    const overlapCols = col < placement.col + placement.colSpan && col + colSpan > placement.col;
+    return overlapRows && overlapCols;
+  });
+}
+
+function getDefaultSpanForElement(element) {
+  return element?.type === "fader" ? { rowSpan: 4, colSpan: 1 } : { rowSpan: 1, colSpan: 1 };
+}
+
+function drawPlacement(ctx2d, page, placement, element, metrics, selectedPlacementId) {
+  const { cellW, cellH } = metrics;
+  const x = (placement.col - 1) * cellW;
+  const y = (placement.row - 1) * cellH;
+  const width = placement.colSpan * cellW;
+  const height = placement.rowSpan * cellH;
+  const isSelected = placement.id === selectedPlacementId;
+  const isFader = element?.type === "fader";
+
+  ctx2d.fillStyle = isFader ? "rgba(56,166,255,0.35)" : "rgba(101,217,122,0.30)";
+  ctx2d.fillRect(x + 2, y + 2, width - 4, height - 4);
+
+  ctx2d.lineWidth = isSelected ? 3 : 1;
+  ctx2d.strokeStyle = isSelected ? "#ffd166" : "rgba(255,255,255,0.65)";
+  ctx2d.strokeRect(x + 2.5, y + 2.5, width - 5, height - 5);
+
+  const label = element?.name || placement.elementId;
+  ctx2d.fillStyle = "#ffffff";
+  ctx2d.font = "12px Arial";
+  ctx2d.textAlign = "center";
+  ctx2d.textBaseline = "middle";
+  ctx2d.fillText(label, x + width / 2, y + height / 2);
+}
+
+function renderPlacementInspector(page) {
+  const placement = getPlacementById(page, state.gridSelection.selectedPlacementId);
+  if (!placement) {
+    gridPlacementInspector.classList.add("muted");
+    gridPlacementInspector.textContent = "Selecciona un placement en el canvas.";
+    return;
+  }
+
+  const element = getElementById(page, placement.elementId);
+  if (!element) {
+    gridPlacementInspector.classList.add("muted");
+    gridPlacementInspector.textContent = "Placement inválido (elemento inexistente).";
+    return;
+  }
+
+  gridPlacementInspector.classList.remove("muted");
+  gridPlacementInspector.innerHTML = "";
+
+  const title = document.createElement("strong");
+  title.textContent = "Placement Inspector";
+  gridPlacementInspector.appendChild(title);
+
+  const name = document.createElement("div");
+  name.textContent = `Elemento: ${element.name}`;
+  gridPlacementInspector.appendChild(name);
+
+  const type = document.createElement("div");
+  type.textContent = `Tipo: ${element.type}`;
+  gridPlacementInspector.appendChild(type);
+
+  const rowInput = document.createElement("input");
+  rowInput.type = "number";
+  rowInput.min = "1";
+  rowInput.step = "1";
+  rowInput.value = String(placement.rowSpan);
+
+  const rowWrap = document.createElement("div");
+  rowWrap.textContent = "rowSpan";
+  rowWrap.appendChild(rowInput);
+  gridPlacementInspector.appendChild(rowWrap);
+
+  let colInput = null;
+  if (element.type === "button") {
+    colInput = document.createElement("input");
+    colInput.type = "number";
+    colInput.min = "1";
+    colInput.step = "1";
+    colInput.value = String(placement.colSpan);
+
+    const colWrap = document.createElement("div");
+    colWrap.textContent = "colSpan";
+    colWrap.appendChild(colInput);
+    gridPlacementInspector.appendChild(colWrap);
+  }
+
+  const applyBtn = document.createElement("button");
+  applyBtn.textContent = "Aplicar spans";
+  applyBtn.addEventListener("click", async () => {
+    const nextRow = Math.max(1, Number(rowInput.value) || 1);
+    const nextCol = element.type === "fader" ? 1 : Math.max(1, Number(colInput?.value) || 1);
+
+    if (!canPlaceOnGrid(page, placement.row, placement.col, nextRow, nextCol, placement.id)) {
+      appendLog("Span inválido: se sale de la rejilla o solapa otro placement.");
+      return;
+    }
+
+    state.workspace = await window.runtime.updatePlacementSpan(
+      state.gridSelection.profileId,
+      state.gridSelection.pageId,
+      placement.id,
+      nextRow,
+      nextCol,
+    );
+    renderNavigation();
+  });
+  gridPlacementInspector.appendChild(applyBtn);
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "danger";
+  deleteBtn.textContent = "Eliminar placement";
+  deleteBtn.addEventListener("click", async () => {
+    state.workspace = await window.runtime.deletePlacement(
+      state.gridSelection.profileId,
+      state.gridSelection.pageId,
+      placement.id,
+    );
+    state.gridSelection.selectedPlacementId = null;
+    renderNavigation();
+  });
+  gridPlacementInspector.appendChild(deleteBtn);
+}
+
 function renderGridCanvas(page) {
-  const ctx = gridCanvas.getContext("2d");
+  const ctx2d = gridCanvas.getContext("2d");
   const width = gridCanvas.width;
   const height = gridCanvas.height;
   const rows = clampGridValue(page.grid?.rows || 1);
   const cols = clampGridValue(page.grid?.cols || 1);
   const bgColor = page.background?.type === "solid" ? page.background.color : "#111111";
 
-  ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = bgColor;
-  ctx.fillRect(0, 0, width, height);
-
   const cellW = width / cols;
   const cellH = height / rows;
 
-  ctx.strokeStyle = "rgba(255,255,255,0.35)";
-  ctx.lineWidth = 1;
+  ctx2d.clearRect(0, 0, width, height);
+  ctx2d.fillStyle = bgColor;
+  ctx2d.fillRect(0, 0, width, height);
+
+  ctx2d.strokeStyle = "rgba(255,255,255,0.35)";
+  ctx2d.lineWidth = 1;
 
   for (let col = 0; col <= cols; col += 1) {
     const x = Math.round(col * cellW) + 0.5;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
-    ctx.stroke();
+    ctx2d.beginPath();
+    ctx2d.moveTo(x, 0);
+    ctx2d.lineTo(x, height);
+    ctx2d.stroke();
   }
 
   for (let row = 0; row <= rows; row += 1) {
     const y = Math.round(row * cellH) + 0.5;
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-    ctx.stroke();
+    ctx2d.beginPath();
+    ctx2d.moveTo(0, y);
+    ctx2d.lineTo(width, y);
+    ctx2d.stroke();
   }
+
+  (page.placements || []).forEach((placement) => {
+    drawPlacement(
+      ctx2d,
+      page,
+      placement,
+      getElementById(page, placement.elementId),
+      { cellW, cellH },
+      state.gridSelection.selectedPlacementId,
+    );
+  });
+
+  const selectedElement = getElementById(page, state.gridSelection.selectedElementId);
+  if (selectedElement) {
+    const { rowSpan, colSpan } = getDefaultSpanForElement(selectedElement);
+
+    for (let row = 1; row <= rows; row += 1) {
+      for (let col = 1; col <= cols; col += 1) {
+        if (!canPlaceOnGrid(page, row, col, rowSpan, colSpan)) {
+          continue;
+        }
+
+        const x = (col - 1) * cellW + cellW / 2;
+        const y = (row - 1) * cellH + cellH / 2;
+        ctx2d.fillStyle = "rgba(255,255,255,0.85)";
+        ctx2d.font = "bold 18px Arial";
+        ctx2d.textAlign = "center";
+        ctx2d.textBaseline = "middle";
+        ctx2d.fillText("+", x, y);
+      }
+    }
+  }
+}
+
+function getCanvasCell(page, event) {
+  const rect = gridCanvas.getBoundingClientRect();
+  const rows = clampGridValue(page.grid?.rows || 1);
+  const cols = clampGridValue(page.grid?.cols || 1);
+  const x = Math.min(Math.max(0, event.clientX - rect.left), rect.width - 1);
+  const y = Math.min(Math.max(0, event.clientY - rect.top), rect.height - 1);
+
+  return {
+    row: Math.floor((y / rect.height) * rows) + 1,
+    col: Math.floor((x / rect.width) * cols) + 1,
+  };
+}
+
+async function onGridCanvasClick(event) {
+  const ctx = getGridContextWorkspace();
+  if (!ctx) {
+    return;
+  }
+
+  const page = ctx.page;
+  const { row, col } = getCanvasCell(page, event);
+
+  const placement = (page.placements || []).find((item) => {
+    const insideRow = row >= item.row && row <= item.row + item.rowSpan - 1;
+    const insideCol = col >= item.col && col <= item.col + item.colSpan - 1;
+    return insideRow && insideCol;
+  });
+
+  if (placement) {
+    state.gridSelection.selectedPlacementId = placement.id;
+    state.gridSelection.selectedElementId = null;
+    renderGridTab();
+    return;
+  }
+
+  const element = getElementById(page, state.gridSelection.selectedElementId);
+  if (!element) {
+    state.gridSelection.selectedPlacementId = null;
+    renderGridTab();
+    return;
+  }
+
+  const defaultSpan = getDefaultSpanForElement(element);
+  if (!canPlaceOnGrid(page, row, col, defaultSpan.rowSpan, defaultSpan.colSpan)) {
+    return;
+  }
+
+  const result = await window.runtime.addPlacement(ctx.profile.id, ctx.page.id, element.id, row, col);
+  state.workspace = result.workspace;
+  state.gridSelection.selectedElementId = null;
+  state.gridSelection.selectedPlacementId = result.created.id;
+  renderNavigation();
 }
 
 function renderGridTab() {
@@ -139,6 +382,8 @@ function renderGridTab() {
   gridRowsInput.value = clampGridValue(ctx.page.grid?.rows || 4);
   gridColsInput.value = clampGridValue(ctx.page.grid?.cols || 3);
   gridBgColorInput.value = ctx.page.background?.color || "#111111";
+  gridPreviewModeSelect.value = state.gridSelection.previewMode;
+  gridCanvasHost.classList.toggle("preview-9x16", state.gridSelection.previewMode === "9x16");
 
   gridElementsList.innerHTML = "";
   const elements = ctx.page.controls || [];
@@ -150,12 +395,25 @@ function renderGridTab() {
   } else {
     elements.forEach((element) => {
       const item = document.createElement("li");
-      item.textContent = `${element.name} (${element.type})`;
+      const used = (ctx.page.placements || []).some((placement) => placement.elementId === element.id);
+      item.textContent = `${element.name} (${element.type})${used ? " · colocado" : ""}`;
+      item.style.cursor = used ? "not-allowed" : "pointer";
+      if (state.gridSelection.selectedElementId === element.id) {
+        item.style.color = "#ffd166";
+      }
+      if (!used) {
+        item.addEventListener("click", () => {
+          state.gridSelection.selectedElementId = element.id;
+          state.gridSelection.selectedPlacementId = null;
+          renderGridTab();
+        });
+      }
       gridElementsList.appendChild(item);
     });
   }
 
   renderGridCanvas(ctx.page);
+  renderPlacementInspector(ctx.page);
 }
 
 async function applyGridValues() {
@@ -1028,16 +1286,29 @@ tabButtons.forEach((button) => {
 gridProfileSelect.addEventListener("change", () => {
   state.gridSelection.profileId = gridProfileSelect.value;
   state.gridSelection.pageId = null;
+  state.gridSelection.selectedElementId = null;
+  state.gridSelection.selectedPlacementId = null;
   renderGridTab();
 });
 
 gridPageSelect.addEventListener("change", () => {
   state.gridSelection.pageId = gridPageSelect.value;
+  state.gridSelection.selectedElementId = null;
+  state.gridSelection.selectedPlacementId = null;
   renderGridTab();
 });
 
 applyGridBtn.addEventListener("click", async () => {
   await applyGridValues();
+});
+
+gridPreviewModeSelect.addEventListener("change", () => {
+  state.gridSelection.previewMode = gridPreviewModeSelect.value;
+  renderGridTab();
+});
+
+gridCanvas.addEventListener("click", async (event) => {
+  await onGridCanvasClick(event);
 });
 
 gridBgColorInput.addEventListener("input", async (event) => {
