@@ -24,6 +24,10 @@ contextBridge.exposeInMainWorld("runtime", {
   updateIcon: (payload) => ipcRenderer.invoke("workspace:updateIcon", payload),
   setActiveProfile: (profileId) => ipcRenderer.invoke("workspace:setActiveProfile", profileId),
   setActivePage: (profileId, pageId) => ipcRenderer.invoke("workspace:setActivePage", profileId, pageId),
+  setPageGrid: (profileId, pageId, rows, cols) =>
+    ipcRenderer.invoke("workspace:setPageGrid", profileId, pageId, rows, cols),
+  setPageBackgroundSolid: (profileId, pageId, color) =>
+    ipcRenderer.invoke("workspace:setPageBackgroundSolid", profileId, pageId, color),
   deleteProfile: (profileId) => ipcRenderer.invoke("workspace:deleteProfile", profileId),
   deletePage: (profileId, pageId) => ipcRenderer.invoke("workspace:deletePage", profileId, pageId),
   deleteFolder: (profileId, pageId, folderId) => ipcRenderer.invoke("workspace:deleteFolder", profileId, pageId, folderId),
