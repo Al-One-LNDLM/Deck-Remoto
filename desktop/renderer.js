@@ -246,6 +246,47 @@ function buildTreeActions(node, workspace) {
   return [];
 }
 
+function buildCreateActions(node) {
+  if (node.type === "page") {
+    return [
+      {
+        label: "Nuevo Botón",
+        onClick: async () => {
+          const result = await window.runtime.addPageElement(node.profileId, node.id, "button");
+          state.workspace = result.workspace;
+          state.selection = { type: "page", id: node.id };
+          renderNavigation();
+        },
+      },
+      {
+        label: "Nuevo Fader",
+        onClick: async () => {
+          const result = await window.runtime.addPageElement(node.profileId, node.id, "fader");
+          state.workspace = result.workspace;
+          state.selection = { type: "page", id: node.id };
+          renderNavigation();
+        },
+      },
+    ];
+  }
+
+  if (node.type === "folder") {
+    return [
+      {
+        label: "Nuevo Botón",
+        onClick: async () => {
+          const result = await window.runtime.addFolderItem(node.profileId, node.pageId, node.id);
+          state.workspace = result.workspace;
+          state.selection = { type: "folder", id: node.id };
+          renderNavigation();
+        },
+      },
+    ];
+  }
+
+  return [];
+}
+
 function renderTree(workspace, selection) {
   treeRoot.innerHTML = "";
 
@@ -313,6 +354,19 @@ function createTreeItem(node, selection, workspace) {
   });
 
   item.appendChild(label);
+
+  const createActions = buildCreateActions(node);
+  if (createActions.length > 0) {
+    const addBtn = document.createElement("button");
+    addBtn.className = "tree-actions-btn";
+    addBtn.textContent = "+";
+    addBtn.title = "Crear elemento";
+    addBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openContextMenu(event.currentTarget, createActions);
+    });
+    item.appendChild(addBtn);
+  }
 
   const actions = buildTreeActions(node, workspace);
   const actionBtn = document.createElement("button");
@@ -484,6 +538,58 @@ function openSimpleModal({ title, message, confirmText = "Aceptar", cancelText =
   });
 }
 
+function createElementEditorRow({ typeLabel, value, onRename, onDelete }) {
+  const row = document.createElement("div");
+  row.className = "inspector-item-row";
+
+  const type = document.createElement("span");
+  type.className = "inspector-item-type";
+  type.textContent = `[${typeLabel}]`;
+
+  const input = document.createElement("input");
+  input.value = value;
+  input.addEventListener("input", (event) => {
+    const nextName = event.target.value;
+    clearTimeout(state.renameTimer);
+    state.renameTimer = setTimeout(async () => {
+      await onRename(nextName);
+    }, 300);
+  });
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.textContent = "Eliminar";
+  deleteBtn.className = "danger";
+  deleteBtn.addEventListener("click", async () => {
+    await onDelete();
+  });
+
+  row.appendChild(type);
+  row.appendChild(input);
+  row.appendChild(deleteBtn);
+
+  return row;
+}
+
+function renderElementsSection({ title, emptyMessage, rows }) {
+  const section = document.createElement("div");
+  section.className = "inspector-elements";
+
+  const heading = document.createElement("h4");
+  heading.textContent = title;
+  section.appendChild(heading);
+
+  if (!rows.length) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = emptyMessage;
+    section.appendChild(empty);
+    return section;
+  }
+
+  rows.forEach((row) => section.appendChild(row));
+  return section;
+}
+
 function renderInspector(workspace, selection) {
   const context = getSelectedNodeContext(workspace, selection);
 
@@ -563,13 +669,60 @@ function renderInspector(workspace, selection) {
     info.className = "muted";
     info.textContent = `Grid: ${context.page.grid.rows} rows x ${context.page.grid.cols} cols`;
     inspector.appendChild(info);
+
+    const rows = context.page.controls.map((element) =>
+      createElementEditorRow({
+        typeLabel: element.type,
+        value: element.name,
+        onRename: async (nextName) => {
+          state.workspace = await window.runtime.renamePageElement(context.profile.id, context.page.id, element.id, nextName);
+          renderNavigation();
+        },
+        onDelete: async () => {
+          state.workspace = await window.runtime.deletePageElement(context.profile.id, context.page.id, element.id);
+          renderNavigation();
+        },
+      }),
+    );
+
+    inspector.appendChild(
+      renderElementsSection({
+        title: "Elementos",
+        emptyMessage: "Sin elementos en la página.",
+        rows,
+      }),
+    );
   }
 
   if (context.type === "folder") {
-    const info = document.createElement("p");
-    info.className = "muted";
-    info.textContent = `Items count: ${context.folder.items.length}`;
-    inspector.appendChild(info);
+    const rows = context.folder.items.map((item) =>
+      createElementEditorRow({
+        typeLabel: item.type,
+        value: item.name,
+        onRename: async (nextName) => {
+          state.workspace = await window.runtime.renameFolderItem(
+            context.profile.id,
+            context.page.id,
+            context.folder.id,
+            item.id,
+            nextName,
+          );
+          renderNavigation();
+        },
+        onDelete: async () => {
+          state.workspace = await window.runtime.deleteFolderItem(context.profile.id, context.page.id, context.folder.id, item.id);
+          renderNavigation();
+        },
+      }),
+    );
+
+    inspector.appendChild(
+      renderElementsSection({
+        title: "Elementos",
+        emptyMessage: "Sin elementos en la carpeta.",
+        rows,
+      }),
+    );
   }
 }
 
