@@ -87,6 +87,11 @@
         background: rgba(255, 255, 255, 0.03);
       }
 
+      #grid.hide-grid-lines .grid-cell {
+        border: 0;
+        background: transparent;
+      }
+
       .placement-layer {
         position: absolute;
         inset: 8px;
@@ -282,6 +287,9 @@
           gridEl.style.background = background.color || "#111111";
           gridEl.style.backgroundImage = "none";
         }
+
+        const showGrid = activePage.showGrid !== false;
+        gridEl.classList.toggle("hide-grid-lines", !showGrid);
 
         for (let index = 0; index < totalCells; index += 1) {
           const cell = document.createElement("div");

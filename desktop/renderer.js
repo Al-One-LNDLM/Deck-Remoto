@@ -18,6 +18,7 @@ const gridElementsList = document.getElementById("gridElementsList");
 const gridRowsInput = document.getElementById("gridRowsInput");
 const gridColsInput = document.getElementById("gridColsInput");
 const applyGridBtn = document.getElementById("applyGridBtn");
+const gridShowCheckbox = document.getElementById("gridShowCheckbox");
 const gridBgColorInput = document.getElementById("gridBgColorInput");
 const addBackgroundImageBtn = document.getElementById("addBackgroundImageBtn");
 const backgroundImageInfo = document.getElementById("backgroundImageInfo");
@@ -336,23 +337,25 @@ async function renderGridCanvas(page) {
     }
   }
 
-  ctx2d.strokeStyle = "rgba(255,255,255,0.35)";
-  ctx2d.lineWidth = 1;
+  if (page.showGrid !== false) {
+    ctx2d.strokeStyle = "rgba(255,255,255,0.35)";
+    ctx2d.lineWidth = 1;
 
-  for (let col = 0; col <= cols; col += 1) {
-    const x = Math.round(col * cellW) + 0.5;
-    ctx2d.beginPath();
-    ctx2d.moveTo(x, 0);
-    ctx2d.lineTo(x, height);
-    ctx2d.stroke();
-  }
+    for (let col = 0; col <= cols; col += 1) {
+      const x = Math.round(col * cellW) + 0.5;
+      ctx2d.beginPath();
+      ctx2d.moveTo(x, 0);
+      ctx2d.lineTo(x, height);
+      ctx2d.stroke();
+    }
 
-  for (let row = 0; row <= rows; row += 1) {
-    const y = Math.round(row * cellH) + 0.5;
-    ctx2d.beginPath();
-    ctx2d.moveTo(0, y);
-    ctx2d.lineTo(width, y);
-    ctx2d.stroke();
+    for (let row = 0; row <= rows; row += 1) {
+      const y = Math.round(row * cellH) + 0.5;
+      ctx2d.beginPath();
+      ctx2d.moveTo(0, y);
+      ctx2d.lineTo(width, y);
+      ctx2d.stroke();
+    }
   }
 
   (page.placements || []).forEach((placement) => {
@@ -490,6 +493,7 @@ async function renderGridTab() {
 
   gridRowsInput.value = clampGridValue(ctx.page.grid?.rows || 4);
   gridColsInput.value = clampGridValue(ctx.page.grid?.cols || 3);
+  gridShowCheckbox.checked = ctx.page.showGrid !== false;
   const background = ctx.page.background || { type: "solid", color: "#111111" };
   gridBgColorInput.value = background.color || "#111111";
 
@@ -550,6 +554,17 @@ async function applyGridValues() {
   state.workspace = await window.runtime.setPageGrid(ctx.profile.id, ctx.page.id, rows, cols);
   renderNavigation();
   renderGridTab();
+}
+
+async function applyShowGrid(showGrid) {
+  const ctx = getGridContextWorkspace();
+  if (!ctx) {
+    return;
+  }
+
+  state.workspace = await window.runtime.setPageShowGrid(ctx.profile.id, ctx.page.id, showGrid);
+  renderNavigation();
+  await renderGridTab();
 }
 
 async function applyBackgroundColor(color) {
@@ -1472,6 +1487,10 @@ gridPageSelect.addEventListener("change", () => {
 
 applyGridBtn.addEventListener("click", async () => {
   await applyGridValues();
+});
+
+gridShowCheckbox.addEventListener("change", async (event) => {
+  await applyShowGrid(event.target.checked);
 });
 
 gridPreviewModeSelect.addEventListener("change", () => {
