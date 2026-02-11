@@ -42,18 +42,10 @@
           "placements": [
             {
               "id": "placement1",
-              "elementId": "button1",
+              "elementId": "fader1",
               "row": 1,
               "col": 1,
-              "rowSpan": 1,
-              "colSpan": 1
-            },
-            {
-              "id": "placement2",
-              "elementId": "button2",
-              "row": 1,
-              "col": 2,
-              "rowSpan": 1,
+              "rowSpan": 2,
               "colSpan": 1
             }
           ]
