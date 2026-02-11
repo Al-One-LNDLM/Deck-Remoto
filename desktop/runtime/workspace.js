@@ -40,6 +40,27 @@ function createDefaultWorkspace() {
   };
 }
 
+function normalizeBackground(background) {
+  if (background?.type === "image") {
+    const safePath = typeof background.imagePath === "string" ? background.imagePath.trim() : "";
+    const fit = background.fit === "contain" || background.fit === "stretch" ? background.fit : "cover";
+
+    if (safePath) {
+      return {
+        type: "image",
+        imagePath: safePath,
+        fit,
+      };
+    }
+  }
+
+  const safeColor = /^#[0-9a-fA-F]{6}$/.test(background?.color || "") ? background.color : "#111111";
+  return {
+    type: "solid",
+    color: safeColor,
+  };
+}
+
 function normalizeWorkspace(workspace) {
   const normalized = workspace || createDefaultWorkspace();
   normalized.profiles = Array.isArray(normalized.profiles) ? normalized.profiles : [];
@@ -49,7 +70,7 @@ function normalizeWorkspace(workspace) {
 
     profile.pages.forEach((page) => {
       page.grid = page.grid || { rows: 4, cols: 3 };
-      page.background = page.background || { type: "solid", color: "#111111" };
+      page.background = normalizeBackground(page.background);
       page.controls = Array.isArray(page.controls) ? page.controls : [];
       page.folders = Array.isArray(page.folders) ? page.folders : [];
       page.placements = Array.isArray(page.placements) ? page.placements : [];
@@ -820,6 +841,37 @@ function setPageBackgroundSolid(profileId, pageId, color) {
   return workspace;
 }
 
+function setPageBackgroundImage(profileId, pageId, imagePath, fit) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const safePath = typeof imagePath === "string" ? imagePath.trim() : "";
+
+  if (!safePath) {
+    throw new Error("imagePath inválido");
+  }
+
+  page.background = {
+    type: "image",
+    imagePath: safePath,
+    fit: fit === "contain" || fit === "stretch" ? fit : "cover",
+  };
+
+  scheduleSave();
+  return workspace;
+}
+
+function clearPageBackgroundImage(profileId, pageId) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const safeColor = /^#[0-9a-fA-F]{6}$/.test(page.background?.color || "") ? page.background.color : "#111111";
+
+  page.background = {
+    type: "solid",
+    color: safeColor,
+  };
+
+  scheduleSave();
+  return workspace;
+}
+
 function getActiveState(workspace) {
   const activeProfile = workspace.profiles.find(
     (profile) => profile.id === workspace.activeProfileId,
@@ -866,4 +918,6 @@ module.exports = {
   setActive,
   setPageGrid,
   setPageBackgroundSolid,
+  setPageBackgroundImage,
+  clearPageBackgroundImage,
 };

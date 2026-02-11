@@ -34,12 +34,17 @@ contextBridge.exposeInMainWorld("runtime", {
     ipcRenderer.invoke("workspace:setPageGrid", profileId, pageId, rows, cols),
   setPageBackgroundSolid: (profileId, pageId, color) =>
     ipcRenderer.invoke("workspace:setPageBackgroundSolid", profileId, pageId, color),
+  setPageBackgroundImage: (profileId, pageId, imagePath, fit) =>
+    ipcRenderer.invoke("workspace:setPageBackgroundImage", profileId, pageId, imagePath, fit),
+  clearPageBackgroundImage: (profileId, pageId) =>
+    ipcRenderer.invoke("workspace:clearPageBackgroundImage", profileId, pageId),
   deleteProfile: (profileId) => ipcRenderer.invoke("workspace:deleteProfile", profileId),
   deletePage: (profileId, pageId) => ipcRenderer.invoke("workspace:deletePage", profileId, pageId),
   deleteFolder: (profileId, pageId, folderId) => ipcRenderer.invoke("workspace:deleteFolder", profileId, pageId, folderId),
   movePage: (pageId, fromProfileId, toProfileId) => ipcRenderer.invoke("workspace:movePage", pageId, fromProfileId, toProfileId),
   moveFolder: (folderId, fromProfileId, fromPageId, toProfileId, toPageId) => ipcRenderer.invoke("workspace:moveFolder", folderId, fromProfileId, fromPageId, toProfileId, toPageId),
   importIcon: () => ipcRenderer.invoke("workspace:importIcon"),
+  importBackgroundImage: () => ipcRenderer.invoke("workspace:importBackgroundImage"),
   onLog: (listener) => {
     const handler = (_, message) => listener(message);
     ipcRenderer.on("server:log", handler);

@@ -22,6 +22,8 @@ const {
   setActivePage,
   setPageGrid,
   setPageBackgroundSolid,
+  setPageBackgroundImage,
+  clearPageBackgroundImage,
   deleteProfile,
   deletePage,
   deleteFolder,
@@ -53,6 +55,10 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, "index.html"));
 }
 
+function sanitizeAssetName(fileName) {
+  return fileName.replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-");
+}
+
 async function importIconAsset() {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ["openFile"],
@@ -72,6 +78,30 @@ async function importIconAsset() {
   fs.copyFileSync(sourcePath, targetPath);
 
   return `assets/icons/${targetName}`;
+}
+
+async function importBackgroundImage() {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openFile"],
+    filters: [{ name: "Imágenes", extensions: ["png", "jpg", "jpeg", "webp"] }],
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+
+  const sourcePath = result.filePaths[0];
+  const backgroundsDir = path.resolve(__dirname, "assets/backgrounds");
+  fs.mkdirSync(backgroundsDir, { recursive: true });
+
+  const parsed = path.parse(sourcePath);
+  const extension = parsed.ext || ".png";
+  const baseName = sanitizeAssetName(parsed.name) || "background";
+  const targetName = `${Date.now()}-${baseName}${extension}`;
+  const targetPath = path.join(backgroundsDir, targetName);
+  fs.copyFileSync(sourcePath, targetPath);
+
+  return `assets/backgrounds/${targetName}`;
 }
 
 app.whenReady().then(() => {
@@ -120,12 +150,19 @@ app.whenReady().then(() => {
   ipcMain.handle("workspace:setPageBackgroundSolid", (_event, profileId, pageId, color) =>
     setPageBackgroundSolid(profileId, pageId, color),
   );
+  ipcMain.handle("workspace:setPageBackgroundImage", (_event, profileId, pageId, imagePath, fit) =>
+    setPageBackgroundImage(profileId, pageId, imagePath, fit),
+  );
+  ipcMain.handle("workspace:clearPageBackgroundImage", (_event, profileId, pageId) =>
+    clearPageBackgroundImage(profileId, pageId),
+  );
   ipcMain.handle("workspace:deleteProfile", (_event, profileId) => deleteProfile(profileId));
   ipcMain.handle("workspace:deletePage", (_event, profileId, pageId) => deletePage(profileId, pageId));
   ipcMain.handle("workspace:deleteFolder", (_event, profileId, pageId, folderId) => deleteFolder(profileId, pageId, folderId));
   ipcMain.handle("workspace:movePage", (_event, pageId, fromProfileId, toProfileId) => movePage(pageId, fromProfileId, toProfileId));
   ipcMain.handle("workspace:moveFolder", (_event, folderId, fromProfileId, fromPageId, toProfileId, toPageId) => moveFolder(folderId, fromProfileId, fromPageId, toProfileId, toPageId));
   ipcMain.handle("workspace:importIcon", () => importIconAsset());
+  ipcMain.handle("workspace:importBackgroundImage", () => importBackgroundImage());
 
   createWindow();
 
