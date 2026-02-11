@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Remote Deck Mobile</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 24px;
+      }
+
+      #status {
+        font-weight: bold;
+      }
+
+      button {
+        margin-top: 16px;
+        padding: 10px 14px;
+        border: 0;
+        border-radius: 6px;
+        background: #0069d9;
+        color: #fff;
+      }
+
+      pre {
+        margin-top: 16px;
+        background: #f4f4f4;
+        border-radius: 6px;
+        padding: 12px;
+        min-height: 60px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Remote Deck - Mobile</h1>
+    <p>Estado WS: <span id="status">Desconectado</span></p>
+    <button id="sendEventBtn">Enviar evento</button>
+    <pre id="lastAck">Sin ACK todavía</pre>
+
+    <script>
+      const statusEl = document.getElementById("status");
+      const sendEventBtn = document.getElementById("sendEventBtn");
+      const lastAckEl = document.getElementById("lastAck");
+
+      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+      const socketUrl = `${protocol}://${window.location.hostname}:3030/ws`;
+
+      let socket;
+
+      function setStatus(connected) {
+        statusEl.textContent = connected ? "Conectado" : "Desconectado";
+        statusEl.style.color = connected ? "green" : "crimson";
+      }
+
+      function connect() {
+        socket = new WebSocket(socketUrl);
+
+        socket.addEventListener("open", () => {
+          setStatus(true);
+        });
+
+        socket.addEventListener("close", () => {
+          setStatus(false);
+          setTimeout(connect, 1500);
+        });
+
+        socket.addEventListener("error", () => {
+          setStatus(false);
+        });
+
+        socket.addEventListener("message", (event) => {
+          lastAckEl.textContent = `ACK recibido: ${event.data}`;
+        });
+      }
+
+      sendEventBtn.addEventListener("click", () => {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          return;
+        }
+
+        socket.send(
+          JSON.stringify({
+            type: "event",
+            payload: {
+              kind: "buttonPress",
+              controlId: "testButton",
+            },
+          }),
+        );
+      });
+
+      setStatus(false);
+      connect();
+    </script>
+  </body>
+</html>
