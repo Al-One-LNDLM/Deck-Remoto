@@ -10,6 +10,7 @@ const navigationTab = document.getElementById("navigationTab");
 const treeRoot = document.getElementById("treeRoot");
 const inspector = document.getElementById("inspector");
 const addNodeBtn = document.getElementById("addNodeBtn");
+const addMenu = document.getElementById("addMenu");
 
 const state = {
   workspace: null,
@@ -95,7 +96,11 @@ function createTreeItem(node, selection, workspace) {
   if (selection && selection.type === node.type && selection.id === node.id) {
     label.classList.add("selected");
   }
-  label.textContent = `${node.type.toUpperCase()}: ${node.name}`;
+  const isActiveProfile = node.type === "profile" && workspace.activeProfileId === node.id;
+  const isActivePage =
+    node.type === "page" && workspace.activeProfileId === node.profileId && workspace.activePageId === node.id;
+  const activeSuffix = isActiveProfile || isActivePage ? " • active" : "";
+  label.textContent = `${node.type.toUpperCase()}: ${node.name}${activeSuffix}`;
   label.addEventListener("click", () => {
     state.selection = { type: node.type, id: node.id };
     renderNavigation();
@@ -103,37 +108,69 @@ function createTreeItem(node, selection, workspace) {
 
   item.appendChild(label);
 
+  const actions = [];
+
   if (node.type === "profile") {
-    const setActiveBtn = document.createElement("button");
-    setActiveBtn.textContent = "★ Perfil";
-    setActiveBtn.title = "Set Active Profile";
-    if (workspace.activeProfileId === node.id) {
-      setActiveBtn.disabled = true;
-    }
-    setActiveBtn.addEventListener("click", async (event) => {
-      event.stopPropagation();
-      state.workspace = await window.runtime.setActiveProfile(node.id);
-      renderNavigation();
+    actions.push({
+      label: "Set Active Profile",
+      onClick: async () => {
+        state.workspace = await window.runtime.setActiveProfile(node.id);
+        renderNavigation();
+      },
     });
-    item.appendChild(setActiveBtn);
   }
 
   if (node.type === "page") {
-    const setActiveBtn = document.createElement("button");
-    setActiveBtn.textContent = "★ Página";
-    setActiveBtn.title = "Set Active Page";
-    if (workspace.activePageId === node.id && workspace.activeProfileId === node.profileId) {
-      setActiveBtn.disabled = true;
-    }
-    setActiveBtn.addEventListener("click", async (event) => {
-      event.stopPropagation();
-      state.workspace = await window.runtime.setActivePage(node.profileId, node.id);
-      renderNavigation();
+    actions.push({
+      label: "Set Active Page",
+      onClick: async () => {
+        state.workspace = await window.runtime.setActivePage(node.profileId, node.id);
+        renderNavigation();
+      },
     });
-    item.appendChild(setActiveBtn);
+  }
+
+  if (actions.length > 0) {
+    const actionBtn = document.createElement("button");
+    actionBtn.className = "tree-actions-btn";
+    actionBtn.textContent = "⋯";
+    actionBtn.title = "Acciones";
+    actionBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openContextMenu(event.currentTarget, actions);
+    });
+    item.appendChild(actionBtn);
   }
 
   return item;
+}
+
+function openContextMenu(anchor, actions) {
+  closeContextMenus();
+
+  const menu = document.createElement("div");
+  menu.className = "context-menu";
+
+  actions.forEach((action) => {
+    const actionItem = document.createElement("button");
+    actionItem.className = "context-menu-item";
+    actionItem.textContent = action.label;
+    actionItem.addEventListener("click", async () => {
+      closeContextMenus();
+      await action.onClick();
+    });
+    menu.appendChild(actionItem);
+  });
+
+  document.body.appendChild(menu);
+
+  const rect = anchor.getBoundingClientRect();
+  menu.style.top = `${rect.bottom + 4}px`;
+  menu.style.left = `${Math.max(8, rect.left - 120)}px`;
+}
+
+function closeContextMenus() {
+  document.querySelectorAll(".context-menu").forEach((menu) => menu.remove());
 }
 
 function renderInspector(workspace, selection) {
@@ -175,7 +212,7 @@ function renderInspector(workspace, selection) {
   nameRow.appendChild(nameInput);
   inspector.appendChild(nameRow);
 
-  if (context.type === "profile" || context.type === "folder") {
+  if (context.type === "folder") {
     const iconRow = document.createElement("div");
     iconRow.className = "inspector-row";
     const iconLabel = document.createElement("label");
@@ -225,9 +262,102 @@ function renderInspector(workspace, selection) {
   }
 }
 
-function updateAddButtonState(workspace, selection) {
-  const context = getSelectedNodeContext(workspace, selection);
-  addNodeBtn.disabled = context?.type === "folder";
+function updateAddButtonState() {
+  addNodeBtn.disabled = false;
+}
+
+function getProfileChoices(workspace) {
+  return workspace.profiles.map((profile) => ({ id: profile.id, name: profile.name }));
+}
+
+function getPageChoices(profile) {
+  return profile.pages.map((page) => ({ id: page.id, name: page.name }));
+}
+
+function selectChoice(message, choices) {
+  if (!choices.length) {
+    return null;
+  }
+
+  const optionsText = choices.map((choice, index) => `${index + 1}. ${choice.name} (${choice.id})`).join("\n");
+  const value = window.prompt(`${message}\n${optionsText}\n\nEscribe el número:`);
+  const index = Number.parseInt(value, 10) - 1;
+
+  if (Number.isNaN(index) || index < 0 || index >= choices.length) {
+    return null;
+  }
+
+  return choices[index];
+}
+
+async function handleAddProfile() {
+  const result = await window.runtime.addProfile();
+  state.workspace = result.workspace;
+  state.selection = result.created;
+  renderNavigation();
+}
+
+async function handleAddPage() {
+  const context = getSelectedNodeContext(state.workspace, state.selection);
+  let targetProfileId = null;
+
+  if (context?.type === "profile") {
+    targetProfileId = context.profile.id;
+  } else if (context?.type === "page") {
+    targetProfileId = context.profile.id;
+  } else {
+    const profileChoice = selectChoice("Selecciona un profile destino", getProfileChoices(state.workspace));
+    targetProfileId = profileChoice?.id || null;
+  }
+
+  if (!targetProfileId) {
+    return;
+  }
+
+  const result = await window.runtime.addPage(targetProfileId);
+  state.workspace = result.workspace;
+  state.selection = result.created;
+  renderNavigation();
+}
+
+async function handleAddFolder() {
+  const context = getSelectedNodeContext(state.workspace, state.selection);
+  let targetProfileId = null;
+  let targetPageId = null;
+
+  if (context?.type === "page") {
+    targetProfileId = context.profile.id;
+    targetPageId = context.page.id;
+  } else if (context?.type === "folder") {
+    targetProfileId = context.profile.id;
+    targetPageId = context.page.id;
+  } else if (context?.type === "profile") {
+    targetProfileId = context.profile.id;
+    const pageChoice = selectChoice(
+      "Selecciona una page destino",
+      getPageChoices(context.profile),
+    );
+    targetPageId = pageChoice?.id || null;
+  } else {
+    const profileChoice = selectChoice("Selecciona un profile destino", getProfileChoices(state.workspace));
+    if (!profileChoice) {
+      return;
+    }
+    targetProfileId = profileChoice.id;
+
+    const profile = state.workspace.profiles.find((item) => item.id === targetProfileId);
+    const pageChoice = selectChoice("Selecciona una page destino", getPageChoices(profile));
+    targetPageId = pageChoice?.id || null;
+  }
+
+  if (!targetProfileId || !targetPageId) {
+    return;
+  }
+
+  const result = await window.runtime.addFolder(targetProfileId, targetPageId);
+  state.workspace = result.workspace;
+  state.selection = result.created;
+  renderNavigation();
 }
 
 function renderNavigation() {
@@ -237,35 +367,11 @@ function renderNavigation() {
 
   renderTree(state.workspace, state.selection);
   renderInspector(state.workspace, state.selection);
-  updateAddButtonState(state.workspace, state.selection);
+  updateAddButtonState();
 }
 
-async function handleAddNode() {
-  const selection = state.selection;
-
-  if (!selection) {
-    const result = await window.runtime.addProfile();
-    state.workspace = result.workspace;
-    state.selection = result.created;
-    renderNavigation();
-    return;
-  }
-
-  if (selection.type === "profile") {
-    const result = await window.runtime.addPage(selection.id);
-    state.workspace = result.workspace;
-    state.selection = result.created;
-    renderNavigation();
-    return;
-  }
-
-  if (selection.type === "page") {
-    const context = getSelectedNodeContext(state.workspace, selection);
-    const result = await window.runtime.addFolder(context.profile.id, selection.id);
-    state.workspace = result.workspace;
-    state.selection = result.created;
-    renderNavigation();
-  }
+function toggleAddMenu() {
+  addMenu.classList.toggle("open");
 }
 
 function setActiveTab(tabName) {
@@ -297,8 +403,37 @@ stopBtn.addEventListener("click", async () => {
   }
 });
 
-addNodeBtn.addEventListener("click", () => {
-  handleAddNode();
+addNodeBtn.addEventListener("click", (event) => {
+  event.stopPropagation();
+  toggleAddMenu();
+});
+
+addMenu.addEventListener("click", async (event) => {
+  const action = event.target.dataset.action;
+  if (!action) {
+    return;
+  }
+
+  addMenu.classList.remove("open");
+
+  if (action === "profile") {
+    await handleAddProfile();
+    return;
+  }
+
+  if (action === "page") {
+    await handleAddPage();
+    return;
+  }
+
+  if (action === "folder") {
+    await handleAddFolder();
+  }
+});
+
+document.addEventListener("click", () => {
+  addMenu.classList.remove("open");
+  closeContextMenus();
 });
 
 tabButtons.forEach((button) => {
