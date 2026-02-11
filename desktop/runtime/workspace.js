@@ -27,6 +27,11 @@ function createDefaultWorkspace() {
               cols: 3,
             },
             showGrid: true,
+            style: {
+              buttonShowBackground: true,
+              buttonShowLabel: true,
+              faderShowLabel: true,
+            },
             background: {
               type: "solid",
               color: "#111111",
@@ -38,6 +43,14 @@ function createDefaultWorkspace() {
         ],
       },
     ],
+  };
+}
+
+function normalizePageStyle(style) {
+  return {
+    buttonShowBackground: style?.buttonShowBackground !== false,
+    buttonShowLabel: style?.buttonShowLabel !== false,
+    faderShowLabel: style?.faderShowLabel !== false,
   };
 }
 
@@ -72,6 +85,7 @@ function normalizeWorkspace(workspace) {
     profile.pages.forEach((page) => {
       page.grid = page.grid || { rows: 4, cols: 3 };
       page.showGrid = page.showGrid !== false;
+      page.style = normalizePageStyle(page.style);
       page.background = normalizeBackground(page.background);
       page.controls = Array.isArray(page.controls) ? page.controls : [];
       page.folders = Array.isArray(page.folders) ? page.folders : [];
@@ -300,6 +314,11 @@ function addProfile() {
         name: `Página ${pageId.replace("page", "")}`,
         grid: { rows: 4, cols: 3 },
         showGrid: true,
+        style: {
+          buttonShowBackground: true,
+          buttonShowLabel: true,
+          faderShowLabel: true,
+        },
         background: { type: "solid", color: "#111111" },
         controls: [],
         folders: [],
@@ -329,6 +348,11 @@ function addPage(profileId) {
     name: `Página ${pageId.replace("page", "")}`,
     grid: { rows: 4, cols: 3 },
     showGrid: true,
+    style: {
+      buttonShowBackground: true,
+      buttonShowLabel: true,
+      faderShowLabel: true,
+    },
     background: { type: "solid", color: "#111111" },
     controls: [],
     folders: [],
@@ -558,6 +582,11 @@ function ensureValidActiveSelection() {
       name: `Página ${pageId.replace("page", "")}`,
       grid: { rows: 4, cols: 3 },
       showGrid: true,
+      style: {
+        buttonShowBackground: true,
+        buttonShowLabel: true,
+        faderShowLabel: true,
+      },
       background: { type: "solid", color: "#111111" },
       controls: [],
       folders: [],
@@ -841,6 +870,30 @@ function setPageShowGrid(profileId, pageId, showGrid) {
   return workspace;
 }
 
+function setPageStyle(profileId, pageId, partialStyle) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const current = normalizePageStyle(page.style);
+  const next = {
+    ...current,
+  };
+
+  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "buttonShowBackground")) {
+    next.buttonShowBackground = Boolean(partialStyle.buttonShowBackground);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "buttonShowLabel")) {
+    next.buttonShowLabel = Boolean(partialStyle.buttonShowLabel);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "faderShowLabel")) {
+    next.faderShowLabel = Boolean(partialStyle.faderShowLabel);
+  }
+
+  page.style = next;
+  scheduleSave();
+  return workspace;
+}
+
 function setPageBackgroundSolid(profileId, pageId, color) {
   const { workspace, page } = getPage(profileId, pageId);
   const safeColor = /^#[0-9a-fA-F]{6}$/.test(color) ? color : "#111111";
@@ -931,6 +984,7 @@ module.exports = {
   setActive,
   setPageGrid,
   setPageShowGrid,
+  setPageStyle,
   setPageBackgroundSolid,
   setPageBackgroundImage,
   clearPageBackgroundImage,

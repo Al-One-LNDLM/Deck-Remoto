@@ -19,6 +19,9 @@ const gridRowsInput = document.getElementById("gridRowsInput");
 const gridColsInput = document.getElementById("gridColsInput");
 const applyGridBtn = document.getElementById("applyGridBtn");
 const gridShowCheckbox = document.getElementById("gridShowCheckbox");
+const styleButtonShowBackgroundCheckbox = document.getElementById("styleButtonShowBackgroundCheckbox");
+const styleButtonShowLabelCheckbox = document.getElementById("styleButtonShowLabelCheckbox");
+const styleFaderShowLabelCheckbox = document.getElementById("styleFaderShowLabelCheckbox");
 const gridBgColorInput = document.getElementById("gridBgColorInput");
 const addBackgroundImageBtn = document.getElementById("addBackgroundImageBtn");
 const backgroundImageInfo = document.getElementById("backgroundImageInfo");
@@ -46,6 +49,14 @@ const state = {
 function clampGridValue(value) {
   const number = Number(value) || 1;
   return Math.max(1, Math.min(24, Math.round(number)));
+}
+
+function getPageStyle(page) {
+  return {
+    buttonShowBackground: page?.style?.buttonShowBackground !== false,
+    buttonShowLabel: page?.style?.buttonShowLabel !== false,
+    faderShowLabel: page?.style?.faderShowLabel !== false,
+  };
 }
 
 function getGridContextWorkspace() {
@@ -204,13 +215,26 @@ function drawPlacement(ctx2d, page, placement, element, metrics, selectedPlaceme
   const height = placement.rowSpan * cellH;
   const isSelected = placement.id === selectedPlacementId;
   const isFader = element?.type === "fader";
+  const pageStyle = getPageStyle(page);
+  const showButtonBackground = pageStyle.buttonShowBackground || isFader;
 
-  ctx2d.fillStyle = isFader ? "rgba(56,166,255,0.35)" : "rgba(101,217,122,0.30)";
-  ctx2d.fillRect(x + 2, y + 2, width - 4, height - 4);
+  if (showButtonBackground) {
+    ctx2d.fillStyle = isFader ? "rgba(56,166,255,0.35)" : "rgba(101,217,122,0.30)";
+    ctx2d.fillRect(x + 2, y + 2, width - 4, height - 4);
+  }
 
   ctx2d.lineWidth = isSelected ? 3 : 1;
-  ctx2d.strokeStyle = isSelected ? "#ffd166" : "rgba(255,255,255,0.65)";
+  if (!showButtonBackground && !isFader) {
+    ctx2d.strokeStyle = isSelected ? "#ffd166" : "rgba(255,255,255,0.25)";
+  } else {
+    ctx2d.strokeStyle = isSelected ? "#ffd166" : "rgba(255,255,255,0.65)";
+  }
   ctx2d.strokeRect(x + 2.5, y + 2.5, width - 5, height - 5);
+
+  const showLabel = isFader ? pageStyle.faderShowLabel : pageStyle.buttonShowLabel;
+  if (!showLabel) {
+    return;
+  }
 
   const label = element?.name || placement.elementId;
   ctx2d.fillStyle = "#ffffff";
@@ -494,6 +518,10 @@ async function renderGridTab() {
   gridRowsInput.value = clampGridValue(ctx.page.grid?.rows || 4);
   gridColsInput.value = clampGridValue(ctx.page.grid?.cols || 3);
   gridShowCheckbox.checked = ctx.page.showGrid !== false;
+  const pageStyle = getPageStyle(ctx.page);
+  styleButtonShowBackgroundCheckbox.checked = pageStyle.buttonShowBackground;
+  styleButtonShowLabelCheckbox.checked = pageStyle.buttonShowLabel;
+  styleFaderShowLabelCheckbox.checked = pageStyle.faderShowLabel;
   const background = ctx.page.background || { type: "solid", color: "#111111" };
   gridBgColorInput.value = background.color || "#111111";
 
@@ -563,6 +591,17 @@ async function applyShowGrid(showGrid) {
   }
 
   state.workspace = await window.runtime.setPageShowGrid(ctx.profile.id, ctx.page.id, showGrid);
+  renderNavigation();
+  await renderGridTab();
+}
+
+async function applyPageStyle(partialStyle) {
+  const ctx = getGridContextWorkspace();
+  if (!ctx) {
+    return;
+  }
+
+  state.workspace = await window.runtime.setPageStyle(ctx.profile.id, ctx.page.id, partialStyle);
   renderNavigation();
   await renderGridTab();
 }
@@ -1491,6 +1530,18 @@ applyGridBtn.addEventListener("click", async () => {
 
 gridShowCheckbox.addEventListener("change", async (event) => {
   await applyShowGrid(event.target.checked);
+});
+
+styleButtonShowBackgroundCheckbox.addEventListener("change", async (event) => {
+  await applyPageStyle({ buttonShowBackground: event.target.checked });
+});
+
+styleButtonShowLabelCheckbox.addEventListener("change", async (event) => {
+  await applyPageStyle({ buttonShowLabel: event.target.checked });
+});
+
+styleFaderShowLabelCheckbox.addEventListener("change", async (event) => {
+  await applyPageStyle({ faderShowLabel: event.target.checked });
 });
 
 gridPreviewModeSelect.addEventListener("change", () => {
