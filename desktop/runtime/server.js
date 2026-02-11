@@ -61,6 +61,7 @@ function createRuntimeServer({ onLog }) {
               name: activePage.name,
               grid: activePage.grid,
               background: activePage.background,
+              placements: activePage.placements || [],
             }
           : null,
       });

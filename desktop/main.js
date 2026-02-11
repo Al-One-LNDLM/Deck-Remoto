@@ -8,6 +8,9 @@ const {
   addPage,
   addFolder,
   addPageElement,
+  addPlacement,
+  updatePlacementSpan,
+  deletePlacement,
   deletePageElement,
   renamePageElement,
   addFolderItem,
@@ -82,6 +85,15 @@ app.whenReady().then(() => {
   ipcMain.handle("workspace:addFolder", (_event, profileId, pageId) => addFolder(profileId, pageId));
   ipcMain.handle("workspace:addPageElement", (_event, profileId, pageId, elementType) =>
     addPageElement(profileId, pageId, elementType),
+  );
+  ipcMain.handle("workspace:addPlacement", (_event, profileId, pageId, elementId, row, col) =>
+    addPlacement(profileId, pageId, elementId, row, col),
+  );
+  ipcMain.handle("workspace:updatePlacementSpan", (_event, profileId, pageId, placementId, rowSpan, colSpan) =>
+    updatePlacementSpan(profileId, pageId, placementId, rowSpan, colSpan),
+  );
+  ipcMain.handle("workspace:deletePlacement", (_event, profileId, pageId, placementId) =>
+    deletePlacement(profileId, pageId, placementId),
   );
   ipcMain.handle("workspace:deletePageElement", (_event, profileId, pageId, elementId) =>
     deletePageElement(profileId, pageId, elementId),
