@@ -21,6 +21,7 @@ const {
   setActiveProfile,
   setActivePage,
   setPageGrid,
+  setPageShowGrid,
   setPageBackgroundSolid,
   setPageBackgroundImage,
   clearPageBackgroundImage,
@@ -146,6 +147,9 @@ app.whenReady().then(() => {
   ipcMain.handle("workspace:setActivePage", (_event, profileId, pageId) => setActivePage(profileId, pageId));
   ipcMain.handle("workspace:setPageGrid", (_event, profileId, pageId, rows, cols) =>
     setPageGrid(profileId, pageId, rows, cols),
+  );
+  ipcMain.handle("workspace:setPageShowGrid", (_event, profileId, pageId, showGrid) =>
+    setPageShowGrid(profileId, pageId, showGrid),
   );
   ipcMain.handle("workspace:setPageBackgroundSolid", (_event, profileId, pageId, color) =>
     setPageBackgroundSolid(profileId, pageId, color),

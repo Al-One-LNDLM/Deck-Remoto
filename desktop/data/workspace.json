@@ -64,7 +64,8 @@
               "rowSpan": 1,
               "colSpan": 1
             }
-          ]
+          ],
+          "showGrid": true
         }
       ],
       "iconPath": "assets/icons/1770827837729-LOGO-SIMPLIFICADO-BLANCO-TRANSPARENTE.png"
