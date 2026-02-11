@@ -594,6 +594,33 @@ function setActivePage(profileId, pageId) {
   return workspace;
 }
 
+function setPageGrid(profileId, pageId, rows, cols) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const safeRows = Math.max(1, Math.min(24, Number(rows) || 1));
+  const safeCols = Math.max(1, Math.min(24, Number(cols) || 1));
+
+  page.grid = {
+    rows: safeRows,
+    cols: safeCols,
+  };
+
+  scheduleSave();
+  return workspace;
+}
+
+function setPageBackgroundSolid(profileId, pageId, color) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const safeColor = /^#[0-9a-fA-F]{6}$/.test(color) ? color : "#111111";
+
+  page.background = {
+    type: "solid",
+    color: safeColor,
+  };
+
+  scheduleSave();
+  return workspace;
+}
+
 function getActiveState(workspace) {
   const activeProfile = workspace.profiles.find(
     (profile) => profile.id === workspace.activeProfileId,
@@ -634,4 +661,6 @@ module.exports = {
   ensureValidActiveSelection,
   setActiveProfile,
   setActivePage,
+  setPageGrid,
+  setPageBackgroundSolid,
 };

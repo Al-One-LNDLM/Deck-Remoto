@@ -7,16 +7,183 @@ const stopBtn = document.getElementById("stopBtn");
 const tabButtons = document.querySelectorAll(".tab");
 const serverTab = document.getElementById("serverTab");
 const navigationTab = document.getElementById("navigationTab");
+const gridTab = document.getElementById("gridTab");
 const treeRoot = document.getElementById("treeRoot");
 const inspector = document.getElementById("inspector");
 const addNodeBtn = document.getElementById("addNodeBtn");
 const addMenu = document.getElementById("addMenu");
+const gridProfileSelect = document.getElementById("gridProfileSelect");
+const gridPageSelect = document.getElementById("gridPageSelect");
+const gridElementsList = document.getElementById("gridElementsList");
+const gridRowsInput = document.getElementById("gridRowsInput");
+const gridColsInput = document.getElementById("gridColsInput");
+const applyGridBtn = document.getElementById("applyGridBtn");
+const gridBgColorInput = document.getElementById("gridBgColorInput");
+const gridCanvas = document.getElementById("gridCanvas");
 
 const state = {
   workspace: null,
   selection: null,
   renameTimer: null,
+  gridSelection: {
+    profileId: null,
+    pageId: null,
+  },
 };
+
+function clampGridValue(value) {
+  const number = Number(value) || 1;
+  return Math.max(1, Math.min(24, Math.round(number)));
+}
+
+function getGridContextWorkspace() {
+  if (!state.workspace) {
+    return null;
+  }
+
+  const fallbackProfileId = state.workspace.activeProfileId;
+  const profileId = state.gridSelection.profileId || fallbackProfileId;
+  const profile = state.workspace.profiles.find((item) => item.id === profileId);
+
+  const resolvedProfile = profile || state.workspace.profiles.find((item) => item.id === fallbackProfileId);
+  if (!resolvedProfile) {
+    return null;
+  }
+
+  const fallbackPageId =
+    (resolvedProfile.id === state.workspace.activeProfileId ? state.workspace.activePageId : null) ||
+    resolvedProfile.pages[0]?.id;
+  const pageId = state.gridSelection.pageId || fallbackPageId;
+  const page = resolvedProfile.pages.find((item) => item.id === pageId) || resolvedProfile.pages[0];
+
+  if (!page) {
+    return null;
+  }
+
+  return {
+    profile: resolvedProfile,
+    page,
+  };
+}
+
+function renderGridCanvas(page) {
+  const ctx = gridCanvas.getContext("2d");
+  const width = gridCanvas.width;
+  const height = gridCanvas.height;
+  const rows = clampGridValue(page.grid?.rows || 1);
+  const cols = clampGridValue(page.grid?.cols || 1);
+  const bgColor = page.background?.type === "solid" ? page.background.color : "#111111";
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, width, height);
+
+  const cellW = width / cols;
+  const cellH = height / rows;
+
+  ctx.strokeStyle = "rgba(255,255,255,0.35)";
+  ctx.lineWidth = 1;
+
+  for (let col = 0; col <= cols; col += 1) {
+    const x = Math.round(col * cellW) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+
+  for (let row = 0; row <= rows; row += 1) {
+    const y = Math.round(row * cellH) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+}
+
+function renderGridTab() {
+  if (!state.workspace) {
+    return;
+  }
+
+  const ctx = getGridContextWorkspace();
+  const profiles = state.workspace.profiles || [];
+
+  gridProfileSelect.innerHTML = "";
+  profiles.forEach((profile) => {
+    const option = document.createElement("option");
+    option.value = profile.id;
+    option.textContent = profile.name;
+    gridProfileSelect.appendChild(option);
+  });
+
+  if (!ctx) {
+    gridPageSelect.innerHTML = "";
+    gridElementsList.innerHTML = "";
+    return;
+  }
+
+  state.gridSelection.profileId = ctx.profile.id;
+  state.gridSelection.pageId = ctx.page.id;
+  gridProfileSelect.value = ctx.profile.id;
+
+  gridPageSelect.innerHTML = "";
+  ctx.profile.pages.forEach((page) => {
+    const option = document.createElement("option");
+    option.value = page.id;
+    option.textContent = page.name;
+    gridPageSelect.appendChild(option);
+  });
+  gridPageSelect.value = ctx.page.id;
+
+  gridRowsInput.value = clampGridValue(ctx.page.grid?.rows || 4);
+  gridColsInput.value = clampGridValue(ctx.page.grid?.cols || 3);
+  gridBgColorInput.value = ctx.page.background?.color || "#111111";
+
+  gridElementsList.innerHTML = "";
+  const elements = ctx.page.controls || [];
+  if (!elements.length) {
+    const empty = document.createElement("li");
+    empty.textContent = "Sin elementos";
+    empty.className = "muted";
+    gridElementsList.appendChild(empty);
+  } else {
+    elements.forEach((element) => {
+      const item = document.createElement("li");
+      item.textContent = `${element.name} (${element.type})`;
+      gridElementsList.appendChild(item);
+    });
+  }
+
+  renderGridCanvas(ctx.page);
+}
+
+async function applyGridValues() {
+  const ctx = getGridContextWorkspace();
+  if (!ctx) {
+    return;
+  }
+
+  const rows = clampGridValue(gridRowsInput.value);
+  const cols = clampGridValue(gridColsInput.value);
+  gridRowsInput.value = rows;
+  gridColsInput.value = cols;
+
+  state.workspace = await window.runtime.setPageGrid(ctx.profile.id, ctx.page.id, rows, cols);
+  renderNavigation();
+  renderGridTab();
+}
+
+async function applyBackgroundColor(color) {
+  const ctx = getGridContextWorkspace();
+  if (!ctx) {
+    return;
+  }
+
+  state.workspace = await window.runtime.setPageBackgroundSolid(ctx.profile.id, ctx.page.id, color);
+  renderNavigation();
+  renderGridTab();
+}
 
 function appendLog(message) {
   const item = document.createElement("li");
@@ -784,6 +951,7 @@ function renderNavigation() {
   renderTree(state.workspace, state.selection);
   renderInspector(state.workspace, state.selection);
   updateAddButtonState();
+  renderGridTab();
 }
 
 function toggleAddMenu() {
@@ -797,6 +965,7 @@ function setActiveTab(tabName) {
 
   serverTab.classList.toggle("active", tabName === "server");
   navigationTab.classList.toggle("active", tabName === "navigation");
+  gridTab.classList.toggle("active", tabName === "grid");
 }
 
 startBtn.addEventListener("click", async () => {
@@ -854,6 +1023,25 @@ document.addEventListener("click", () => {
 
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => setActiveTab(button.dataset.tab));
+});
+
+gridProfileSelect.addEventListener("change", () => {
+  state.gridSelection.profileId = gridProfileSelect.value;
+  state.gridSelection.pageId = null;
+  renderGridTab();
+});
+
+gridPageSelect.addEventListener("change", () => {
+  state.gridSelection.pageId = gridPageSelect.value;
+  renderGridTab();
+});
+
+applyGridBtn.addEventListener("click", async () => {
+  await applyGridValues();
+});
+
+gridBgColorInput.addEventListener("input", async (event) => {
+  await applyBackgroundColor(event.target.value);
 });
 
 window.runtime.onLog((message) => {

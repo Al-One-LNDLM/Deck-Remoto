@@ -17,6 +17,8 @@ const {
   updateIcon,
   setActiveProfile,
   setActivePage,
+  setPageGrid,
+  setPageBackgroundSolid,
   deleteProfile,
   deletePage,
   deleteFolder,
@@ -100,6 +102,12 @@ app.whenReady().then(() => {
   ipcMain.handle("workspace:updateIcon", (_event, payload) => updateIcon(payload));
   ipcMain.handle("workspace:setActiveProfile", (_event, profileId) => setActiveProfile(profileId));
   ipcMain.handle("workspace:setActivePage", (_event, profileId, pageId) => setActivePage(profileId, pageId));
+  ipcMain.handle("workspace:setPageGrid", (_event, profileId, pageId, rows, cols) =>
+    setPageGrid(profileId, pageId, rows, cols),
+  );
+  ipcMain.handle("workspace:setPageBackgroundSolid", (_event, profileId, pageId, color) =>
+    setPageBackgroundSolid(profileId, pageId, color),
+  );
   ipcMain.handle("workspace:deleteProfile", (_event, profileId) => deleteProfile(profileId));
   ipcMain.handle("workspace:deletePage", (_event, profileId, pageId) => deletePage(profileId, pageId));
   ipcMain.handle("workspace:deleteFolder", (_event, profileId, pageId, folderId) => deleteFolder(profileId, pageId, folderId));
