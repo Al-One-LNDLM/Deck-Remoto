@@ -7,7 +7,44 @@
     <style>
       body {
         font-family: Arial, sans-serif;
-        margin: 24px;
+        margin: 16px;
+        color: #f5f5f5;
+        background: #0f0f0f;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+      }
+
+      .header {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .selector-row {
+        display: grid;
+        grid-template-columns: 80px 1fr;
+        align-items: center;
+        gap: 8px;
+      }
+
+      label {
+        font-size: 14px;
+      }
+
+      select {
+        padding: 8px;
+        border-radius: 6px;
+        border: 1px solid #2f2f2f;
+        background: #171717;
+        color: #f5f5f5;
+      }
+
+      #activeSummary {
+        margin: 0;
+        color: #bbbbbb;
       }
 
       #status {
@@ -15,7 +52,7 @@
       }
 
       button {
-        margin-top: 16px;
+        margin-top: 12px;
         padding: 10px 14px;
         border: 0;
         border-radius: 6px;
@@ -24,24 +61,62 @@
       }
 
       pre {
-        margin-top: 16px;
-        background: #f4f4f4;
+        margin-top: 12px;
+        background: #181818;
         border-radius: 6px;
         padding: 12px;
         min-height: 60px;
+        white-space: pre-wrap;
+      }
+
+      #grid {
+        margin-top: 16px;
+        border: 1px solid #2b2b2b;
+        border-radius: 8px;
+        padding: 8px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .grid-cell {
+        border: 1px dashed #4f4f4f;
+        border-radius: 6px;
+        min-height: 48px;
+        background: rgba(255, 255, 255, 0.03);
       }
     </style>
   </head>
   <body>
     <h1>Remote Deck - Mobile</h1>
+
+    <section class="header">
+      <div class="selector-row">
+        <label for="profileSelect">Perfil</label>
+        <select id="profileSelect" title="próximamente" disabled></select>
+      </div>
+
+      <div class="selector-row">
+        <label for="pageSelect">Página</label>
+        <select id="pageSelect" title="próximamente" disabled></select>
+      </div>
+
+      <p id="activeSummary">Perfil activo: - | Página activa: -</p>
+    </section>
+
     <p>Estado WS: <span id="status">Desconectado</span></p>
     <button id="sendEventBtn">Enviar evento</button>
     <pre id="lastAck">Sin ACK todavía</pre>
+
+    <section id="grid"></section>
 
     <script>
       const statusEl = document.getElementById("status");
       const sendEventBtn = document.getElementById("sendEventBtn");
       const lastAckEl = document.getElementById("lastAck");
+      const profileSelectEl = document.getElementById("profileSelect");
+      const pageSelectEl = document.getElementById("pageSelect");
+      const activeSummaryEl = document.getElementById("activeSummary");
+      const gridEl = document.getElementById("grid");
 
       const protocol = window.location.protocol === "https:" ? "wss" : "ws";
       const socketUrl = `${protocol}://${window.location.hostname}:3030/ws`;
@@ -74,6 +149,88 @@
         });
       }
 
+      function renderSelectors(state) {
+        profileSelectEl.innerHTML = "";
+        pageSelectEl.innerHTML = "";
+
+        state.profiles.forEach((profile) => {
+          const option = document.createElement("option");
+          option.value = profile.id;
+          option.textContent = profile.name;
+          option.selected = profile.id === state.activeProfileId;
+          profileSelectEl.appendChild(option);
+        });
+
+        state.pages.forEach((page) => {
+          const option = document.createElement("option");
+          option.value = page.id;
+          option.textContent = page.name;
+          option.selected = page.id === state.activePageId;
+          pageSelectEl.appendChild(option);
+        });
+      }
+
+      function renderSummaryFromIds(profileName, pageName) {
+        activeSummaryEl.textContent = `Perfil activo: ${profileName} | Página activa: ${pageName}`;
+      }
+
+      function renderSummary(state) {
+        const activeProfile = state.profiles.find(
+          (profile) => profile.id === state.activeProfileId,
+        );
+        const activePage = state.pages.find((page) => page.id === state.activePageId);
+
+        renderSummaryFromIds(activeProfile ? activeProfile.name : "-", activePage ? activePage.name : "-");
+      }
+
+      function renderGrid(activePage) {
+        gridEl.innerHTML = "";
+
+        if (!activePage || !activePage.grid) {
+          return;
+        }
+
+        const rows = Number(activePage.grid.rows) || 0;
+        const cols = Number(activePage.grid.cols) || 0;
+        const totalCells = rows * cols;
+
+        gridEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+        gridEl.style.background = activePage.background?.color || "#111111";
+
+        for (let index = 0; index < totalCells; index += 1) {
+          const cell = document.createElement("div");
+          cell.className = "grid-cell";
+          gridEl.appendChild(cell);
+        }
+      }
+
+      async function loadState() {
+        try {
+          const response = await fetch("/api/state");
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const state = await response.json();
+          renderSelectors(state);
+          renderSummary(state);
+          renderGrid(state.activePage);
+        } catch (error) {
+          lastAckEl.textContent = `No se pudo cargar /api/state: ${error.message}`;
+        }
+      }
+
+      profileSelectEl.addEventListener("change", () => {
+        const profileName = profileSelectEl.selectedOptions[0]?.textContent || "-";
+        const pageName = pageSelectEl.selectedOptions[0]?.textContent || "-";
+        renderSummaryFromIds(profileName, pageName);
+      });
+      pageSelectEl.addEventListener("change", () => {
+        const profileName = profileSelectEl.selectedOptions[0]?.textContent || "-";
+        const pageName = pageSelectEl.selectedOptions[0]?.textContent || "-";
+        renderSummaryFromIds(profileName, pageName);
+      });
+
       sendEventBtn.addEventListener("click", () => {
         if (!socket || socket.readyState !== WebSocket.OPEN) {
           return;
@@ -92,6 +249,7 @@
 
       setStatus(false);
       connect();
+      loadState();
     </script>
   </body>
 </html>
