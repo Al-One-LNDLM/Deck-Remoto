@@ -119,6 +119,15 @@
         transform: rotate(180deg);
       }
 
+      .placement.button.no-background {
+        background: transparent;
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .placement.hide-label {
+        color: transparent;
+      }
+
       .placement.pressed {
         filter: brightness(1.4);
         transform: scale(0.98);
@@ -223,6 +232,14 @@
         activeSummaryEl.textContent = `Perfil activo: ${activeProfile ? activeProfile.name : "-"} | Página activa: ${activePage ? activePage.name : "-"}`;
       }
 
+      function getPageStyle(activePage) {
+        return {
+          buttonShowBackground: activePage?.style?.buttonShowBackground !== false,
+          buttonShowLabel: activePage?.style?.buttonShowLabel !== false,
+          faderShowLabel: activePage?.style?.faderShowLabel !== false,
+        };
+      }
+
       function sendControlPress(elementId, placementId) {
         if (!socket || socket.readyState !== WebSocket.OPEN) {
           return;
@@ -240,11 +257,24 @@
         );
       }
 
-      function createPlacementElement(placement, element, metrics) {
+      function createPlacementElement(placement, element, metrics, pageStyle) {
+        const isFader = element?.type === "fader";
         const itemEl = document.createElement("button");
-        itemEl.className = `placement ${element?.type === "fader" ? "fader" : "button"}`;
-        itemEl.textContent = element?.name || placement.elementId;
+        itemEl.className = `placement ${isFader ? "fader" : "button"}`;
         itemEl.type = "button";
+
+        if (!isFader && !pageStyle.buttonShowBackground) {
+          itemEl.classList.add("no-background");
+        }
+
+        const showLabel = isFader ? pageStyle.faderShowLabel : pageStyle.buttonShowLabel;
+        if (showLabel) {
+          itemEl.textContent = element?.name || placement.elementId;
+        } else {
+          itemEl.classList.add("hide-label");
+          itemEl.textContent = "";
+          itemEl.setAttribute("aria-label", element?.name || placement.elementId);
+        }
 
         itemEl.style.left = `${metrics.left}px`;
         itemEl.style.top = `${metrics.top}px`;
@@ -297,6 +327,7 @@
           gridEl.appendChild(cell);
         }
 
+        const pageStyle = getPageStyle(activePage);
         const placements = Array.isArray(activePage.placements) ? activePage.placements : [];
         const elementList = Array.isArray(activePage.elements)
           ? activePage.elements
@@ -341,7 +372,7 @@
               top,
               width,
               height,
-            }),
+            }, pageStyle),
           );
         });
 
