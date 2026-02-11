@@ -753,6 +753,46 @@ function setActivePage(profileId, pageId) {
   return workspace;
 }
 
+function setActive(profileId, pageId) {
+  const workspace = getWorkspace();
+  const profile = workspace.profiles.find((item) => item.id === profileId);
+
+  if (!profile) {
+    throw new Error("Perfil no encontrado");
+  }
+
+  const activePageBelongsToProfile = profile.pages.some(
+    (item) => item.id === workspace.activePageId,
+  );
+
+  let nextPageId = null;
+
+  if (pageId != null) {
+    const page = profile.pages.find((item) => item.id === pageId);
+
+    if (!page) {
+      throw new Error("Página no encontrada");
+    }
+
+    nextPageId = page.id;
+  } else if (activePageBelongsToProfile) {
+    nextPageId = workspace.activePageId;
+  } else {
+    nextPageId = profile.pages[0]?.id || null;
+  }
+
+  workspace.activeProfileId = profile.id;
+  workspace.activePageId = nextPageId;
+
+  ensureValidActiveSelection();
+  workspace.lastSession.activeProfileId = workspace.activeProfileId;
+  workspace.lastSession.activePageId = workspace.activePageId;
+
+  scheduleSave();
+
+  return workspace;
+}
+
 function setPageGrid(profileId, pageId, rows, cols) {
   const { workspace, page } = getPage(profileId, pageId);
   const safeRows = Math.max(1, Math.min(24, Number(rows) || 1));
@@ -823,6 +863,7 @@ module.exports = {
   ensureValidActiveSelection,
   setActiveProfile,
   setActivePage,
+  setActive,
   setPageGrid,
   setPageBackgroundSolid,
 };
