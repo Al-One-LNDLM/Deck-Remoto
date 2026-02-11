@@ -31,9 +31,32 @@
               "id": "fader1",
               "type": "fader",
               "name": "adios"
+            },
+            {
+              "id": "button2",
+              "type": "button",
+              "name": "Botón 2"
             }
           ],
-          "folders": []
+          "folders": [],
+          "placements": [
+            {
+              "id": "placement1",
+              "elementId": "button1",
+              "row": 1,
+              "col": 1,
+              "rowSpan": 1,
+              "colSpan": 1
+            },
+            {
+              "id": "placement2",
+              "elementId": "button2",
+              "row": 1,
+              "col": 2,
+              "rowSpan": 1,
+              "colSpan": 1
+            }
+          ]
         }
       ],
       "iconPath": "assets/icons/1770827837729-LOGO-SIMPLIFICADO-BLANCO-TRANSPARENTE.png"
