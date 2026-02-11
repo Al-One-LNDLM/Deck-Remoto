@@ -74,12 +74,28 @@
             "cols": 3
           },
           "background": {
-            "type": "solid",
-            "color": "#111111"
+            "type": "image",
+            "imagePath": "assets/backgrounds/1770838881283-g5.jpg",
+            "fit": "cover"
           },
-          "controls": [],
+          "controls": [
+            {
+              "id": "button3",
+              "type": "button",
+              "name": "Botón 3"
+            }
+          ],
           "folders": [],
-          "placements": []
+          "placements": [
+            {
+              "id": "placement4",
+              "elementId": "button3",
+              "row": 2,
+              "col": 2,
+              "rowSpan": 1,
+              "colSpan": 1
+            }
+          ]
         }
       ],
       "iconPath": "assets/icons/1770827837729-LOGO-SIMPLIFICADO-BLANCO-TRANSPARENTE.png"
