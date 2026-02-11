@@ -3,7 +3,7 @@ const http = require("http");
 const path = require("path");
 const os = require("os");
 const { WebSocketServer } = require("ws");
-const { getWorkspace, getActiveState } = require("./workspace");
+const { getWorkspace, getActiveState, setActive } = require("./workspace");
 
 const PORT = 3030;
 
@@ -44,7 +44,9 @@ function createRuntimeServer({ onLog }) {
       };
     }
 
+
     app = express();
+    app.use(express.json());
     app.get("/api/state", (_request, response) => {
       const workspace = getWorkspace();
       const { activeProfileId, activePageId, activeProfile, activePage } =
@@ -62,9 +64,31 @@ function createRuntimeServer({ onLog }) {
               grid: activePage.grid,
               background: activePage.background,
               placements: activePage.placements || [],
+              elements: activePage.elements || activePage.controls || [],
+              controls: activePage.controls || activePage.elements || [],
             }
           : null,
       });
+    });
+
+    app.post("/api/setActive", (request, response) => {
+      const profileId = typeof request.body?.profileId === "string" ? request.body.profileId : "";
+      const pageId = typeof request.body?.pageId === "string" ? request.body.pageId : undefined;
+
+      if (!profileId) {
+        response.status(400).json({ ok: false, message: "profileId es obligatorio" });
+        return;
+      }
+
+      try {
+        setActive(profileId, pageId);
+        response.json({ ok: true });
+      } catch (error) {
+        response.status(400).json({
+          ok: false,
+          message: error instanceof Error ? error.message : "No se pudo cambiar la selección activa",
+        });
+      }
     });
     const mobilePath = path.resolve(__dirname, "../../mobile");
     app.use(express.static(mobilePath));
@@ -89,6 +113,15 @@ function createRuntimeServer({ onLog }) {
       socket.on("message", (message) => {
         const text = message.toString();
         log(`[WS] Mensaje recibido: ${text}`);
+
+        try {
+          const parsed = JSON.parse(text);
+          if (parsed?.type === "event") {
+            log(`[WS] Evento recibido: ${JSON.stringify(parsed.payload || {})}`);
+          }
+        } catch (_error) {
+          // Ignorar payloads no-JSON
+        }
 
         socket.send(
           JSON.stringify({
