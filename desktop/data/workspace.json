@@ -8,11 +8,60 @@
   "profiles": [
     {
       "id": "profile1",
-      "name": "Perfil 1",
+      "name": "Perfil aaaaaa",
       "pages": [
         {
           "id": "page1",
           "name": "Página 1",
+          "grid": {
+            "rows": 4,
+            "cols": 3
+          },
+          "background": {
+            "type": "solid",
+            "color": "#111111"
+          },
+          "controls": [],
+          "folders": []
+        },
+        {
+          "id": "page2",
+          "name": "Página 2",
+          "grid": {
+            "rows": 4,
+            "cols": 3
+          },
+          "background": {
+            "type": "solid",
+            "color": "#111111"
+          },
+          "controls": [],
+          "folders": []
+        },
+        {
+          "id": "page3",
+          "name": "Página 3",
+          "grid": {
+            "rows": 4,
+            "cols": 3
+          },
+          "background": {
+            "type": "solid",
+            "color": "#111111"
+          },
+          "controls": [],
+          "folders": []
+        }
+      ],
+      "iconPath": "assets/icons/1770827837729-LOGO-SIMPLIFICADO-BLANCO-TRANSPARENTE.png"
+    },
+    {
+      "id": "profile2",
+      "name": "Perfil 2",
+      "pages": [
+        {
+          "id": "page4",
+          "name": "Página 4",
           "grid": {
             "rows": 4,
             "cols": 3
