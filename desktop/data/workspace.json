@@ -65,7 +65,12 @@
               "colSpan": 1
             }
           ],
-          "showGrid": true
+          "showGrid": true,
+          "style": {
+            "buttonShowBackground": true,
+            "buttonShowLabel": true,
+            "faderShowLabel": true
+          }
         },
         {
           "id": "page3",
@@ -96,7 +101,12 @@
               "colSpan": 1
             }
           ],
-          "showGrid": false
+          "showGrid": false,
+          "style": {
+            "buttonShowBackground": true,
+            "buttonShowLabel": true,
+            "faderShowLabel": true
+          }
         }
       ],
       "iconPath": "assets/icons/1770827837729-LOGO-SIMPLIFICADO-BLANCO-TRANSPARENTE.png"
@@ -119,7 +129,12 @@
           "controls": [],
           "folders": [],
           "placements": [],
-          "showGrid": true
+          "showGrid": true,
+          "style": {
+            "buttonShowBackground": true,
+            "buttonShowLabel": true,
+            "faderShowLabel": true
+          }
         }
       ]
     }
