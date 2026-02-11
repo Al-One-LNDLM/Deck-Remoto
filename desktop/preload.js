@@ -10,6 +10,12 @@ contextBridge.exposeInMainWorld("runtime", {
   addFolder: (profileId, pageId) => ipcRenderer.invoke("workspace:addFolder", profileId, pageId),
   addPageElement: (profileId, pageId, elementType) =>
     ipcRenderer.invoke("workspace:addPageElement", profileId, pageId, elementType),
+  addPlacement: (profileId, pageId, elementId, row, col) =>
+    ipcRenderer.invoke("workspace:addPlacement", profileId, pageId, elementId, row, col),
+  updatePlacementSpan: (profileId, pageId, placementId, rowSpan, colSpan) =>
+    ipcRenderer.invoke("workspace:updatePlacementSpan", profileId, pageId, placementId, rowSpan, colSpan),
+  deletePlacement: (profileId, pageId, placementId) =>
+    ipcRenderer.invoke("workspace:deletePlacement", profileId, pageId, placementId),
   deletePageElement: (profileId, pageId, elementId) =>
     ipcRenderer.invoke("workspace:deletePageElement", profileId, pageId, elementId),
   renamePageElement: (profileId, pageId, elementId, name) =>
