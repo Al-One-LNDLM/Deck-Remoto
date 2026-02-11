@@ -1,9 +1,9 @@
 {
   "activeProfileId": "profile1",
-  "activePageId": "page1",
+  "activePageId": "page3",
   "lastSession": {
     "activeProfileId": "profile1",
-    "activePageId": "page1"
+    "activePageId": "page3"
   },
   "profiles": [
     {
@@ -14,8 +14,8 @@
           "id": "page1",
           "name": "Página 1",
           "grid": {
-            "rows": 3,
-            "cols": 2
+            "rows": 4,
+            "cols": 3
           },
           "background": {
             "type": "solid",
@@ -64,11 +64,46 @@
               "rowSpan": 1,
               "colSpan": 1
             }
-          ],
-          "showGrid": true
+          ]
+        },
+        {
+          "id": "page3",
+          "name": "Página 3",
+          "grid": {
+            "rows": 4,
+            "cols": 3
+          },
+          "background": {
+            "type": "solid",
+            "color": "#111111"
+          },
+          "controls": [],
+          "folders": [],
+          "placements": []
         }
       ],
       "iconPath": "assets/icons/1770827837729-LOGO-SIMPLIFICADO-BLANCO-TRANSPARENTE.png"
+    },
+    {
+      "id": "profile2",
+      "name": "Perfil 2",
+      "pages": [
+        {
+          "id": "page2",
+          "name": "Página 2",
+          "grid": {
+            "rows": 3,
+            "cols": 3
+          },
+          "background": {
+            "type": "solid",
+            "color": "#111111"
+          },
+          "controls": [],
+          "folders": [],
+          "placements": []
+        }
+      ]
     }
   ]
 }
