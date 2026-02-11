@@ -71,17 +71,223 @@ function getSelectedNodeContext(workspace, selection) {
   return null;
 }
 
+function buildTreeActions(node, workspace) {
+  if (node.type === "profile") {
+    return [
+      {
+        label: "Set Active Profile",
+        onClick: async () => {
+          state.workspace = await window.runtime.setActiveProfile(node.id);
+          renderNavigation();
+        },
+      },
+      {
+        label: "Nueva Página",
+        onClick: async () => {
+          const result = await window.runtime.addPage(node.id);
+          state.workspace = result.workspace;
+          state.selection = result.created;
+          renderNavigation();
+        },
+      },
+      {
+        label: "Delete Profile…",
+        onClick: async () => {
+          const confirmed = await openSimpleModal({
+            title: "Eliminar perfil",
+            message: `¿Eliminar ${node.name}? Esto no se puede deshacer.`,
+            confirmText: "Eliminar",
+            danger: true,
+          });
+          if (!confirmed) return;
+          state.workspace = await window.runtime.deleteProfile(node.id);
+          if (state.selection?.type === "profile" && state.selection.id === node.id) {
+            state.selection = {
+              type: "profile",
+              id: state.workspace.activeProfileId,
+            };
+          }
+          renderNavigation();
+        },
+      },
+    ];
+  }
+
+  if (node.type === "page") {
+    return [
+      {
+        label: "Set Active Page",
+        onClick: async () => {
+          state.workspace = await window.runtime.setActivePage(node.profileId, node.id);
+          renderNavigation();
+        },
+      },
+      {
+        label: "Nueva Carpeta",
+        onClick: async () => {
+          const result = await window.runtime.addFolder(node.profileId, node.id);
+          state.workspace = result.workspace;
+          state.selection = result.created;
+          renderNavigation();
+        },
+      },
+      {
+        label: "Move Page to Profile…",
+        onClick: async () => {
+          const choices = state.workspace.profiles
+            .filter((profile) => profile.id !== node.profileId)
+            .map((profile) => ({ value: profile.id, label: `${profile.name} (${profile.id})` }));
+          if (!choices.length) {
+            return;
+          }
+          const values = await openSimpleModal({
+            title: "Mover página",
+            message: "Selecciona el perfil destino.",
+            fields: [{ name: "toProfileId", label: "Perfil destino", options: choices }],
+            confirmText: "Mover",
+          });
+          if (!values) return;
+          state.workspace = await window.runtime.movePage(node.id, node.profileId, values.toProfileId);
+          renderNavigation();
+        },
+      },
+      {
+        label: "Delete Page…",
+        onClick: async () => {
+          const confirmed = await openSimpleModal({
+            title: "Eliminar página",
+            message: `¿Eliminar ${node.name}? Esto no se puede deshacer.`,
+            confirmText: "Eliminar",
+            danger: true,
+          });
+          if (!confirmed) return;
+          state.workspace = await window.runtime.deletePage(node.profileId, node.id);
+          if (state.selection?.type === "page" && state.selection.id === node.id) {
+            state.selection = {
+              type: "page",
+              id: state.workspace.activePageId,
+            };
+          }
+          renderNavigation();
+        },
+      },
+    ];
+  }
+
+  if (node.type === "folder") {
+    return [
+      {
+        label: "Move Folder to Page…",
+        onClick: async () => {
+          const profileOptions = state.workspace.profiles.map((profile) => ({
+            value: profile.id,
+            label: `${profile.name} (${profile.id})`,
+          }));
+          const defaultProfile = state.workspace.profiles.find((profile) => profile.id === node.profileId)?.id;
+          const values = await openSimpleModal({
+            title: "Mover carpeta",
+            message: "Selecciona página destino.",
+            fields: [
+              {
+                name: "toProfileId",
+                label: "Perfil destino",
+                options: profileOptions,
+                defaultValue: defaultProfile,
+              },
+              {
+                name: "toPageId",
+                label: "Página destino",
+                optionsResolver: (draft) => {
+                  const profileId = draft.toProfileId || defaultProfile;
+                  const profile = state.workspace.profiles.find((item) => item.id === profileId);
+                  return (profile?.pages || []).map((page) => ({
+                    value: page.id,
+                    label: `${page.name} (${page.id})`,
+                  }));
+                },
+              },
+            ],
+            confirmText: "Mover",
+          });
+          if (!values) return;
+          state.workspace = await window.runtime.moveFolder(
+            node.id,
+            node.profileId,
+            node.pageId,
+            values.toProfileId,
+            values.toPageId,
+          );
+          renderNavigation();
+        },
+      },
+      {
+        label: "Delete Folder…",
+        onClick: async () => {
+          const confirmed = await openSimpleModal({
+            title: "Eliminar carpeta",
+            message: `¿Eliminar ${node.name}? Esto no se puede deshacer.`,
+            confirmText: "Eliminar",
+            danger: true,
+          });
+          if (!confirmed) return;
+          state.workspace = await window.runtime.deleteFolder(node.profileId, node.pageId, node.id);
+          if (state.selection?.type === "folder" && state.selection.id === node.id) {
+            state.selection = {
+              type: "page",
+              id: node.pageId,
+            };
+          }
+          renderNavigation();
+        },
+      },
+    ];
+  }
+
+  return [];
+}
+
 function renderTree(workspace, selection) {
   treeRoot.innerHTML = "";
 
   workspace.profiles.forEach((profile) => {
-    treeRoot.appendChild(createTreeItem({ type: "profile", id: profile.id, name: profile.name, level: 0 }, selection, workspace));
+    treeRoot.appendChild(
+      createTreeItem(
+        { type: "profile", id: profile.id, name: profile.name, level: 0 },
+        selection,
+        workspace,
+      ),
+    );
 
     profile.pages.forEach((page) => {
-      treeRoot.appendChild(createTreeItem({ type: "page", id: page.id, name: page.name, level: 1, profileId: profile.id }, selection, workspace));
+      treeRoot.appendChild(
+        createTreeItem(
+          {
+            type: "page",
+            id: page.id,
+            name: page.name,
+            level: 1,
+            profileId: profile.id,
+          },
+          selection,
+          workspace,
+        ),
+      );
 
       page.folders.forEach((folder) => {
-        treeRoot.appendChild(createTreeItem({ type: "folder", id: folder.id, name: folder.name, level: 2 }, selection, workspace));
+        treeRoot.appendChild(
+          createTreeItem(
+            {
+              type: "folder",
+              id: folder.id,
+              name: folder.name,
+              level: 2,
+              profileId: profile.id,
+              pageId: page.id,
+            },
+            selection,
+            workspace,
+          ),
+        );
       });
     });
   });
@@ -108,39 +314,16 @@ function createTreeItem(node, selection, workspace) {
 
   item.appendChild(label);
 
-  const actions = [];
-
-  if (node.type === "profile") {
-    actions.push({
-      label: "Set Active Profile",
-      onClick: async () => {
-        state.workspace = await window.runtime.setActiveProfile(node.id);
-        renderNavigation();
-      },
-    });
-  }
-
-  if (node.type === "page") {
-    actions.push({
-      label: "Set Active Page",
-      onClick: async () => {
-        state.workspace = await window.runtime.setActivePage(node.profileId, node.id);
-        renderNavigation();
-      },
-    });
-  }
-
-  if (actions.length > 0) {
-    const actionBtn = document.createElement("button");
-    actionBtn.className = "tree-actions-btn";
-    actionBtn.textContent = "⋯";
-    actionBtn.title = "Acciones";
-    actionBtn.addEventListener("click", (event) => {
-      event.stopPropagation();
-      openContextMenu(event.currentTarget, actions);
-    });
-    item.appendChild(actionBtn);
-  }
+  const actions = buildTreeActions(node, workspace);
+  const actionBtn = document.createElement("button");
+  actionBtn.className = "tree-actions-btn";
+  actionBtn.textContent = "⋯";
+  actionBtn.title = "Acciones";
+  actionBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    openContextMenu(event.currentTarget, actions);
+  });
+  item.appendChild(actionBtn);
 
   return item;
 }
@@ -171,6 +354,134 @@ function openContextMenu(anchor, actions) {
 
 function closeContextMenus() {
   document.querySelectorAll(".context-menu").forEach((menu) => menu.remove());
+}
+
+function createSelectRow(field, draft) {
+  const row = document.createElement("div");
+  row.className = "modal-field";
+
+  const label = document.createElement("label");
+  label.textContent = field.label;
+
+  const select = document.createElement("select");
+
+  const refreshOptions = () => {
+    const options = field.optionsResolver ? field.optionsResolver(draft) : field.options || [];
+    const current = select.value || draft[field.name] || field.defaultValue || "";
+    select.innerHTML = "";
+
+    options.forEach((option) => {
+      const opt = document.createElement("option");
+      opt.value = option.value;
+      opt.textContent = option.label;
+      select.appendChild(opt);
+    });
+
+    const nextValue = options.some((option) => option.value === current)
+      ? current
+      : options[0]?.value || "";
+    select.value = nextValue;
+    draft[field.name] = nextValue;
+  };
+
+  select.addEventListener("change", () => {
+    draft[field.name] = select.value;
+    if (typeof field.onChange === "function") {
+      field.onChange(draft, refreshers);
+    }
+  });
+
+  row.appendChild(label);
+  row.appendChild(select);
+
+  const refreshers = { refreshOptions };
+
+  if (field.defaultValue && !draft[field.name]) {
+    draft[field.name] = field.defaultValue;
+  }
+
+  refreshOptions();
+
+  return { row, refreshOptions };
+}
+
+function openSimpleModal({ title, message, confirmText = "Aceptar", cancelText = "Cancelar", danger = false, fields }) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+
+    const modal = document.createElement("div");
+    modal.className = "modal";
+
+    const titleEl = document.createElement("h3");
+    titleEl.textContent = title;
+    modal.appendChild(titleEl);
+
+    const messageEl = document.createElement("p");
+    messageEl.textContent = message;
+    modal.appendChild(messageEl);
+
+    const draft = {};
+    const fieldControls = [];
+
+    if (Array.isArray(fields) && fields.length > 0) {
+      const fieldWrapper = document.createElement("div");
+      fieldWrapper.className = "modal-fields";
+
+      fields.forEach((field) => {
+        const control = createSelectRow(field, draft);
+        fieldControls.push(control);
+        fieldWrapper.appendChild(control.row);
+      });
+
+      if (fields.some((field) => field.optionsResolver)) {
+        const [firstControl] = fieldControls;
+        firstControl.row.querySelector("select").addEventListener("change", () => {
+          fieldControls.forEach((control) => control.refreshOptions());
+        });
+      }
+
+      modal.appendChild(fieldWrapper);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "modal-actions";
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.className = "modal-btn";
+    cancelBtn.textContent = cancelText;
+
+    const confirmBtn = document.createElement("button");
+    confirmBtn.className = `modal-btn ${danger ? "danger" : "primary"}`;
+    confirmBtn.textContent = confirmText;
+
+    const close = (value) => {
+      overlay.remove();
+      resolve(value);
+    };
+
+    cancelBtn.addEventListener("click", () => close(null));
+    confirmBtn.addEventListener("click", () => {
+      if (!fields?.length) {
+        close(true);
+        return;
+      }
+      close(draft);
+    });
+
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) {
+        close(null);
+      }
+    });
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(confirmBtn);
+    modal.appendChild(actions);
+    overlay.appendChild(modal);
+
+    document.body.appendChild(overlay);
+  });
 }
 
 function renderInspector(workspace, selection) {
@@ -266,30 +577,6 @@ function updateAddButtonState() {
   addNodeBtn.disabled = false;
 }
 
-function getProfileChoices(workspace) {
-  return workspace.profiles.map((profile) => ({ id: profile.id, name: profile.name }));
-}
-
-function getPageChoices(profile) {
-  return profile.pages.map((page) => ({ id: page.id, name: page.name }));
-}
-
-function selectChoice(message, choices) {
-  if (!choices.length) {
-    return null;
-  }
-
-  const optionsText = choices.map((choice, index) => `${index + 1}. ${choice.name} (${choice.id})`).join("\n");
-  const value = window.prompt(`${message}\n${optionsText}\n\nEscribe el número:`);
-  const index = Number.parseInt(value, 10) - 1;
-
-  if (Number.isNaN(index) || index < 0 || index >= choices.length) {
-    return null;
-  }
-
-  return choices[index];
-}
-
 async function handleAddProfile() {
   const result = await window.runtime.addProfile();
   state.workspace = result.workspace;
@@ -299,19 +586,10 @@ async function handleAddProfile() {
 
 async function handleAddPage() {
   const context = getSelectedNodeContext(state.workspace, state.selection);
-  let targetProfileId = null;
-
-  if (context?.type === "profile") {
-    targetProfileId = context.profile.id;
-  } else if (context?.type === "page") {
-    targetProfileId = context.profile.id;
-  } else {
-    const profileChoice = selectChoice("Selecciona un profile destino", getProfileChoices(state.workspace));
-    targetProfileId = profileChoice?.id || null;
-  }
+  let targetProfileId = context?.profile?.id || null;
 
   if (!targetProfileId) {
-    return;
+    targetProfileId = state.workspace.activeProfileId;
   }
 
   const result = await window.runtime.addPage(targetProfileId);
@@ -325,33 +603,14 @@ async function handleAddFolder() {
   let targetProfileId = null;
   let targetPageId = null;
 
-  if (context?.type === "page") {
+  if (context?.type === "page" || context?.type === "folder") {
     targetProfileId = context.profile.id;
     targetPageId = context.page.id;
-  } else if (context?.type === "folder") {
-    targetProfileId = context.profile.id;
-    targetPageId = context.page.id;
-  } else if (context?.type === "profile") {
-    targetProfileId = context.profile.id;
-    const pageChoice = selectChoice(
-      "Selecciona una page destino",
-      getPageChoices(context.profile),
-    );
-    targetPageId = pageChoice?.id || null;
-  } else {
-    const profileChoice = selectChoice("Selecciona un profile destino", getProfileChoices(state.workspace));
-    if (!profileChoice) {
-      return;
-    }
-    targetProfileId = profileChoice.id;
-
-    const profile = state.workspace.profiles.find((item) => item.id === targetProfileId);
-    const pageChoice = selectChoice("Selecciona una page destino", getPageChoices(profile));
-    targetPageId = pageChoice?.id || null;
   }
 
   if (!targetProfileId || !targetPageId) {
-    return;
+    targetProfileId = state.workspace.activeProfileId;
+    targetPageId = state.workspace.activePageId;
   }
 
   const result = await window.runtime.addFolder(targetProfileId, targetPageId);
@@ -363,6 +622,10 @@ async function handleAddFolder() {
 function renderNavigation() {
   if (!state.workspace) {
     return;
+  }
+
+  if (state.selection && !getSelectedNodeContext(state.workspace, state.selection)) {
+    state.selection = null;
   }
 
   renderTree(state.workspace, state.selection);

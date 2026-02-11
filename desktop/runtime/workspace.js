@@ -101,6 +101,7 @@ function loadWorkspace() {
 
   const raw = fs.readFileSync(workspaceFilePath, "utf8");
   workspaceCache = normalizeWorkspace(JSON.parse(raw));
+  ensureValidActiveSelection();
   return workspaceCache;
 }
 
@@ -208,6 +209,161 @@ function addFolder(profileId, pageId) {
   scheduleSave();
 
   return { workspace, created: { type: "folder", id: folderId } };
+}
+
+function ensureValidActiveSelection() {
+  const workspace = getWorkspace();
+
+  if (!Array.isArray(workspace.profiles) || workspace.profiles.length === 0) {
+    const defaults = createDefaultWorkspace();
+    workspace.profiles = defaults.profiles;
+    workspace.activeProfileId = defaults.activeProfileId;
+    workspace.activePageId = defaults.activePageId;
+  }
+
+  let activeProfile = workspace.profiles.find((item) => item.id === workspace.activeProfileId);
+
+  if (!activeProfile) {
+    activeProfile = workspace.profiles[0];
+    workspace.activeProfileId = activeProfile.id;
+  }
+
+  if (!Array.isArray(activeProfile.pages)) {
+    activeProfile.pages = [];
+  }
+
+  if (activeProfile.pages.length === 0) {
+    const pageId = nextIdFromWorkspace("page");
+    activeProfile.pages.push({
+      id: pageId,
+      name: `Página ${pageId.replace("page", "")}`,
+      grid: { rows: 4, cols: 3 },
+      background: { type: "solid", color: "#111111" },
+      controls: [],
+      folders: [],
+    });
+    workspace.activePageId = pageId;
+  }
+
+  let activePage = activeProfile.pages.find((item) => item.id === workspace.activePageId);
+  if (!activePage) {
+    activePage = activeProfile.pages[0];
+    workspace.activePageId = activePage.id;
+  }
+
+  workspace.lastSession = workspace.lastSession || {};
+  workspace.lastSession.activeProfileId = workspace.activeProfileId;
+  workspace.lastSession.activePageId = workspace.activePageId;
+
+  return workspace;
+}
+
+function deleteProfile(profileId) {
+  const workspace = getWorkspace();
+  const index = workspace.profiles.findIndex((item) => item.id === profileId);
+
+  if (index === -1) {
+    throw new Error("Perfil no encontrado");
+  }
+
+  workspace.profiles.splice(index, 1);
+  ensureValidActiveSelection();
+  scheduleSave();
+
+  return workspace;
+}
+
+function deletePage(profileId, pageId) {
+  const workspace = getWorkspace();
+  const profile = workspace.profiles.find((item) => item.id === profileId);
+
+  if (!profile) {
+    throw new Error("Perfil no encontrado");
+  }
+
+  const pageIndex = profile.pages.findIndex((item) => item.id === pageId);
+  if (pageIndex === -1) {
+    throw new Error("Página no encontrada");
+  }
+
+  profile.pages.splice(pageIndex, 1);
+  ensureValidActiveSelection();
+  scheduleSave();
+
+  return workspace;
+}
+
+function deleteFolder(profileId, pageId, folderId) {
+  const workspace = getWorkspace();
+  const profile = workspace.profiles.find((item) => item.id === profileId);
+  const page = profile?.pages.find((item) => item.id === pageId);
+
+  if (!page) {
+    throw new Error("Página no encontrada");
+  }
+
+  const folderIndex = page.folders.findIndex((item) => item.id === folderId);
+  if (folderIndex === -1) {
+    throw new Error("Carpeta no encontrada");
+  }
+
+  page.folders.splice(folderIndex, 1);
+  ensureValidActiveSelection();
+  scheduleSave();
+
+  return workspace;
+}
+
+function movePage(pageId, fromProfileId, toProfileId) {
+  const workspace = getWorkspace();
+  const fromProfile = workspace.profiles.find((item) => item.id === fromProfileId);
+  const toProfile = workspace.profiles.find((item) => item.id === toProfileId);
+
+  if (!fromProfile || !toProfile) {
+    throw new Error("Perfil no encontrado");
+  }
+
+  const pageIndex = fromProfile.pages.findIndex((item) => item.id === pageId);
+  if (pageIndex === -1) {
+    throw new Error("Página no encontrada");
+  }
+
+  const [page] = fromProfile.pages.splice(pageIndex, 1);
+  toProfile.pages.push(page);
+
+  if (workspace.activePageId === page.id) {
+    workspace.activeProfileId = toProfile.id;
+  }
+
+  ensureValidActiveSelection();
+  scheduleSave();
+
+  return workspace;
+}
+
+function moveFolder(folderId, fromProfileId, fromPageId, toProfileId, toPageId) {
+  const workspace = getWorkspace();
+  const fromProfile = workspace.profiles.find((item) => item.id === fromProfileId);
+  const toProfile = workspace.profiles.find((item) => item.id === toProfileId);
+  const fromPage = fromProfile?.pages.find((item) => item.id === fromPageId);
+  const toPage = toProfile?.pages.find((item) => item.id === toPageId);
+
+  if (!fromPage || !toPage) {
+    throw new Error("Página no encontrada");
+  }
+
+  const folderIndex = fromPage.folders.findIndex((item) => item.id === folderId);
+  if (folderIndex === -1) {
+    throw new Error("Carpeta no encontrada");
+  }
+
+  const [folder] = fromPage.folders.splice(folderIndex, 1);
+  toPage.folders.push(folder);
+
+  ensureValidActiveSelection();
+  scheduleSave();
+
+  return workspace;
 }
 
 function getNode(type, id) {
@@ -328,6 +484,12 @@ module.exports = {
   addProfile,
   addPage,
   addFolder,
+  deleteProfile,
+  deletePage,
+  deleteFolder,
+  movePage,
+  moveFolder,
+  ensureValidActiveSelection,
   setActiveProfile,
   setActivePage,
 };

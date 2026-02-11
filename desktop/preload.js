@@ -12,6 +12,11 @@ contextBridge.exposeInMainWorld("runtime", {
   updateIcon: (payload) => ipcRenderer.invoke("workspace:updateIcon", payload),
   setActiveProfile: (profileId) => ipcRenderer.invoke("workspace:setActiveProfile", profileId),
   setActivePage: (profileId, pageId) => ipcRenderer.invoke("workspace:setActivePage", profileId, pageId),
+  deleteProfile: (profileId) => ipcRenderer.invoke("workspace:deleteProfile", profileId),
+  deletePage: (profileId, pageId) => ipcRenderer.invoke("workspace:deletePage", profileId, pageId),
+  deleteFolder: (profileId, pageId, folderId) => ipcRenderer.invoke("workspace:deleteFolder", profileId, pageId, folderId),
+  movePage: (pageId, fromProfileId, toProfileId) => ipcRenderer.invoke("workspace:movePage", pageId, fromProfileId, toProfileId),
+  moveFolder: (folderId, fromProfileId, fromPageId, toProfileId, toPageId) => ipcRenderer.invoke("workspace:moveFolder", folderId, fromProfileId, fromPageId, toProfileId, toPageId),
   importIcon: () => ipcRenderer.invoke("workspace:importIcon"),
   onLog: (listener) => {
     const handler = (_, message) => listener(message);
