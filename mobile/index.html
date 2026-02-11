@@ -267,7 +267,21 @@
         const totalCells = rows * cols;
 
         gridEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
-        gridEl.style.background = activePage.background?.color || "#111111";
+
+        const background = activePage.background || {};
+        const isImageBackground = background.type === "image" && Boolean(background.imagePath);
+
+        if (isImageBackground) {
+          const fit = background.fit === "contain" || background.fit === "stretch" ? background.fit : "cover";
+          gridEl.style.backgroundColor = "#111111";
+          gridEl.style.backgroundImage = `url("/${background.imagePath}")`;
+          gridEl.style.backgroundRepeat = "no-repeat";
+          gridEl.style.backgroundPosition = "center";
+          gridEl.style.backgroundSize = fit === "stretch" ? "100% 100%" : fit;
+        } else {
+          gridEl.style.background = background.color || "#111111";
+          gridEl.style.backgroundImage = "none";
+        }
 
         for (let index = 0; index < totalCells; index += 1) {
           const cell = document.createElement("div");

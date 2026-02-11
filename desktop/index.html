@@ -553,6 +553,21 @@
               <label for="gridBgColorInput">Color</label>
               <input id="gridBgColorInput" type="color" value="#111111" />
             </div>
+            <div class="grid-controls-row">
+              <button id="addBackgroundImageBtn" type="button">Añadir imagen…</button>
+            </div>
+            <div id="backgroundImageInfo" class="muted">Sin imagen de fondo</div>
+            <div class="grid-controls-row">
+              <label for="backgroundFitSelect">Fit</label>
+              <select id="backgroundFitSelect" disabled>
+                <option value="cover">cover</option>
+                <option value="contain">contain</option>
+                <option value="stretch">stretch</option>
+              </select>
+            </div>
+            <div class="grid-controls-row">
+              <button id="clearBackgroundImageBtn" type="button" class="danger" disabled>Quitar imagen</button>
+            </div>
           </div>
 
           <div class="grid-canvas-wrap">
