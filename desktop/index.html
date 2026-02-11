@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Remote Deck Desktop</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 24px;
+        background: #121212;
+        color: #f5f5f5;
+      }
+
+      h1,
+      h2 {
+        margin-bottom: 12px;
+      }
+
+      .panel {
+        border: 1px solid #2f2f2f;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+        background: #1c1c1c;
+      }
+
+      .buttons {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 6px;
+        padding: 10px 14px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      #startBtn {
+        background: #2d7d46;
+        color: #fff;
+      }
+
+      #stopBtn {
+        background: #b24444;
+        color: #fff;
+      }
+
+      #logs {
+        margin: 0;
+        padding-left: 18px;
+        max-height: 320px;
+        overflow-y: auto;
+        line-height: 1.4;
+      }
+
+      .muted {
+        color: #c6c6c6;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Remote Deck - Desktop</h1>
+
+    <section class="panel">
+      <h2>Server</h2>
+      <div class="buttons">
+        <button id="startBtn">Start Server</button>
+        <button id="stopBtn">Stop Server</button>
+      </div>
+      <p>Estado: <strong id="status">stopped</strong></p>
+      <p>URL local: <span id="localUrl" class="muted">http://localhost:3030</span></p>
+      <p>URL LAN: <span id="lanUrl" class="muted">-</span></p>
+    </section>
+
+    <section class="panel">
+      <h2>Logs</h2>
+      <ul id="logs"></ul>
+    </section>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>
