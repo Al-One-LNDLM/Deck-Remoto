@@ -192,7 +192,7 @@
         background: #161616;
         display: grid;
         gap: 10px;
-        max-height: calc(100vh - 320px);
+        max-height: 75vh;
         overflow: auto;
       }
 
@@ -212,8 +212,9 @@
 
       .grid-canvas-host {
         width: 100%;
-        height: min(460px, calc(100vh - 420px));
-        min-height: 280px;
+        height: clamp(220px, calc(75vh - 180px), 460px);
+        max-height: 100%;
+        min-height: 0;
         display: grid;
         place-items: stretch;
       }
