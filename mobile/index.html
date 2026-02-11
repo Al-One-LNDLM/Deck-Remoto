@@ -236,6 +236,21 @@
         return {
           buttonShowBackground: activePage?.style?.buttonShowBackground !== false,
           buttonShowLabel: activePage?.style?.buttonShowLabel !== false,
+          buttonBackgroundColor: /^#[0-9a-fA-F]{6}$/.test(activePage?.style?.buttonBackgroundColor || "")
+            ? activePage.style.buttonBackgroundColor
+            : "#2b2b2b",
+          buttonShowBorder: activePage?.style?.buttonShowBorder !== false,
+          buttonBorderColor: /^#[0-9a-fA-F]{6}$/.test(activePage?.style?.buttonBorderColor || "")
+            ? activePage.style.buttonBorderColor
+            : "#444444",
+          faderShowBackground: activePage?.style?.faderShowBackground !== false,
+          faderBackgroundColor: /^#[0-9a-fA-F]{6}$/.test(activePage?.style?.faderBackgroundColor || "")
+            ? activePage.style.faderBackgroundColor
+            : "#2b2b2b",
+          faderShowBorder: activePage?.style?.faderShowBorder !== false,
+          faderBorderColor: /^#[0-9a-fA-F]{6}$/.test(activePage?.style?.faderBorderColor || "")
+            ? activePage.style.faderBorderColor
+            : "#444444",
           faderShowLabel: activePage?.style?.faderShowLabel !== false,
         };
       }
@@ -263,9 +278,13 @@
         itemEl.className = `placement ${isFader ? "fader" : "button"}`;
         itemEl.type = "button";
 
-        if (!isFader && !pageStyle.buttonShowBackground) {
-          itemEl.classList.add("no-background");
-        }
+        const showBackground = isFader ? pageStyle.faderShowBackground : pageStyle.buttonShowBackground;
+        const backgroundColor = isFader ? pageStyle.faderBackgroundColor : pageStyle.buttonBackgroundColor;
+        const showBorder = isFader ? pageStyle.faderShowBorder : pageStyle.buttonShowBorder;
+        const borderColor = isFader ? pageStyle.faderBorderColor : pageStyle.buttonBorderColor;
+
+        itemEl.style.background = showBackground ? backgroundColor : "transparent";
+        itemEl.style.border = showBorder ? `1px solid ${borderColor}` : "none";
 
         const showLabel = isFader ? pageStyle.faderShowLabel : pageStyle.buttonShowLabel;
         if (showLabel) {

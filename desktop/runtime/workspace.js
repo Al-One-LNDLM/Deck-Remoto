@@ -30,6 +30,13 @@ function createDefaultWorkspace() {
             style: {
               buttonShowBackground: true,
               buttonShowLabel: true,
+              buttonBackgroundColor: "#2b2b2b",
+              buttonShowBorder: true,
+              buttonBorderColor: "#444444",
+              faderShowBackground: true,
+              faderBackgroundColor: "#2b2b2b",
+              faderShowBorder: true,
+              faderBorderColor: "#444444",
               faderShowLabel: true,
             },
             background: {
@@ -46,10 +53,21 @@ function createDefaultWorkspace() {
   };
 }
 
+function sanitizeHexColor(value, fallback) {
+  return /^#[0-9a-fA-F]{6}$/.test(value || "") ? value : fallback;
+}
+
 function normalizePageStyle(style) {
   return {
     buttonShowBackground: style?.buttonShowBackground !== false,
     buttonShowLabel: style?.buttonShowLabel !== false,
+    buttonBackgroundColor: sanitizeHexColor(style?.buttonBackgroundColor, "#2b2b2b"),
+    buttonShowBorder: style?.buttonShowBorder !== false,
+    buttonBorderColor: sanitizeHexColor(style?.buttonBorderColor, "#444444"),
+    faderShowBackground: style?.faderShowBackground !== false,
+    faderBackgroundColor: sanitizeHexColor(style?.faderBackgroundColor, "#2b2b2b"),
+    faderShowBorder: style?.faderShowBorder !== false,
+    faderBorderColor: sanitizeHexColor(style?.faderBorderColor, "#444444"),
     faderShowLabel: style?.faderShowLabel !== false,
   };
 }
@@ -317,6 +335,13 @@ function addProfile() {
         style: {
           buttonShowBackground: true,
           buttonShowLabel: true,
+          buttonBackgroundColor: "#2b2b2b",
+          buttonShowBorder: true,
+          buttonBorderColor: "#444444",
+          faderShowBackground: true,
+          faderBackgroundColor: "#2b2b2b",
+          faderShowBorder: true,
+          faderBorderColor: "#444444",
           faderShowLabel: true,
         },
         background: { type: "solid", color: "#111111" },
@@ -351,6 +376,13 @@ function addPage(profileId) {
     style: {
       buttonShowBackground: true,
       buttonShowLabel: true,
+      buttonBackgroundColor: "#2b2b2b",
+      buttonShowBorder: true,
+      buttonBorderColor: "#444444",
+      faderShowBackground: true,
+      faderBackgroundColor: "#2b2b2b",
+      faderShowBorder: true,
+      faderBorderColor: "#444444",
       faderShowLabel: true,
     },
     background: { type: "solid", color: "#111111" },
@@ -585,6 +617,13 @@ function ensureValidActiveSelection() {
       style: {
         buttonShowBackground: true,
         buttonShowLabel: true,
+        buttonBackgroundColor: "#2b2b2b",
+        buttonShowBorder: true,
+        buttonBorderColor: "#444444",
+        faderShowBackground: true,
+        faderBackgroundColor: "#2b2b2b",
+        faderShowBorder: true,
+        faderBorderColor: "#444444",
         faderShowLabel: true,
       },
       background: { type: "solid", color: "#111111" },
@@ -883,6 +922,34 @@ function setPageStyle(profileId, pageId, partialStyle) {
 
   if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "buttonShowLabel")) {
     next.buttonShowLabel = Boolean(partialStyle.buttonShowLabel);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "buttonBackgroundColor")) {
+    next.buttonBackgroundColor = sanitizeHexColor(partialStyle.buttonBackgroundColor, current.buttonBackgroundColor);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "buttonShowBorder")) {
+    next.buttonShowBorder = Boolean(partialStyle.buttonShowBorder);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "buttonBorderColor")) {
+    next.buttonBorderColor = sanitizeHexColor(partialStyle.buttonBorderColor, current.buttonBorderColor);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "faderShowBackground")) {
+    next.faderShowBackground = Boolean(partialStyle.faderShowBackground);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "faderBackgroundColor")) {
+    next.faderBackgroundColor = sanitizeHexColor(partialStyle.faderBackgroundColor, current.faderBackgroundColor);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "faderShowBorder")) {
+    next.faderShowBorder = Boolean(partialStyle.faderShowBorder);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "faderBorderColor")) {
+    next.faderBorderColor = sanitizeHexColor(partialStyle.faderBorderColor, current.faderBorderColor);
   }
 
   if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "faderShowLabel")) {
