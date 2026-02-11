@@ -7,6 +7,12 @@ const {
   addProfile,
   addPage,
   addFolder,
+  addPageElement,
+  deletePageElement,
+  renamePageElement,
+  addFolderItem,
+  deleteFolderItem,
+  renameFolderItem,
   updateName,
   updateIcon,
   setActiveProfile,
@@ -72,6 +78,24 @@ app.whenReady().then(() => {
   ipcMain.handle("workspace:addProfile", () => addProfile());
   ipcMain.handle("workspace:addPage", (_event, profileId) => addPage(profileId));
   ipcMain.handle("workspace:addFolder", (_event, profileId, pageId) => addFolder(profileId, pageId));
+  ipcMain.handle("workspace:addPageElement", (_event, profileId, pageId, elementType) =>
+    addPageElement(profileId, pageId, elementType),
+  );
+  ipcMain.handle("workspace:deletePageElement", (_event, profileId, pageId, elementId) =>
+    deletePageElement(profileId, pageId, elementId),
+  );
+  ipcMain.handle("workspace:renamePageElement", (_event, profileId, pageId, elementId, name) =>
+    renamePageElement(profileId, pageId, elementId, name),
+  );
+  ipcMain.handle("workspace:addFolderItem", (_event, profileId, pageId, folderId) =>
+    addFolderItem(profileId, pageId, folderId),
+  );
+  ipcMain.handle("workspace:deleteFolderItem", (_event, profileId, pageId, folderId, itemId) =>
+    deleteFolderItem(profileId, pageId, folderId, itemId),
+  );
+  ipcMain.handle("workspace:renameFolderItem", (_event, profileId, pageId, folderId, itemId, name) =>
+    renameFolderItem(profileId, pageId, folderId, itemId, name),
+  );
   ipcMain.handle("workspace:updateName", (_event, payload) => updateName(payload));
   ipcMain.handle("workspace:updateIcon", (_event, payload) => updateIcon(payload));
   ipcMain.handle("workspace:setActiveProfile", (_event, profileId) => setActiveProfile(profileId));
