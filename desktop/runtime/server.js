@@ -3,7 +3,7 @@ const http = require("http");
 const path = require("path");
 const os = require("os");
 const { WebSocketServer } = require("ws");
-const { loadWorkspace, getActiveState } = require("./workspace");
+const { getWorkspace, getActiveState } = require("./workspace");
 
 const PORT = 3030;
 
@@ -45,8 +45,8 @@ function createRuntimeServer({ onLog }) {
     }
 
     app = express();
-    const workspace = loadWorkspace();
     app.get("/api/state", (_request, response) => {
+      const workspace = getWorkspace();
       const { activeProfileId, activePageId, activeProfile, activePage } =
         getActiveState(workspace);
 
