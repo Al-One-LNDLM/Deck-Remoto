@@ -90,6 +90,9 @@ function createRuntimeServer({ onLog }) {
         });
       }
     });
+    const assetsPath = path.resolve(__dirname, "../assets");
+    app.use("/assets", express.static(assetsPath));
+
     const mobilePath = path.resolve(__dirname, "../../mobile");
     app.use(express.static(mobilePath));
 

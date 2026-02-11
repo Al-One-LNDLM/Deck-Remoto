@@ -19,6 +19,10 @@ const gridRowsInput = document.getElementById("gridRowsInput");
 const gridColsInput = document.getElementById("gridColsInput");
 const applyGridBtn = document.getElementById("applyGridBtn");
 const gridBgColorInput = document.getElementById("gridBgColorInput");
+const addBackgroundImageBtn = document.getElementById("addBackgroundImageBtn");
+const backgroundImageInfo = document.getElementById("backgroundImageInfo");
+const backgroundFitSelect = document.getElementById("backgroundFitSelect");
+const clearBackgroundImageBtn = document.getElementById("clearBackgroundImageBtn");
 const gridCanvas = document.getElementById("gridCanvas");
 const gridCanvasHost = document.getElementById("gridCanvasHost");
 const gridPreviewModeSelect = document.getElementById("gridPreviewModeSelect");
@@ -133,6 +137,62 @@ function getPlacementCandidates(page, element, excludePlacementId = null) {
   }
 
   return { candidates, rowSpan, colSpan };
+}
+
+
+const gridBackgroundImageCache = new Map();
+
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`No se pudo cargar imagen: ${url}`));
+    image.src = url;
+  });
+}
+
+async function getGridBackgroundImage(imagePath) {
+  if (!imagePath) {
+    return null;
+  }
+
+  const imageUrl = `/${imagePath}`;
+  if (!gridBackgroundImageCache.has(imageUrl)) {
+    gridBackgroundImageCache.set(imageUrl, loadImage(imageUrl));
+  }
+
+  return gridBackgroundImageCache.get(imageUrl);
+}
+
+function drawImageBackground(ctx2d, image, width, height, fit) {
+  if (!image || image.naturalWidth <= 0 || image.naturalHeight <= 0) {
+    return;
+  }
+
+  const sourceWidth = image.naturalWidth;
+  const sourceHeight = image.naturalHeight;
+
+  if (fit === "stretch") {
+    ctx2d.drawImage(image, 0, 0, width, height);
+    return;
+  }
+
+  if (fit === "contain") {
+    const scale = Math.min(width / sourceWidth, height / sourceHeight);
+    const drawWidth = sourceWidth * scale;
+    const drawHeight = sourceHeight * scale;
+    const offsetX = (width - drawWidth) / 2;
+    const offsetY = (height - drawHeight) / 2;
+    ctx2d.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+    return;
+  }
+
+  const scale = Math.max(width / sourceWidth, height / sourceHeight);
+  const cropWidth = width / scale;
+  const cropHeight = height / scale;
+  const sourceX = (sourceWidth - cropWidth) / 2;
+  const sourceY = (sourceHeight - cropHeight) / 2;
+  ctx2d.drawImage(image, sourceX, sourceY, cropWidth, cropHeight, 0, 0, width, height);
 }
 
 function drawPlacement(ctx2d, page, placement, element, metrics, selectedPlacementId) {
@@ -251,13 +311,14 @@ function renderPlacementInspector(page) {
   gridPlacementInspector.appendChild(deleteBtn);
 }
 
-function renderGridCanvas(page) {
+async function renderGridCanvas(page) {
   const ctx2d = gridCanvas.getContext("2d");
   const width = gridCanvas.width;
   const height = gridCanvas.height;
   const rows = clampGridValue(page.grid?.rows || 1);
   const cols = clampGridValue(page.grid?.cols || 1);
   const bgColor = page.background?.type === "solid" ? page.background.color : "#111111";
+  const isImageBackground = page.background?.type === "image" && page.background.imagePath;
 
   const cellW = width / cols;
   const cellH = height / rows;
@@ -265,6 +326,15 @@ function renderGridCanvas(page) {
   ctx2d.clearRect(0, 0, width, height);
   ctx2d.fillStyle = bgColor;
   ctx2d.fillRect(0, 0, width, height);
+
+  if (isImageBackground) {
+    try {
+      const image = await getGridBackgroundImage(page.background.imagePath);
+      drawImageBackground(ctx2d, image, width, height, page.background.fit);
+    } catch (_error) {
+      // fallback al color sólido
+    }
+  }
 
   ctx2d.strokeStyle = "rgba(255,255,255,0.35)";
   ctx2d.lineWidth = 1;
@@ -343,14 +413,14 @@ async function onGridCanvasClick(event) {
   if (placement) {
     state.gridSelection.selectedPlacementId = placement.id;
     state.gridSelection.selectedElementId = null;
-    renderGridTab();
+    await renderGridTab();
     return;
   }
 
   const element = getElementById(page, state.gridSelection.selectedElementId);
   if (!element) {
     state.gridSelection.selectedPlacementId = null;
-    renderGridTab();
+    await renderGridTab();
     return;
   }
 
@@ -364,6 +434,7 @@ async function onGridCanvasClick(event) {
   state.gridSelection.selectedElementId = null;
   state.gridSelection.selectedPlacementId = result.created.id;
   renderNavigation();
+  await renderGridTab();
 }
 
 function renderPlacementModeWarning(page) {
@@ -382,7 +453,7 @@ function renderPlacementModeWarning(page) {
   gridPlacementWarning.hidden = false;
 }
 
-function renderGridTab() {
+async function renderGridTab() {
   if (!state.workspace) {
     return;
   }
@@ -419,7 +490,17 @@ function renderGridTab() {
 
   gridRowsInput.value = clampGridValue(ctx.page.grid?.rows || 4);
   gridColsInput.value = clampGridValue(ctx.page.grid?.cols || 3);
-  gridBgColorInput.value = ctx.page.background?.color || "#111111";
+  const background = ctx.page.background || { type: "solid", color: "#111111" };
+  gridBgColorInput.value = background.color || "#111111";
+
+  const hasImageBackground = background.type === "image" && Boolean(background.imagePath);
+  backgroundFitSelect.disabled = !hasImageBackground;
+  clearBackgroundImageBtn.disabled = !hasImageBackground;
+  backgroundFitSelect.value = hasImageBackground ? (background.fit || "cover") : "cover";
+  backgroundImageInfo.textContent = hasImageBackground
+    ? `Imagen: ${background.imagePath.split("/").pop()}`
+    : "Sin imagen de fondo";
+
   gridPreviewModeSelect.value = state.gridSelection.previewMode;
   gridCanvasHost.classList.toggle("preview-9x16", state.gridSelection.previewMode === "9x16");
 
@@ -451,7 +532,7 @@ function renderGridTab() {
   }
 
   renderPlacementModeWarning(ctx.page);
-  renderGridCanvas(ctx.page);
+  await renderGridCanvas(ctx.page);
   renderPlacementInspector(ctx.page);
 }
 
@@ -480,6 +561,55 @@ async function applyBackgroundColor(color) {
   state.workspace = await window.runtime.setPageBackgroundSolid(ctx.profile.id, ctx.page.id, color);
   renderNavigation();
   renderGridTab();
+}
+
+
+async function applyBackgroundImageFit(fit) {
+  const ctx = getGridContextWorkspace();
+  if (!ctx) {
+    return;
+  }
+
+  const background = ctx.page.background || {};
+  if (background.type !== "image" || !background.imagePath) {
+    return;
+  }
+
+  state.workspace = await window.runtime.setPageBackgroundImage(
+    ctx.profile.id,
+    ctx.page.id,
+    background.imagePath,
+    fit,
+  );
+  renderNavigation();
+  await renderGridTab();
+}
+
+async function importAndSetBackgroundImage() {
+  const ctx = getGridContextWorkspace();
+  if (!ctx) {
+    return;
+  }
+
+  const imagePath = await window.runtime.importBackgroundImage();
+  if (!imagePath) {
+    return;
+  }
+
+  state.workspace = await window.runtime.setPageBackgroundImage(ctx.profile.id, ctx.page.id, imagePath, "cover");
+  renderNavigation();
+  await renderGridTab();
+}
+
+async function clearBackgroundImage() {
+  const ctx = getGridContextWorkspace();
+  if (!ctx) {
+    return;
+  }
+
+  state.workspace = await window.runtime.clearPageBackgroundImage(ctx.profile.id, ctx.page.id);
+  renderNavigation();
+  await renderGridTab();
 }
 
 function appendLog(message) {
@@ -1199,6 +1329,7 @@ async function handleAddProfile() {
   state.workspace = result.workspace;
   state.selection = result.created;
   renderNavigation();
+  await renderGridTab();
 }
 
 async function handleAddPage() {
@@ -1213,6 +1344,7 @@ async function handleAddPage() {
   state.workspace = result.workspace;
   state.selection = result.created;
   renderNavigation();
+  await renderGridTab();
 }
 
 async function handleAddFolder() {
@@ -1234,6 +1366,7 @@ async function handleAddFolder() {
   state.workspace = result.workspace;
   state.selection = result.created;
   renderNavigation();
+  await renderGridTab();
 }
 
 function renderNavigation() {
@@ -1354,6 +1487,18 @@ gridBgColorInput.addEventListener("input", async (event) => {
   await applyBackgroundColor(event.target.value);
 });
 
+addBackgroundImageBtn.addEventListener("click", async () => {
+  await importAndSetBackgroundImage();
+});
+
+backgroundFitSelect.addEventListener("change", async (event) => {
+  await applyBackgroundImageFit(event.target.value);
+});
+
+clearBackgroundImageBtn.addEventListener("click", async () => {
+  await clearBackgroundImage();
+});
+
 window.runtime.onLog((message) => {
   appendLog(message);
 });
@@ -1363,6 +1508,7 @@ async function init() {
   state.workspace = await window.runtime.getWorkspace();
   state.selection = null;
   renderNavigation();
+  await renderGridTab();
 }
 
 init();
