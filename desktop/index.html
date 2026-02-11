@@ -140,6 +140,7 @@
         display: grid;
         gap: 12px;
         align-content: start;
+        min-height: 0;
       }
 
       .grid-select-row {
@@ -189,6 +190,10 @@
         border-radius: 8px;
         padding: 8px;
         background: #161616;
+        display: grid;
+        gap: 10px;
+        max-height: calc(100vh - 320px);
+        overflow: auto;
       }
 
       .grid-preview-row {
@@ -207,7 +212,8 @@
 
       .grid-canvas-host {
         width: 100%;
-        height: 460px;
+        height: min(460px, calc(100vh - 420px));
+        min-height: 280px;
         display: grid;
         place-items: stretch;
       }
@@ -222,9 +228,10 @@
       }
 
       .grid-canvas-host.preview-9x16 .grid-canvas-frame {
-        width: auto;
-        height: 100%;
         aspect-ratio: 9 / 16;
+        height: auto;
+        max-height: 100%;
+        width: auto;
         max-width: 100%;
       }
 
@@ -237,14 +244,30 @@
         cursor: pointer;
       }
 
+
+      .grid-placement-warning {
+        border: 1px solid #7c5f00;
+        border-radius: 8px;
+        padding: 10px;
+        background: rgba(255, 209, 102, 0.12);
+        color: #ffd166;
+      }
+
+      .grid-placement-warning strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
       .grid-placement-inspector {
-        margin-top: 10px;
+        margin-top: 0;
         border: 1px solid #2f2f2f;
         border-radius: 8px;
         padding: 10px;
         background: #181818;
         display: grid;
         gap: 8px;
+        max-width: 100%;
+        overflow-wrap: anywhere;
       }
 
       .grid-placement-inspector input {
@@ -543,6 +566,10 @@
               <div class="grid-canvas-frame">
                 <canvas id="gridCanvas" width="900" height="460"></canvas>
               </div>
+            </div>
+            <div id="gridPlacementWarning" class="grid-placement-warning" hidden>
+              <strong>No hay espacio para colocar este fader en la rejilla actual.</strong>
+              <span>Aumenta Rows o reduce placements.</span>
             </div>
             <div id="gridPlacementInspector" class="grid-placement-inspector muted">Selecciona un placement en el canvas.</div>
           </div>

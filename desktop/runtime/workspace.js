@@ -197,6 +197,20 @@ function getDefaultPlacementSpan(elementType) {
   return { rowSpan: 1, colSpan: 1 };
 }
 
+function getDefaultPlacementSpanForPage(page, elementType) {
+  const base = getDefaultPlacementSpan(elementType);
+  const rows = Math.max(1, Number(page.grid?.rows) || 1);
+
+  if (elementType === "fader") {
+    return {
+      rowSpan: Math.min(base.rowSpan, rows),
+      colSpan: 1,
+    };
+  }
+
+  return base;
+}
+
 function canPlacePlacement(page, placement, options = {}) {
   const rows = Math.max(1, Number(page.grid?.rows) || 1);
   const cols = Math.max(1, Number(page.grid?.cols) || 1);
@@ -382,7 +396,7 @@ function addPlacement(profileId, pageId, elementId, row, col) {
     throw new Error("El elemento ya está colocado");
   }
 
-  const { rowSpan, colSpan } = getDefaultPlacementSpan(element.type);
+  const { rowSpan, colSpan } = getDefaultPlacementSpanForPage(page, element.type);
   const placement = {
     id: nextPlacementId(),
     elementId,
