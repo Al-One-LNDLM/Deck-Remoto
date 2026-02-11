@@ -26,6 +26,7 @@ function createDefaultWorkspace() {
               rows: 4,
               cols: 3,
             },
+            showGrid: true,
             background: {
               type: "solid",
               color: "#111111",
@@ -70,6 +71,7 @@ function normalizeWorkspace(workspace) {
 
     profile.pages.forEach((page) => {
       page.grid = page.grid || { rows: 4, cols: 3 };
+      page.showGrid = page.showGrid !== false;
       page.background = normalizeBackground(page.background);
       page.controls = Array.isArray(page.controls) ? page.controls : [];
       page.folders = Array.isArray(page.folders) ? page.folders : [];
@@ -297,6 +299,7 @@ function addProfile() {
         id: pageId,
         name: `Página ${pageId.replace("page", "")}`,
         grid: { rows: 4, cols: 3 },
+        showGrid: true,
         background: { type: "solid", color: "#111111" },
         controls: [],
         folders: [],
@@ -325,6 +328,7 @@ function addPage(profileId) {
     id: pageId,
     name: `Página ${pageId.replace("page", "")}`,
     grid: { rows: 4, cols: 3 },
+    showGrid: true,
     background: { type: "solid", color: "#111111" },
     controls: [],
     folders: [],
@@ -553,6 +557,7 @@ function ensureValidActiveSelection() {
       id: pageId,
       name: `Página ${pageId.replace("page", "")}`,
       grid: { rows: 4, cols: 3 },
+      showGrid: true,
       background: { type: "solid", color: "#111111" },
       controls: [],
       folders: [],
@@ -828,6 +833,14 @@ function setPageGrid(profileId, pageId, rows, cols) {
   return workspace;
 }
 
+function setPageShowGrid(profileId, pageId, showGrid) {
+  const { workspace, page } = getPage(profileId, pageId);
+  page.showGrid = Boolean(showGrid);
+
+  scheduleSave();
+  return workspace;
+}
+
 function setPageBackgroundSolid(profileId, pageId, color) {
   const { workspace, page } = getPage(profileId, pageId);
   const safeColor = /^#[0-9a-fA-F]{6}$/.test(color) ? color : "#111111";
@@ -917,6 +930,7 @@ module.exports = {
   setActivePage,
   setActive,
   setPageGrid,
+  setPageShowGrid,
   setPageBackgroundSolid,
   setPageBackgroundImage,
   clearPageBackgroundImage,
