@@ -66,6 +66,13 @@ function createRuntimeServer({ onLog }) {
               style: activePage.style || {
                 buttonShowBackground: true,
                 buttonShowLabel: true,
+                buttonBackgroundColor: "#2b2b2b",
+                buttonShowBorder: true,
+                buttonBorderColor: "#444444",
+                faderShowBackground: true,
+                faderBackgroundColor: "#2b2b2b",
+                faderShowBorder: true,
+                faderBorderColor: "#444444",
                 faderShowLabel: true,
               },
               background: activePage.background,
