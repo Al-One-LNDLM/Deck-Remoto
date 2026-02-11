@@ -23,6 +23,7 @@ const gridCanvas = document.getElementById("gridCanvas");
 const gridCanvasHost = document.getElementById("gridCanvasHost");
 const gridPreviewModeSelect = document.getElementById("gridPreviewModeSelect");
 const gridPlacementInspector = document.getElementById("gridPlacementInspector");
+const gridPlacementWarning = document.getElementById("gridPlacementWarning");
 
 const state = {
   workspace: null,
@@ -103,8 +104,35 @@ function canPlaceOnGrid(page, row, col, rowSpan, colSpan, excludePlacementId = n
   });
 }
 
-function getDefaultSpanForElement(element) {
-  return element?.type === "fader" ? { rowSpan: 4, colSpan: 1 } : { rowSpan: 1, colSpan: 1 };
+function getDefaultSpanForElement(page, element) {
+  if (!element) {
+    return { rowSpan: 1, colSpan: 1 };
+  }
+
+  if (element.type === "fader") {
+    return { rowSpan: Math.min(4, clampGridValue(page.grid?.rows || 1)), colSpan: 1 };
+  }
+
+  return { rowSpan: 1, colSpan: 1 };
+}
+
+function getPlacementCandidates(page, element, excludePlacementId = null) {
+  const rows = clampGridValue(page.grid?.rows || 1);
+  const cols = clampGridValue(page.grid?.cols || 1);
+  const { rowSpan, colSpan } = getDefaultSpanForElement(page, element);
+  const candidates = [];
+
+  for (let row = 1; row <= rows; row += 1) {
+    for (let col = 1; col <= cols; col += 1) {
+      if (!canPlaceOnGrid(page, row, col, rowSpan, colSpan, excludePlacementId)) {
+        continue;
+      }
+
+      candidates.push({ row, col });
+    }
+  }
+
+  return { candidates, rowSpan, colSpan };
 }
 
 function drawPlacement(ctx2d, page, placement, element, metrics, selectedPlacementId) {
@@ -270,23 +298,17 @@ function renderGridCanvas(page) {
 
   const selectedElement = getElementById(page, state.gridSelection.selectedElementId);
   if (selectedElement) {
-    const { rowSpan, colSpan } = getDefaultSpanForElement(selectedElement);
+    const { candidates } = getPlacementCandidates(page, selectedElement);
 
-    for (let row = 1; row <= rows; row += 1) {
-      for (let col = 1; col <= cols; col += 1) {
-        if (!canPlaceOnGrid(page, row, col, rowSpan, colSpan)) {
-          continue;
-        }
-
-        const x = (col - 1) * cellW + cellW / 2;
-        const y = (row - 1) * cellH + cellH / 2;
-        ctx2d.fillStyle = "rgba(255,255,255,0.85)";
-        ctx2d.font = "bold 18px Arial";
-        ctx2d.textAlign = "center";
-        ctx2d.textBaseline = "middle";
-        ctx2d.fillText("+", x, y);
-      }
-    }
+    candidates.forEach(({ row, col }) => {
+      const x = (col - 1) * cellW + cellW / 2;
+      const y = (row - 1) * cellH + cellH / 2;
+      ctx2d.fillStyle = "rgba(255,255,255,0.85)";
+      ctx2d.font = "bold 18px Arial";
+      ctx2d.textAlign = "center";
+      ctx2d.textBaseline = "middle";
+      ctx2d.fillText("+", x, y);
+    });
   }
 }
 
@@ -332,7 +354,7 @@ async function onGridCanvasClick(event) {
     return;
   }
 
-  const defaultSpan = getDefaultSpanForElement(element);
+  const defaultSpan = getDefaultSpanForElement(page, element);
   if (!canPlaceOnGrid(page, row, col, defaultSpan.rowSpan, defaultSpan.colSpan)) {
     return;
   }
@@ -342,6 +364,22 @@ async function onGridCanvasClick(event) {
   state.gridSelection.selectedElementId = null;
   state.gridSelection.selectedPlacementId = result.created.id;
   renderNavigation();
+}
+
+function renderPlacementModeWarning(page) {
+  const element = getElementById(page, state.gridSelection.selectedElementId);
+  if (!element || element.type !== "fader") {
+    gridPlacementWarning.hidden = true;
+    return;
+  }
+
+  const { candidates } = getPlacementCandidates(page, element);
+  if (candidates.length > 0) {
+    gridPlacementWarning.hidden = true;
+    return;
+  }
+
+  gridPlacementWarning.hidden = false;
 }
 
 function renderGridTab() {
@@ -412,6 +450,7 @@ function renderGridTab() {
     });
   }
 
+  renderPlacementModeWarning(ctx.page);
   renderGridCanvas(ctx.page);
   renderPlacementInspector(ctx.page);
 }
