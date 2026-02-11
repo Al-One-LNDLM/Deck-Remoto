@@ -13,8 +13,33 @@
       }
 
       h1,
-      h2 {
+      h2,
+      h3 {
         margin-bottom: 12px;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .tab {
+        border: 1px solid #3a3a3a;
+        background: #1e1e1e;
+        color: #f0f0f0;
+      }
+
+      .tab.active {
+        background: #2e5fca;
+      }
+
+      .tab-panel {
+        display: none;
+      }
+
+      .tab-panel.active {
+        display: block;
       }
 
       .panel {
@@ -34,7 +59,7 @@
       button {
         border: 0;
         border-radius: 6px;
-        padding: 10px 14px;
+        padding: 8px 12px;
         font-size: 14px;
         cursor: pointer;
       }
@@ -49,6 +74,14 @@
         color: #fff;
       }
 
+      #addNodeBtn {
+        width: 36px;
+        height: 36px;
+        font-size: 22px;
+        line-height: 1;
+        padding: 0;
+      }
+
       #logs {
         margin: 0;
         padding-left: 18px;
@@ -60,25 +93,124 @@
       .muted {
         color: #c6c6c6;
       }
+
+      .nav-layout {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 16px;
+        min-height: 500px;
+      }
+
+      .tree-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .tree-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .tree-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+
+      .tree-label {
+        flex: 1;
+        border: 1px solid #2f2f2f;
+        background: #151515;
+        color: #f5f5f5;
+        text-align: left;
+      }
+
+      .tree-label.selected {
+        border-color: #2e5fca;
+        background: #223b72;
+      }
+
+      .tree-level-1 .tree-label {
+        margin-left: 18px;
+      }
+
+      .tree-level-2 .tree-label {
+        margin-left: 36px;
+      }
+
+      .inspector-form {
+        display: grid;
+        gap: 12px;
+      }
+
+      .inspector-row {
+        display: grid;
+        gap: 4px;
+      }
+
+      .inspector-row input {
+        border: 1px solid #3b3b3b;
+        border-radius: 6px;
+        background: #111;
+        color: #f5f5f5;
+        padding: 8px;
+      }
+
+      .icon-preview {
+        width: 36px;
+        height: 36px;
+        border-radius: 6px;
+        border: 1px solid #3b3b3b;
+        object-fit: cover;
+        background: #111;
+      }
     </style>
   </head>
   <body>
     <h1>Remote Deck - Desktop</h1>
 
-    <section class="panel">
-      <h2>Server</h2>
-      <div class="buttons">
-        <button id="startBtn">Start Server</button>
-        <button id="stopBtn">Stop Server</button>
-      </div>
-      <p>Estado: <strong id="status">stopped</strong></p>
-      <p>URL local: <span id="localUrl" class="muted">http://localhost:3030</span></p>
-      <p>URL LAN: <span id="lanUrl" class="muted">-</span></p>
+    <div class="tabs">
+      <button class="tab active" data-tab="server">Servidor</button>
+      <button class="tab" data-tab="navigation">Navegación</button>
+    </div>
+
+    <section id="serverTab" class="tab-panel active">
+      <section class="panel">
+        <h2>Server</h2>
+        <div class="buttons">
+          <button id="startBtn">Start Server</button>
+          <button id="stopBtn">Stop Server</button>
+        </div>
+        <p>Estado: <strong id="status">stopped</strong></p>
+        <p>URL local: <span id="localUrl" class="muted">http://localhost:3030</span></p>
+        <p>URL LAN: <span id="lanUrl" class="muted">-</span></p>
+      </section>
+
+      <section class="panel">
+        <h2>Logs</h2>
+        <ul id="logs"></ul>
+      </section>
     </section>
 
-    <section class="panel">
-      <h2>Logs</h2>
-      <ul id="logs"></ul>
+    <section id="navigationTab" class="tab-panel">
+      <section class="panel nav-layout">
+        <div>
+          <div class="tree-toolbar">
+            <h2>Navegación</h2>
+            <button id="addNodeBtn" title="Agregar">＋</button>
+          </div>
+          <ul id="treeRoot" class="tree-list"></ul>
+        </div>
+
+        <div>
+          <h2>Inspector</h2>
+          <div id="inspector" class="inspector-form muted">Selecciona un nodo del árbol.</div>
+        </div>
+      </section>
     </section>
 
     <script src="./renderer.js"></script>

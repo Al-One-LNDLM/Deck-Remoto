@@ -1,6 +1,10 @@
 {
   "activeProfileId": "profile1",
   "activePageId": "page1",
+  "lastSession": {
+    "activeProfileId": "profile1",
+    "activePageId": "page1"
+  },
   "profiles": [
     {
       "id": "profile1",
@@ -17,7 +21,8 @@
             "type": "solid",
             "color": "#111111"
           },
-          "controls": []
+          "controls": [],
+          "folders": []
         }
       ]
     }
