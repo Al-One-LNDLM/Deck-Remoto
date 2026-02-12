@@ -168,6 +168,15 @@ function resolveIconUrl(iconAssetId, iconsMap) {
   return null;
 }
 
+async function importPngIconAndRegisterAsset() {
+  const result = await window.runtime.importIconAsset();
+  if (!result || typeof result.assetId !== "string") {
+    return null;
+  }
+
+  return result.assetId;
+}
+
 async function renderGridTab() {
   if (!state.workspace) {
     return;
