@@ -149,6 +149,8 @@
       const faderSkin = resolveFaderSkin(control);
       const faderTrack = document.createElement("div");
       faderTrack.className = "page-renderer-fader-track";
+      faderTrack.style.position = "relative";
+      faderTrack.style.height = "100%";
       const subgridRows = clamp(context.rowSpan, 1);
       const faderSubgrid = document.createElement("div");
       faderSubgrid.className = "page-renderer-fader-subgrid";
@@ -207,6 +209,9 @@
       const grab = document.createElement(grabUrl ? "img" : "div");
       grab.className = "page-renderer-fader-grab";
       grab.style.zIndex = "2";
+      grab.style.position = "absolute";
+      grab.style.left = "0";
+      grab.style.width = "100%";
       if (grabUrl) {
         grab.src = grabUrl;
         grab.alt = "";
@@ -219,18 +224,40 @@
 
       const value7 = clampValue7(context.value7, 0);
       const value01 = value7 / 127;
+      let metricsCache = null;
+      const measureMetrics = () => {
+        const trackRect = faderTrack.getBoundingClientRect();
+        const grabRect = grab.getBoundingClientRect();
+        metricsCache = {
+          trackHeight: trackRect.height,
+          grabHeight: grabRect.height || Math.max(1, trackRect.height / subgridRows),
+        };
+      };
+
       const updateGrabPosition = () => {
-        const trackHeight = faderTrack.clientHeight;
-        const grabHeight = grab.clientHeight || Math.max(1, trackHeight / subgridRows);
-        const range = Math.max(0, trackHeight - grabHeight);
-        grab.style.top = `${(1 - value01) * range}px`;
+        if (!metricsCache) {
+          measureMetrics();
+        }
+
+        const trackHeight = metricsCache?.trackHeight || 0;
+        const grabHeight = metricsCache?.grabHeight || 0;
+        const maxY = Math.max(0, trackHeight - grabHeight);
+        const y = (1 - value01) * maxY;
+        grab.style.transform = `translateY(${y}px)`;
       };
 
       updateGrabPosition();
       window.requestAnimationFrame(updateGrabPosition);
       if (grab.tagName === "IMG") {
-        grab.addEventListener("load", updateGrabPosition, { once: true });
+        grab.addEventListener("load", () => {
+          metricsCache = null;
+          updateGrabPosition();
+        }, { once: true });
       }
+      window.addEventListener("resize", () => {
+        metricsCache = null;
+        updateGrabPosition();
+      });
 
       return node;
     }
@@ -408,6 +435,20 @@
       const isMobileFaderDragEnabled = isFaderDragEnabled;
       if (isMobileFaderDragEnabled) {
         let dragging = false;
+        let lastTickAt = 0;
+        let lastValue7 = null;
+        let pendingTimer = null;
+        let pendingEvent = null;
+
+        const THROTTLE_MS = 16;
+
+        const clearPendingTimer = () => {
+          if (pendingTimer) {
+            window.clearTimeout(pendingTimer);
+            pendingTimer = null;
+          }
+        };
+
         const emitFaderValue = (event) => {
           const rect = slot.getBoundingClientRect();
           if (!rect.height) {
@@ -416,15 +457,52 @@
 
           const offsetY = event.clientY - rect.top;
           const nextValue01 = 1 - Math.max(0, Math.min(1, offsetY / rect.height));
-          if (control.type === "fader") {
-            onFaderChange({ controlId: control.id, value7: clampValue7(nextValue01 * 127, 0) });
+          const nextValue7 = clampValue7(nextValue01 * 127, 0);
+
+          if (control.type === "fader" && nextValue7 !== lastValue7) {
+            lastValue7 = nextValue7;
+            onFaderChange({ controlId: control.id, value7: nextValue7 });
+          }
+        };
+
+        const emitThrottled = (event) => {
+          pendingEvent = { clientY: event.clientY };
+          const now = Date.now();
+          const elapsed = now - lastTickAt;
+
+          if (elapsed >= THROTTLE_MS) {
+            lastTickAt = now;
+            clearPendingTimer();
+            emitFaderValue(pendingEvent);
+            pendingEvent = null;
+            return;
+          }
+
+          if (!pendingTimer) {
+            pendingTimer = window.setTimeout(() => {
+              pendingTimer = null;
+              lastTickAt = Date.now();
+              if (pendingEvent) {
+                emitFaderValue(pendingEvent);
+                pendingEvent = null;
+              }
+            }, THROTTLE_MS - elapsed);
           }
         };
 
         slot.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
           dragging = true;
-          slot.setPointerCapture?.(event.pointerId);
-          emitFaderValue(event);
+          lastTickAt = 0;
+          lastValue7 = null;
+          clearPendingTimer();
+          pendingEvent = null;
+          try {
+            slot.setPointerCapture?.(event.pointerId);
+          } catch (_error) {
+            // ignore
+          }
+          emitThrottled(event);
         });
 
         slot.addEventListener("pointermove", (event) => {
@@ -433,7 +511,7 @@
           }
 
           event.preventDefault();
-          emitFaderValue(event);
+          emitThrottled(event);
         });
 
         const endDrag = (event) => {
@@ -442,7 +520,13 @@
           }
 
           dragging = false;
-          slot.releasePointerCapture?.(event.pointerId);
+          clearPendingTimer();
+          pendingEvent = null;
+          try {
+            slot.releasePointerCapture?.(event.pointerId);
+          } catch (_error) {
+            // ignore
+          }
         };
 
         slot.addEventListener("pointerup", endDrag);
