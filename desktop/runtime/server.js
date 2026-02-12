@@ -45,6 +45,7 @@ function toPageContract(page) {
   return {
     id: page.id,
     name: page.name,
+    iconAssetId: typeof page.iconAssetId === "string" ? page.iconAssetId : null,
     grid: {
       rows: Math.max(1, Number(page.grid?.rows) || 1),
       cols: Math.max(1, Number(page.grid?.cols) || 1),
@@ -116,10 +117,18 @@ function createRuntimeServer({ onLog }) {
     app.get("/api/state", (_request, response) => {
       const workspace = getWorkspace();
       const { activeProfileId, activePageId, activePage } = getActiveState(workspace);
+      const activeProfile = workspace?.profiles?.find((profile) => profile.id === activeProfileId) || null;
 
       response.json({
         activeProfileId,
         activePageId,
+        profile: activeProfile
+          ? {
+            id: activeProfile.id,
+            name: activeProfile.name,
+            iconAssetId: typeof activeProfile.iconAssetId === "string" ? activeProfile.iconAssetId : null,
+          }
+          : null,
         page: toPageContract(activePage),
         assets: {
           icons: buildIconAssetsMap(workspace),
