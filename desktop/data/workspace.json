@@ -1,9 +1,9 @@
 {
   "activeProfileId": "profile1",
-  "activePageId": "page1",
+  "activePageId": "page2",
   "lastSession": {
     "activeProfileId": "profile1",
-    "activePageId": "page1"
+    "activePageId": "page2"
   },
   "profiles": [
     {
@@ -15,14 +15,9 @@
           "name": "Página 1",
           "grid": {
             "rows": 4,
-            "cols": 4
+            "cols": 3
           },
-          "showGrid": false,
-          "background": {
-            "type": "image",
-            "assetId": "assets/backgrounds/1770893818409-g7.png",
-            "fit": "cover"
-          },
+          "showGrid": true,
           "controls": [
             {
               "id": "button2",
@@ -50,10 +45,6 @@
             "cols": 3
           },
           "showGrid": true,
-          "background": {
-            "type": "solid",
-            "value": "#000000"
-          },
           "controls": [
             {
               "id": "button3",
