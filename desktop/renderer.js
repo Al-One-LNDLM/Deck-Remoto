@@ -173,7 +173,8 @@ async function renderGridTab() {
   const folderById = new Map(folders.map((folder) => [folder.id, folder]));
   const placements = Array.isArray(ctx.page.placements) ? ctx.page.placements : [];
   const placedIds = new Set(placements.map((placement) => placement.elementId));
-  const controls = Array.isArray(ctx.page.controls) ? ctx.page.controls : [];
+  const controls = (Array.isArray(ctx.page.controls) ? ctx.page.controls : [])
+    .filter((element) => element.type === "folderButton" || !element.folderId);
   const unplaced = controls.filter((element) => !placedIds.has(element.id));
   const placed = controls.filter((element) => placedIds.has(element.id));
 
@@ -239,25 +240,34 @@ async function renderGridTab() {
 
   const page = normalizePageForRenderer(ctx.page);
   const assets = normalizeAssetsForRenderer(state.workspace);
-  const hint = state.placingElementId
-    ? "Haz click en una celda para colocar"
+  const isDesktopPlacing = Boolean(state.placingElementId);
+  const hint = isDesktopPlacing
+    ? "Haz click en una celda vacía para colocar"
     : "";
   gridPlacingHint.textContent = hint;
+  gridCanvas.classList.toggle("placing-active", isDesktopPlacing);
 
   window.PageRenderer.render(gridCanvas, {
     page,
     assets,
-    interactive: Boolean(state.placingElementId),
-    onEmptyCellPress: async ({ row, col }) => {
-      if (!state.placingElementId) {
-        return;
-      }
+    isPlacing: isDesktopPlacing,
+    onCellClick: isDesktopPlacing
+      ? async (row, col) => {
+        if (!state.placingElementId) {
+          return;
+        }
 
-      state.workspace = await window.runtime.placeElement(ctx.profile.id, ctx.page.id, state.placingElementId, row, col);
-      state.placingElementId = null;
-      renderNavigation();
-      await renderGridTab();
-    },
+        try {
+          state.workspace = await window.runtime.placeElement(ctx.profile.id, ctx.page.id, state.placingElementId, row, col);
+          state.placingElementId = null;
+          renderNavigation();
+          await renderGridTab();
+        } catch (error) {
+          window.alert(error?.message || "No se pudo colocar en esa celda");
+          await renderGridTab();
+        }
+      }
+      : null,
   });
 }
 

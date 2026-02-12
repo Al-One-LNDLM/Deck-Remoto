@@ -68,8 +68,9 @@
     const page = params?.page || null;
     const assets = params?.assets || { icons: {} };
     const interactive = params?.interactive === true;
+    const isPlacing = params?.isPlacing === true;
     const onControlPress = typeof params?.onControlPress === "function" ? params.onControlPress : null;
-    const onEmptyCellPress = typeof params?.onEmptyCellPress === "function" ? params.onEmptyCellPress : null;
+    const onCellClick = typeof params?.onCellClick === "function" ? params.onCellClick : null;
 
     container.innerHTML = "";
     container.classList.add("page-renderer-root");
@@ -93,14 +94,54 @@
       const row = Math.floor(index / cols) + 1;
       const col = (index % cols) + 1;
       cell.className = "page-renderer-cell";
-      if (interactive && onEmptyCellPress) {
-        cell.addEventListener("click", () => onEmptyCellPress({ row, col }));
-      }
       grid.appendChild(cell);
     }
 
     const controls = Array.isArray(page.controls) ? page.controls : [];
     const placements = Array.isArray(page.placements) ? page.placements : [];
+
+    const occupiedCells = new Set();
+    placements.forEach((placement) => {
+      const startRow = clamp(placement.row, 1);
+      const startCol = clamp(placement.col, 1);
+      const rowSpan = clamp(placement.rowSpan, 1);
+      const colSpan = clamp(placement.colSpan, 1);
+      for (let row = startRow; row < startRow + rowSpan; row += 1) {
+        for (let col = startCol; col < startCol + colSpan; col += 1) {
+          occupiedCells.add(`${row}:${col}`);
+        }
+      }
+    });
+
+
+    if (isPlacing && onCellClick) {
+      const placingOverlay = document.createElement("div");
+      placingOverlay.className = "page-renderer-placing-overlay";
+      placingOverlay.textContent = "Elige una celda";
+      grid.appendChild(placingOverlay);
+
+      const hitLayer = document.createElement("div");
+      hitLayer.className = "page-renderer-hit-layer";
+      hitLayer.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+
+      for (let index = 0; index < rows * cols; index += 1) {
+        const hitCell = document.createElement("button");
+        const row = Math.floor(index / cols) + 1;
+        const col = (index % cols) + 1;
+        hitCell.type = "button";
+        hitCell.className = "page-renderer-hit-cell";
+        hitCell.setAttribute("aria-label", `Celda ${row},${col}`);
+        if (occupiedCells.has(`${row}:${col}`)) {
+          hitCell.disabled = true;
+          hitCell.setAttribute("aria-disabled", "true");
+        } else {
+          hitCell.addEventListener("click", () => onCellClick(row, col));
+        }
+        hitLayer.appendChild(hitCell);
+      }
+
+      grid.appendChild(hitLayer);
+    }
 
     if (!controls.length || !placements.length) {
       container.appendChild(grid);
