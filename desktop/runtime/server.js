@@ -39,6 +39,7 @@ function toPageContract(page) {
   }
 
   const controls = Array.isArray(page.controls) ? page.controls : [];
+  const folders = Array.isArray(page.folders) ? page.folders : [];
   const placements = Array.isArray(page.placements) ? page.placements : [];
 
   return {
@@ -49,11 +50,17 @@ function toPageContract(page) {
       cols: Math.max(1, Number(page.grid?.cols) || 1),
     },
     showGrid: page.showGrid !== false,
+    folders: folders.map((folder) => ({
+      id: folder.id,
+      name: folder.name,
+      iconAssetId: typeof folder.iconAssetId === "string" ? folder.iconAssetId : null,
+    })),
     controls: controls.map((control) => ({
       id: control.id,
       type: control.type,
       name: control.name,
       iconAssetId: typeof control.iconAssetId === "string" ? control.iconAssetId : null,
+      folderId: typeof control.folderId === "string" ? control.folderId : null,
     })),
     placements: placements.map((placement) => ({
       elementId: typeof placement.elementId === "string" ? placement.elementId : placement.controlId,

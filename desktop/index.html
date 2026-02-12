@@ -182,7 +182,17 @@
 
       .grid-elements ul {
         margin: 8px 0 0;
-        padding-left: 18px;
+        padding-left: 0;
+        list-style: none;
+        display: grid;
+        gap: 6px;
+      }
+
+      .grid-element-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
       }
 
       .grid-canvas-wrap {
@@ -535,10 +545,6 @@
             <label for="gridPageSelect">Page</label>
             <select id="gridPageSelect"></select>
           </div>
-          <div class="grid-elements">
-            <strong>Elementos (pendiente)</strong>
-            <ul id="gridElementsList"></ul>
-          </div>
         </div>
 
         <div class="grid-canvas-wrap">
@@ -565,6 +571,11 @@
               <input id="gridColsInput" type="number" min="1" max="24" step="1" />
             </div>
             <button id="applyGridBtn" type="button">Aplicar tamaño</button>
+          </div>
+          <div class="grid-elements">
+            <h3>Elementos</h3>
+            <p id="gridPlacingHint" class="muted"></p>
+            <ul id="gridElementsList"></ul>
           </div>
         </div>
       </section>

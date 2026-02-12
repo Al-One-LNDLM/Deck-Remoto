@@ -73,6 +73,15 @@ function normalizeWorkspace(workspace) {
         folder.iconAssetId = typeof folder.iconAssetId === "string" ? folder.iconAssetId : null;
       });
 
+      page.controls = page.controls.filter((control) => {
+        if (control.type !== "folderButton") {
+          return true;
+        }
+
+        const linkedFolderId = typeof control.folderId === "string" ? control.folderId : null;
+        return Boolean(linkedFolderId && folderIds.has(linkedFolderId));
+      });
+
       page.controls.forEach((control) => {
         const folderId = typeof control.folderId === "string" ? control.folderId : null;
         control.folderId = folderId && folderIds.has(folderId) ? folderId : null;
@@ -410,14 +419,14 @@ function addFolder(profileId, pageId, payload = {}) {
 function addElement(profileId, pageId, elementType, payload = {}) {
   const { workspace, page } = getPage(profileId, pageId);
 
-  if (elementType !== "button" && elementType !== "fader") {
+  if (elementType !== "button" && elementType !== "fader" && elementType !== "folderButton") {
     throw new Error("Tipo de elemento no válido");
   }
 
-  const prefix = elementType === "button" ? "button" : "fader";
+  const prefix = elementType === "button" ? "button" : elementType === "fader" ? "fader" : "folderButton";
   const elementId = nextElementId(prefix);
   const itemNumber = elementId.replace(prefix, "");
-  const typeLabel = elementType === "button" ? "Botón" : "Fader";
+  const typeLabel = elementType === "button" ? "Botón" : elementType === "fader" ? "Fader" : "Acceso carpeta";
 
   const folderId = typeof payload.folderId === "string" && payload.folderId
     ? payload.folderId
@@ -427,10 +436,18 @@ function addElement(profileId, pageId, elementType, payload = {}) {
     throw new Error("Carpeta no encontrada");
   }
 
+  if (elementType === "folderButton" && !folderId) {
+    throw new Error("folderId es obligatorio para folderButton");
+  }
+
+  const linkedFolder = folderId ? page.folders.find((folder) => folder.id === folderId) : null;
+
   page.controls.push({
     id: elementId,
     type: elementType,
-    name: sanitizeName(payload.name) || `${typeLabel} ${itemNumber}`,
+    name: sanitizeName(payload.name) || (elementType === "folderButton"
+      ? (linkedFolder?.name || `${typeLabel} ${itemNumber}`)
+      : `${typeLabel} ${itemNumber}`),
     folderId,
     iconAssetId: null,
     ...(elementType === "fader" ? { faderIconAssetIds: [null, null, null, null] } : {}),
@@ -446,6 +463,52 @@ function addButton(profileId, pageId, payload = {}) {
 
 function addFader(profileId, pageId, payload = {}) {
   return addElement(profileId, pageId, "fader", payload);
+}
+
+function addFolderButton(profileId, pageId, folderId, payload = {}) {
+  return addElement(profileId, pageId, "folderButton", { ...payload, folderId });
+}
+
+function placeElement(profileId, pageId, elementId, row, col, rowSpan = 1, colSpan = 1) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const element = page.controls.find((item) => item.id === elementId);
+
+  if (!element) {
+    throw new Error("Elemento no encontrado");
+  }
+
+  const existingPlacement = page.placements.find((placement) => placement.elementId === elementId);
+  const candidate = {
+    id: existingPlacement?.id || nextPlacementId(),
+    elementId,
+    row: Number(row),
+    col: Number(col),
+    rowSpan: Math.max(1, Number(rowSpan) || 1),
+    colSpan: Math.max(1, Number(colSpan) || 1),
+  };
+
+  if (!canPlacePlacement(page, candidate, { excludePlacementId: existingPlacement?.id || null })) {
+    throw new Error("No cabe en la celda seleccionada");
+  }
+
+  if (existingPlacement) {
+    existingPlacement.row = candidate.row;
+    existingPlacement.col = candidate.col;
+    existingPlacement.rowSpan = candidate.rowSpan;
+    existingPlacement.colSpan = candidate.colSpan;
+  } else {
+    page.placements.push(candidate);
+  }
+
+  scheduleSave();
+  return workspace;
+}
+
+function unplaceElement(profileId, pageId, elementId) {
+  const { workspace, page } = getPage(profileId, pageId);
+  page.placements = page.placements.filter((placement) => placement.elementId !== elementId);
+  scheduleSave();
+  return workspace;
 }
 
 function deletePageElement(profileId, pageId, elementId) {
@@ -486,35 +549,10 @@ function renameElement(profileId, pageId, elementId, name) {
 }
 
 function addPlacement(profileId, pageId, elementId, row, col) {
-  const { workspace, page } = getPage(profileId, pageId);
-  const element = page.controls.find((item) => item.id === elementId);
-
-  if (!element) {
-    throw new Error("Elemento no encontrado");
-  }
-
-  if (page.placements.some((placement) => placement.elementId === elementId)) {
-    throw new Error("El elemento ya está colocado");
-  }
-
-  const { rowSpan, colSpan } = getDefaultPlacementSpanForPage(page, element.type);
-  const placement = {
-    id: nextPlacementId(),
-    elementId,
-    row: Number(row),
-    col: Number(col),
-    rowSpan,
-    colSpan,
-  };
-
-  if (!canPlacePlacement(page, placement)) {
-    throw new Error("No cabe en la celda seleccionada");
-  }
-
-  page.placements.push(placement);
-  scheduleSave();
-
-  return { workspace, created: { type: "placement", id: placement.id } };
+  const workspace = placeElement(profileId, pageId, elementId, row, col);
+  const { page } = getPage(profileId, pageId);
+  const placement = page.placements.find((item) => item.elementId === elementId) || null;
+  return { workspace, created: { type: "placement", id: placement?.id || null } };
 }
 
 function updatePlacementSpan(profileId, pageId, placementId, rowSpan, colSpan) {
@@ -756,7 +794,8 @@ function moveElement(elementId, fromProfileId, fromPageId, toProfileId, toPageId
 }
 
 function cloneElementForPaste(sourceElement, idOverride = null) {
-  const id = idOverride || nextElementId(sourceElement.type === "fader" ? "fader" : "button");
+  const prefix = sourceElement.type === "fader" ? "fader" : sourceElement.type === "folderButton" ? "folderButton" : "button";
+  const id = idOverride || nextElementId(prefix);
   return {
     ...sourceElement,
     id,
@@ -1094,7 +1133,10 @@ module.exports = {
   addFolder,
   addButton,
   addFader,
+  addFolderButton,
   addPlacement,
+  placeElement,
+  unplaceElement,
   updatePlacementSpan,
   deletePlacement,
   deleteElement,

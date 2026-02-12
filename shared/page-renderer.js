@@ -8,6 +8,26 @@
     return Math.floor(numeric);
   }
 
+  function resolveControlForRender(control, page) {
+    if (!control || control.type !== "folderButton") {
+      return control;
+    }
+
+    const folders = Array.isArray(page?.folders) ? page.folders : [];
+    const folder = folders.find((item) => item.id === control.folderId) || null;
+    if (!folder) {
+      return null;
+    }
+
+    return {
+      ...control,
+      name: control?.name || folder?.name || control?.id || "Carpeta",
+      iconAssetId: typeof control?.iconAssetId === "string"
+        ? control.iconAssetId
+        : (typeof folder?.iconAssetId === "string" ? folder.iconAssetId : null),
+    };
+  }
+
   function resolveIconUrl(control, assets) {
     const assetId = typeof control?.iconAssetId === "string" ? control.iconAssetId : null;
     if (!assetId) {
@@ -49,6 +69,7 @@
     const assets = params?.assets || { icons: {} };
     const interactive = params?.interactive === true;
     const onControlPress = typeof params?.onControlPress === "function" ? params.onControlPress : null;
+    const onEmptyCellPress = typeof params?.onEmptyCellPress === "function" ? params.onEmptyCellPress : null;
 
     container.innerHTML = "";
     container.classList.add("page-renderer-root");
@@ -69,7 +90,12 @@
 
     for (let index = 0; index < rows * cols; index += 1) {
       const cell = document.createElement("div");
+      const row = Math.floor(index / cols) + 1;
+      const col = (index % cols) + 1;
       cell.className = "page-renderer-cell";
+      if (interactive && onEmptyCellPress) {
+        cell.addEventListener("click", () => onEmptyCellPress({ row, col }));
+      }
       grid.appendChild(cell);
     }
 
@@ -83,7 +109,7 @@
 
     const controlMap = new Map(controls.map((control) => [control.id, control]));
     placements.forEach((placement) => {
-      const control = controlMap.get(placement.elementId);
+      const control = resolveControlForRender(controlMap.get(placement.elementId), page);
       if (!control) {
         return;
       }
