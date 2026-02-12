@@ -150,12 +150,39 @@ function createRuntimeServer({ onLog }) {
     app.use(express.json());
     app.get("/api/state", (request, response) => {
       const workspace = getWorkspace();
-      const { activeProfileId, activePageId, activePage } = getActiveState(workspace);
-      const activeProfile = workspace?.profiles?.find((profile) => profile.id === activeProfileId) || null;
+      const { activeProfileId, activePageId, activeProfile, activePage } = getActiveState(workspace);
+      const profiles = Array.isArray(workspace?.profiles)
+        ? workspace.profiles.map((profile) => ({
+          id: profile.id,
+          name: profile.name,
+          iconAssetId: typeof profile.iconAssetId === "string" ? profile.iconAssetId : null,
+          pages: Array.isArray(profile.pages)
+            ? profile.pages.map((page) => ({
+              id: page.id,
+              name: page.name,
+              iconAssetId: typeof page.iconAssetId === "string" ? page.iconAssetId : null,
+            }))
+            : [],
+        }))
+        : [];
 
       response.json({
         activeProfileId,
         activePageId,
+        activeProfile: activeProfile
+          ? {
+            id: activeProfile.id,
+            name: activeProfile.name,
+            iconAssetId: typeof activeProfile.iconAssetId === "string" ? activeProfile.iconAssetId : null,
+          }
+          : null,
+        activePage: activePage
+          ? {
+            id: activePage.id,
+            name: activePage.name,
+            iconAssetId: typeof activePage.iconAssetId === "string" ? activePage.iconAssetId : null,
+          }
+          : null,
         profile: activeProfile
           ? {
             id: activeProfile.id,
@@ -164,6 +191,7 @@ function createRuntimeServer({ onLog }) {
           }
           : null,
         page: toPageContract(activePage),
+        profiles,
         assets: {
           icons: buildIconAssetsMap(workspace, request),
         },
