@@ -67,10 +67,6 @@ contextBridge.exposeInMainWorld("runtime", {
   setFaderIconSlot: (profileId, pageId, elementId, slotIndex, assetId) =>
     ipcRenderer.invoke("workspace:setFaderIconSlot", profileId, pageId, elementId, slotIndex, assetId),
   importBackgroundImage: () => ipcRenderer.invoke("workspace:importBackgroundImage"),
-  setControlStyleOverride: (profileId, pageId, controlId, patch) =>
-    ipcRenderer.invoke("workspace:setControlStyleOverride", profileId, pageId, controlId, patch),
-  clearControlStyleOverride: (profileId, pageId, controlId) =>
-    ipcRenderer.invoke("workspace:clearControlStyleOverride", profileId, pageId, controlId),
   onLog: (listener) => {
     const handler = (_, message) => listener(message);
     ipcRenderer.on("server:log", handler);

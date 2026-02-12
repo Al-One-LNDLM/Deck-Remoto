@@ -27,8 +27,6 @@ const {
   setPageBackgroundSolid,
   setPageBackgroundImage,
   clearPageBackgroundImage,
-  setControlStyleOverride,
-  clearControlStyleOverride,
   deleteProfile,
   deletePage,
   deleteFolder,
@@ -257,12 +255,6 @@ app.whenReady().then(() => {
     const assetId = `bg_${Date.now()}`;
     return { assetId, path: backgroundPath };
   });
-  ipcMain.handle("workspace:setControlStyleOverride", (_event, profileId, pageId, controlId, patch) =>
-    setControlStyleOverride(profileId, pageId, controlId, patch),
-  );
-  ipcMain.handle("workspace:clearControlStyleOverride", (_event, profileId, pageId, controlId) =>
-    clearControlStyleOverride(profileId, pageId, controlId),
-  );
 
   createWindow();
 

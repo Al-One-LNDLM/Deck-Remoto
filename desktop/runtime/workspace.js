@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { normalizePageStyle, normalizeControlOverride } = require("../../shared/style");
+const { normalizePageStyle } = require("../../shared/style");
 
 const workspaceFilePath = path.resolve(__dirname, "../data/workspace.json");
 
@@ -113,12 +113,14 @@ function normalizeWorkspace(workspace) {
         control.folderId = folderId && folderIds.has(folderId) ? folderId : null;
         control.iconAssetId = typeof control.iconAssetId === "string" ? control.iconAssetId : null;
 
-        const normalizedStyleOverride = normalizeControlOverride(control.styleOverride);
-        if (normalizedStyleOverride) {
-          control.styleOverride = normalizedStyleOverride;
-        } else {
-          delete control.styleOverride;
-        }
+        delete control.styleOverride;
+        delete control.showBackground;
+        delete control.backgroundColor;
+        delete control.backgroundOpacity;
+        delete control.showBorder;
+        delete control.borderColor;
+        delete control.borderOpacity;
+        delete control.showLabel;
 
         if (control.type === "fader") {
           const sourceSlots = Array.isArray(control.faderIconAssetIds) ? control.faderIconAssetIds : [];
@@ -1171,39 +1173,6 @@ function clearPageBackgroundImage(profileId, pageId) {
   return workspace;
 }
 
-function setControlStyleOverride(profileId, pageId, controlId, patch) {
-  const { workspace, page } = getPage(profileId, pageId);
-  const control = page.controls.find((item) => item.id === controlId);
-
-  if (!control) {
-    throw new Error("Elemento no encontrado");
-  }
-
-  const current = normalizeControlOverride(control.styleOverride) || {};
-  const next = normalizeControlOverride({ ...current, ...(patch || {}) });
-
-  if (!next) {
-    delete control.styleOverride;
-  } else {
-    control.styleOverride = next;
-  }
-
-  scheduleSave();
-  return workspace;
-}
-
-function clearControlStyleOverride(profileId, pageId, controlId) {
-  const { workspace, page } = getPage(profileId, pageId);
-  const control = page.controls.find((item) => item.id === controlId);
-
-  if (!control) {
-    throw new Error("Elemento no encontrado");
-  }
-
-  delete control.styleOverride;
-  scheduleSave();
-  return workspace;
-}
 
 function getActiveState(workspace) {
   const activeProfile = workspace.profiles.find(
@@ -1262,6 +1231,4 @@ module.exports = {
   setPageBackgroundSolid,
   setPageBackgroundImage,
   clearPageBackgroundImage,
-  setControlStyleOverride,
-  clearControlStyleOverride,
 };

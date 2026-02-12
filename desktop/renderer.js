@@ -35,17 +35,6 @@ const styleFaderBorderEnabled = document.getElementById("styleFaderBorderEnabled
 const styleFaderBorderColor = document.getElementById("styleFaderBorderColor");
 const styleFaderBorderOpacity = document.getElementById("styleFaderBorderOpacity");
 const styleFaderShowLabel = document.getElementById("styleFaderShowLabel");
-const selectedControlPanel = document.getElementById("selectedControlPanel");
-const selectedControlTitle = document.getElementById("selectedControlTitle");
-const selectedUseGlobalStyle = document.getElementById("selectedUseGlobalStyle");
-const selectedOverrideFields = document.getElementById("selectedOverrideFields");
-const selectedBackgroundEnabled = document.getElementById("selectedBackgroundEnabled");
-const selectedBackgroundColor = document.getElementById("selectedBackgroundColor");
-const selectedBackgroundOpacity = document.getElementById("selectedBackgroundOpacity");
-const selectedBorderEnabled = document.getElementById("selectedBorderEnabled");
-const selectedBorderColor = document.getElementById("selectedBorderColor");
-const selectedBorderOpacity = document.getElementById("selectedBorderOpacity");
-const selectedShowLabel = document.getElementById("selectedShowLabel");
 const gridBgColorInput = document.getElementById("gridBgColorInput");
 const addBackgroundImageBtn = document.getElementById("addBackgroundImageBtn");
 const backgroundImageInfo = document.getElementById("backgroundImageInfo");
@@ -81,8 +70,8 @@ function getPageStyle(page) {
   return window.styleResolver.normalizePageStyle(page?.style || {});
 }
 
-function getResolvedControlStyle(page, control) {
-  return window.styleResolver.resolveControlStyle(page?.style || {}, control);
+function getResolvedControlStyle(page, controlType) {
+  return window.styleResolver.resolveGlobalStyle(page?.style || {}, controlType);
 }
 
 function clampOpacityInput(value) {
@@ -249,7 +238,8 @@ function drawPlacement(ctx2d, page, placement, element, metrics, selectedPlaceme
   const width = placement.colSpan * cellW;
   const height = placement.rowSpan * cellH;
   const isSelected = placement.id === selectedPlacementId;
-  const resolvedStyle = getResolvedControlStyle(page, element);
+  const controlType = element?.type === "folderButton" ? "folderButton" : element?.type;
+  const resolvedStyle = getResolvedControlStyle(page, controlType);
 
   if (resolvedStyle.backgroundEnabled) {
     ctx2d.fillStyle = resolvedStyle.backgroundCssColor;
@@ -607,25 +597,6 @@ async function renderGridTab() {
   }
 
 
-  const selectedControl = getElementById(ctx.page, state.gridSelection.selectedElementId);
-  if (!selectedControl) {
-    selectedControlPanel.hidden = true;
-  } else {
-    selectedControlPanel.hidden = false;
-    selectedControlTitle.textContent = `Elemento seleccionado: ${selectedControl.name} (${selectedControl.type})`;
-    const override = selectedControl.styleOverride || null;
-    const resolvedStyle = getResolvedControlStyle(ctx.page, selectedControl);
-    selectedUseGlobalStyle.checked = !override;
-    selectedOverrideFields.hidden = !override;
-    selectedBackgroundEnabled.checked = resolvedStyle.backgroundEnabled;
-    selectedBackgroundColor.value = resolvedStyle.backgroundColor;
-    selectedBackgroundOpacity.value = resolvedStyle.backgroundOpacity;
-    selectedBorderEnabled.checked = resolvedStyle.borderEnabled;
-    selectedBorderColor.value = resolvedStyle.borderColor;
-    selectedBorderOpacity.value = resolvedStyle.borderOpacity;
-    selectedShowLabel.checked = resolvedStyle.showLabel;
-  }
-
   renderPlacementModeWarning(ctx.page);
   await renderGridCanvas(ctx.page);
   renderPlacementInspector(ctx.page);
@@ -729,36 +700,6 @@ async function clearBackgroundImage() {
   await renderGridTab();
 }
 
-async function applySelectedOverride(patch) {
-  const ctx = getGridContextWorkspace();
-  if (!ctx || !state.gridSelection.selectedElementId) {
-    return;
-  }
-
-  state.workspace = await window.runtime.setControlStyleOverride(
-    ctx.profile.id,
-    ctx.page.id,
-    state.gridSelection.selectedElementId,
-    patch,
-  );
-  renderNavigation();
-  await renderGridTab();
-}
-
-async function clearSelectedOverride() {
-  const ctx = getGridContextWorkspace();
-  if (!ctx || !state.gridSelection.selectedElementId) {
-    return;
-  }
-
-  state.workspace = await window.runtime.clearControlStyleOverride(
-    ctx.profile.id,
-    ctx.page.id,
-    state.gridSelection.selectedElementId,
-  );
-  renderNavigation();
-  await renderGridTab();
-}
 
 function appendLog(message) {
   const item = document.createElement("li");
@@ -1880,30 +1821,6 @@ styleFaderShowLabel.addEventListener("change", async (event) => {
   await applyPageStyle("fader", { showLabel: event.target.checked });
 });
 
-selectedUseGlobalStyle.addEventListener("change", async (event) => {
-  if (event.target.checked) {
-    await clearSelectedOverride();
-    return;
-  }
-
-  await applySelectedOverride({
-    backgroundEnabled: selectedBackgroundEnabled.checked,
-    backgroundColor: selectedBackgroundColor.value,
-    backgroundOpacity: clampOpacityInput(selectedBackgroundOpacity.value),
-    borderEnabled: selectedBorderEnabled.checked,
-    borderColor: selectedBorderColor.value,
-    borderOpacity: clampOpacityInput(selectedBorderOpacity.value),
-    showLabel: selectedShowLabel.checked,
-  });
-});
-
-selectedBackgroundEnabled.addEventListener("change", async (event) => applySelectedOverride({ backgroundEnabled: event.target.checked }));
-selectedBackgroundColor.addEventListener("input", async (event) => applySelectedOverride({ backgroundColor: event.target.value }));
-selectedBackgroundOpacity.addEventListener("change", async (event) => applySelectedOverride({ backgroundOpacity: clampOpacityInput(event.target.value) }));
-selectedBorderEnabled.addEventListener("change", async (event) => applySelectedOverride({ borderEnabled: event.target.checked }));
-selectedBorderColor.addEventListener("input", async (event) => applySelectedOverride({ borderColor: event.target.value }));
-selectedBorderOpacity.addEventListener("change", async (event) => applySelectedOverride({ borderOpacity: clampOpacityInput(event.target.value) }));
-selectedShowLabel.addEventListener("change", async (event) => applySelectedOverride({ showLabel: event.target.checked }));
 
 gridPreviewModeSelect.addEventListener("change", () => {
   state.gridSelection.previewMode = gridPreviewModeSelect.value;
