@@ -4,7 +4,6 @@ const path = require("path");
 const os = require("os");
 const { WebSocketServer } = require("ws");
 const { getWorkspace, getActiveState, setActive } = require("./workspace");
-const { normalizePageStyle } = require("../../shared/style");
 
 const PORT = 3030;
 
@@ -64,7 +63,6 @@ function createRuntimeServer({ onLog }) {
               name: activePage.name,
               grid: activePage.grid,
               showGrid: activePage.showGrid !== false,
-              style: normalizePageStyle(activePage.style || {}),
               background: activePage.background,
               placements: activePage.placements || [],
               elements: activePage.elements || activePage.controls || [],
