@@ -18,7 +18,7 @@
             "rows": 4,
             "cols": 3
           },
-          "showGrid": true,
+          "showGrid": false,
           "controls": [
             {
               "id": "button1",
@@ -86,40 +86,24 @@
               }
             },
             {
-              "id": "fader2",
+              "id": "fader1",
               "type": "fader",
               "name": "Fader 1",
               "folderId": null,
               "iconAssetId": null,
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "midiCc",
-                  "channel": 1,
-                  "cc": 0
-                }
+              "actionBinding": null,
+              "faderSkin": {
+                "topAssetId": null,
+                "middleAssetId": "icon_1770935887185",
+                "bottomAssetId": null,
+                "grabAssetId": null
               },
               "faderIconAssetIds": [
-                "icon_1770934372956",
-                "icon_1770934375078",
-                "icon_1770934377170",
-                "icon_1770934379980"
-              ],
-              "style": {
-                "backgroundEnabled": true,
-                "backgroundColor": "#000000",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": false
-              },
-              "faderSkin": {
-                "topAssetId": "icon_1770934372956",
-                "middleAssetId": "icon_1770934375078",
-                "bottomAssetId": "icon_1770934377170",
-                "grabAssetId": "icon_1770934379980"
-              }
+                null,
+                "icon_1770935887185",
+                null,
+                null
+              ]
             }
           ],
           "folders": [
@@ -141,9 +125,9 @@
             },
             {
               "id": "placement2",
-              "elementId": "fader2",
+              "elementId": "fader1",
               "row": 2,
-              "col": 0,
+              "col": 1,
               "rowSpan": 2,
               "colSpan": 1
             }
@@ -353,6 +337,42 @@
         "type": "icon",
         "path": "assets/icons/1770934379979-fader_top.png",
         "createdAt": "2026-02-12T22:12:59.980Z"
+      },
+      "icon_1770935586377": {
+        "id": "icon_1770935586377",
+        "type": "icon",
+        "path": "assets/icons/1770935586377-fader_top.png",
+        "createdAt": "2026-02-12T22:33:06.377Z"
+      },
+      "icon_1770935593736": {
+        "id": "icon_1770935593736",
+        "type": "icon",
+        "path": "assets/icons/1770935593736-fader_middle.png",
+        "createdAt": "2026-02-12T22:33:13.736Z"
+      },
+      "icon_1770935598354": {
+        "id": "icon_1770935598354",
+        "type": "icon",
+        "path": "assets/icons/1770935598354-fader_bottom.png",
+        "createdAt": "2026-02-12T22:33:18.354Z"
+      },
+      "icon_1770935602363": {
+        "id": "icon_1770935602363",
+        "type": "icon",
+        "path": "assets/icons/1770935602362-fader_grab.png",
+        "createdAt": "2026-02-12T22:33:22.363Z"
+      },
+      "icon_1770935846583": {
+        "id": "icon_1770935846583",
+        "type": "icon",
+        "path": "assets/icons/1770935846582-fader_grab.png",
+        "createdAt": "2026-02-12T22:37:26.583Z"
+      },
+      "icon_1770935887185": {
+        "id": "icon_1770935887185",
+        "type": "icon",
+        "path": "assets/icons/1770935887184-fader_top.png",
+        "createdAt": "2026-02-12T22:38:07.185Z"
       }
     }
   },
