@@ -1,9 +1,9 @@
 {
-  "activeProfileId": "profile1",
-  "activePageId": "page3",
+  "activeProfileId": "profile2",
+  "activePageId": "page2",
   "lastSession": {
-    "activeProfileId": "profile1",
-    "activePageId": "page3"
+    "activeProfileId": "profile2",
+    "activePageId": "page2"
   },
   "profiles": [
     {
@@ -77,12 +77,12 @@
               "colSpan": 1
             }
           ],
-          "showGrid": true,
+          "showGrid": false,
           "style": {
             "buttonShowBackground": true,
             "buttonShowLabel": true,
-            "buttonBackgroundColor": "#2b2b2b",
-            "buttonShowBorder": true,
+            "buttonBackgroundColor": "#ff0000",
+            "buttonShowBorder": false,
             "buttonBorderColor": "#444444",
             "faderShowBackground": true,
             "faderBackgroundColor": "#2b2b2b",
