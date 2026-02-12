@@ -31,6 +31,10 @@ function sanitizeReferenceId(value) {
   return trimmed ? trimmed : null;
 }
 
+function sanitizeFolderId(value) {
+  return sanitizeReferenceId(value);
+}
+
 function sanitizeHttpUrl(value) {
   if (typeof value !== "string") {
     return "";
@@ -126,6 +130,19 @@ function normalizeAction(action) {
     };
   }
 
+  if (action.type === "openFolder") {
+    return {
+      type: "openFolder",
+      folderId: sanitizeFolderId(action.folderId),
+    };
+  }
+
+  if (action.type === "back") {
+    return {
+      type: "back",
+    };
+  }
+
   return null;
 }
 
@@ -171,4 +188,5 @@ module.exports = {
   sanitizeOpenAppTarget,
   sanitizeHttpUrl,
   sanitizeReferenceId,
+  sanitizeFolderId,
 };

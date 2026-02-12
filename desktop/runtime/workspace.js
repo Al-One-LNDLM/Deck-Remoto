@@ -11,9 +11,11 @@ function createDefaultWorkspace() {
   return {
     activeProfileId: "profile1",
     activePageId: "page1",
+    activeFolderId: null,
     lastSession: {
       activeProfileId: "profile1",
       activePageId: "page1",
+      activeFolderId: null,
     },
     profiles: [
       {
@@ -226,6 +228,15 @@ function normalizeWorkspace(workspace) {
   normalized.lastSession = normalized.lastSession || {};
   normalized.lastSession.activeProfileId = normalized.activeProfileId || null;
   normalized.lastSession.activePageId = normalized.activePageId || null;
+
+  const activePageForFolder = activeProfile?.pages?.find((page) => page.id === normalized.activePageId) || null;
+  const rawActiveFolderId = typeof normalized.activeFolderId === "string" ? normalized.activeFolderId.trim() : "";
+  const normalizedActiveFolderId = rawActiveFolderId
+    && activePageForFolder?.folders?.some((folder) => folder.id === rawActiveFolderId)
+    ? rawActiveFolderId
+    : null;
+  normalized.activeFolderId = normalizedActiveFolderId;
+  normalized.lastSession.activeFolderId = normalizedActiveFolderId;
 
   return normalized;
 }
@@ -726,9 +737,15 @@ function ensureValidActiveSelection() {
     workspace.activePageId = activePage.id;
   }
 
+  const folderExists = activePage.folders?.some((item) => item.id === workspace.activeFolderId);
+  if (!folderExists) {
+    workspace.activeFolderId = null;
+  }
+
   workspace.lastSession = workspace.lastSession || {};
   workspace.lastSession.activeProfileId = workspace.activeProfileId;
   workspace.lastSession.activePageId = workspace.activePageId;
+  workspace.lastSession.activeFolderId = workspace.activeFolderId;
 
   return workspace;
 }
@@ -1227,9 +1244,11 @@ function setActiveProfile(profileId) {
   const activePageBelongsToProfile = profile.pages.some((item) => item.id === workspace.activePageId);
   workspace.activeProfileId = profile.id;
   workspace.activePageId = activePageBelongsToProfile ? workspace.activePageId : profile.pages[0]?.id || null;
+  workspace.activeFolderId = null;
   ensureValidActiveSelection();
   workspace.lastSession.activeProfileId = workspace.activeProfileId;
   workspace.lastSession.activePageId = workspace.activePageId;
+  workspace.lastSession.activeFolderId = workspace.activeFolderId;
 
   scheduleSave();
 
@@ -1252,9 +1271,11 @@ function setActivePage(profileIdOrPageId, maybePageId) {
 
   workspace.activeProfileId = profile.id;
   workspace.activePageId = page.id;
+  workspace.activeFolderId = null;
   ensureValidActiveSelection();
   workspace.lastSession.activeProfileId = workspace.activeProfileId;
   workspace.lastSession.activePageId = workspace.activePageId;
+  workspace.lastSession.activeFolderId = workspace.activeFolderId;
 
   scheduleSave();
 
@@ -1292,9 +1313,11 @@ function setActive(profileId, pageId) {
   workspace.activeProfileId = profile.id;
   workspace.activePageId = nextPageId;
 
+  workspace.activeFolderId = null;
   ensureValidActiveSelection();
   workspace.lastSession.activeProfileId = workspace.activeProfileId;
   workspace.lastSession.activePageId = workspace.activePageId;
+  workspace.lastSession.activeFolderId = workspace.activeFolderId;
 
   scheduleSave();
 
@@ -1330,13 +1353,49 @@ function getActiveState(workspace) {
   const activePage = activeProfile?.pages?.find(
     (page) => page.id === workspace.activePageId,
   );
+  const activeFolder = activePage?.folders?.find((folder) => folder.id === workspace.activeFolderId) || null;
 
   return {
     activeProfileId: workspace.activeProfileId,
     activePageId: workspace.activePageId,
+    activeFolderId: workspace.activeFolderId || null,
     activeProfile,
     activePage,
+    activeFolder,
   };
+}
+
+
+function openFolder(folderId) {
+  const workspace = getWorkspace();
+  ensureValidActiveSelection();
+
+  const { activePage } = getActiveState(workspace);
+  const safeFolderId = typeof folderId === "string" ? folderId.trim() : "";
+  if (!safeFolderId || !activePage?.folders?.some((folder) => folder.id === safeFolderId)) {
+    throw new Error("Carpeta no encontrada");
+  }
+
+  workspace.activeFolderId = safeFolderId;
+  workspace.lastSession.activeProfileId = workspace.activeProfileId;
+  workspace.lastSession.activePageId = workspace.activePageId;
+  workspace.lastSession.activeFolderId = workspace.activeFolderId;
+
+  scheduleSave();
+  return workspace;
+}
+
+function closeFolder() {
+  const workspace = getWorkspace();
+  ensureValidActiveSelection();
+
+  workspace.activeFolderId = null;
+  workspace.lastSession.activeProfileId = workspace.activeProfileId;
+  workspace.lastSession.activePageId = workspace.activePageId;
+  workspace.lastSession.activeFolderId = workspace.activeFolderId;
+
+  scheduleSave();
+  return workspace;
 }
 
 module.exports = {
@@ -1377,6 +1436,8 @@ module.exports = {
   setActiveProfile,
   setActivePage,
   setActive,
+  openFolder,
+  closeFolder,
   setPageGrid,
   setPageShowGrid,
   setPlacementPosition,
