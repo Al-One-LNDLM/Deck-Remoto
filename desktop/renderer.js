@@ -781,6 +781,10 @@ function getActionTypeForControl(control) {
     return "openUrl";
   }
 
+  if (binding.action?.type === "openApp") {
+    return "openApp";
+  }
+
   return "none";
 }
 
@@ -942,6 +946,11 @@ async function renderActionsTab() {
     openUrlOption.value = "openUrl";
     openUrlOption.textContent = "Open URL";
     actionTypeSelect.appendChild(openUrlOption);
+
+    const openAppOption = document.createElement("option");
+    openAppOption.value = "openApp";
+    openAppOption.textContent = "Open App";
+    actionTypeSelect.appendChild(openAppOption);
   }
 
   if (supportsMidiCc) {
@@ -965,6 +974,12 @@ async function renderActionsTab() {
     : "";
   const openUrlValue = currentBinding?.kind === "single" && currentBinding.action?.type === "openUrl"
     ? String(currentBinding.action.url || "")
+    : "";
+  const openAppTargetValue = currentBinding?.kind === "single" && currentBinding.action?.type === "openApp"
+    ? String(currentBinding.action.target || "")
+    : "";
+  const openAppArgsValue = currentBinding?.kind === "single" && currentBinding.action?.type === "openApp"
+    ? (Array.isArray(currentBinding.action.args) ? currentBinding.action.args.join("\n") : "")
     : "";
   const midiChannelValue = currentBinding?.kind === "single" && currentBinding.action?.type === "midiCc"
     ? clampActionInt(currentBinding.action.channel, 1, 16, 1)
@@ -998,6 +1013,42 @@ async function renderActionsTab() {
   openUrlInput.placeholder = "https://...";
   openUrlInput.value = openUrlValue;
   openUrlRow.append(openUrlLabel, openUrlInput);
+
+
+  const openAppTargetRow = document.createElement("div");
+  openAppTargetRow.className = "actions-inspector-row";
+  const openAppTargetLabel = document.createElement("label");
+  openAppTargetLabel.textContent = "Target";
+  const openAppTargetWrap = document.createElement("div");
+  openAppTargetWrap.className = "inspector-inline-row";
+  const openAppTargetInput = document.createElement("input");
+  openAppTargetInput.type = "text";
+  openAppTargetInput.placeholder = "C:\\App\\tool.exe o archivo/carpeta";
+  openAppTargetInput.value = openAppTargetValue;
+  const openAppBrowseButton = document.createElement("button");
+  openAppBrowseButton.type = "button";
+  openAppBrowseButton.textContent = "Browse...";
+  openAppBrowseButton.addEventListener("click", async () => {
+    const pickedPath = await window.runtime.pickOpenAppTarget();
+    if (!pickedPath) {
+      return;
+    }
+
+    openAppTargetInput.value = pickedPath;
+    syncRows();
+  });
+  openAppTargetWrap.append(openAppTargetInput, openAppBrowseButton);
+  openAppTargetRow.append(openAppTargetLabel, openAppTargetWrap);
+
+  const openAppArgsRow = document.createElement("div");
+  openAppArgsRow.className = "actions-inspector-row";
+  const openAppArgsLabel = document.createElement("label");
+  openAppArgsLabel.textContent = "Args (opcional)";
+  const openAppArgsInput = document.createElement("textarea");
+  openAppArgsInput.rows = 3;
+  openAppArgsInput.placeholder = "Uno por línea o separado por comas";
+  openAppArgsInput.value = openAppArgsValue;
+  openAppArgsRow.append(openAppArgsLabel, openAppArgsInput);
 
   const midiChannelRow = document.createElement("div");
   midiChannelRow.className = "actions-inspector-row";
@@ -1033,17 +1084,22 @@ async function renderActionsTab() {
   function syncRows() {
     const isHotkey = actionTypeSelect.value === "hotkey";
     const isOpenUrl = actionTypeSelect.value === "openUrl";
+    const isOpenApp = actionTypeSelect.value === "openApp";
     const isMidiCc = actionTypeSelect.value === "midiCc";
     hotkeyRow.style.display = isHotkey ? "grid" : "none";
     openUrlRow.style.display = isOpenUrl ? "grid" : "none";
+    openAppTargetRow.style.display = isOpenApp ? "grid" : "none";
+    openAppArgsRow.style.display = isOpenApp ? "grid" : "none";
     midiChannelRow.style.display = isMidiCc ? "grid" : "none";
     midiCcRow.style.display = isMidiCc ? "grid" : "none";
     validation.textContent = "";
-    saveButton.disabled = (isHotkey && !hotkeyValueDraft.trim()) || (isOpenUrl && !openUrlInput.value.trim());
+    saveButton.disabled = (isHotkey && !hotkeyValueDraft.trim()) || (isOpenUrl && !openUrlInput.value.trim()) || (isOpenApp && !openAppTargetInput.value.trim());
   }
 
   hotkeyInput.addEventListener("input", syncRows);
   openUrlInput.addEventListener("input", syncRows);
+  openAppTargetInput.addEventListener("input", syncRows);
+  openAppArgsInput.addEventListener("input", syncRows);
   actionTypeSelect.addEventListener("change", syncRows);
 
   saveButton.addEventListener("click", async () => {
@@ -1074,6 +1130,26 @@ async function renderActionsTab() {
           url,
         },
       };
+    } else if (actionTypeSelect.value === "openApp") {
+      const target = openAppTargetInput.value.trim();
+      if (!target) {
+        validation.textContent = "El target no puede estar vacío.";
+        return;
+      }
+
+      const args = openAppArgsInput.value
+        .split(/[,\n]/)
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+      nextBinding = {
+        kind: "single",
+        action: {
+          type: "openApp",
+          target,
+          args,
+        },
+      };
     } else if (actionTypeSelect.value === "midiCc") {
       const channel = clampActionInt(midiChannelInput.value, 1, 16, 1);
       const cc = clampActionInt(midiCcInput.value, 0, 127, 0);
@@ -1099,7 +1175,7 @@ async function renderActionsTab() {
     renderNavigation();
   });
 
-  actionsInspector.append(hotkeyRow, openUrlRow, midiChannelRow, midiCcRow, validation, saveButton);
+  actionsInspector.append(hotkeyRow, openUrlRow, openAppTargetRow, openAppArgsRow, midiChannelRow, midiCcRow, validation, saveButton);
   syncRows();
 }
 

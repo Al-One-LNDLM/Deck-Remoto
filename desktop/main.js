@@ -81,6 +81,19 @@ function isPngFile(filePath) {
   return pngSignature.every((value, index) => header[index] === value);
 }
 
+
+async function pickOpenAppTarget() {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openFile", "openDirectory"],
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+
+  return path.resolve(result.filePaths[0]);
+}
+
 async function importIconAsset() {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ["openFile"],
@@ -189,6 +202,7 @@ app.whenReady().then(() => {
   ipcMain.handle("workspace:duplicateElement", (_event, sourceProfileId, sourcePageId, elementId, targetProfileId, targetPageId, targetFolderId) =>
     duplicateElement(sourceProfileId, sourcePageId, elementId, targetProfileId, targetPageId, targetFolderId),
   );
+  ipcMain.handle("workspace:pickOpenAppTarget", async () => pickOpenAppTarget());
   ipcMain.handle("workspace:importIconAsset", async () => {
     const iconPath = await importIconAsset();
     if (!iconPath) {
