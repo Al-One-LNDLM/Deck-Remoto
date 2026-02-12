@@ -84,10 +84,19 @@
     const cols = clamp(page.grid.cols, 1);
     const showGrid = page.showGrid !== false;
 
+    const frame = document.createElement("div");
+    frame.className = "page-renderer-frame";
+
     const grid = document.createElement("div");
     grid.className = "page-renderer-grid";
     grid.classList.toggle("hide-grid-lines", !showGrid);
     grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+    grid.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
+
+    const controlsLayer = document.createElement("div");
+    controlsLayer.className = "page-renderer-controls-layer";
+    controlsLayer.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+    controlsLayer.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
 
     for (let index = 0; index < rows * cols; index += 1) {
       const cell = document.createElement("div");
@@ -118,11 +127,12 @@
       const placingOverlay = document.createElement("div");
       placingOverlay.className = "page-renderer-placing-overlay";
       placingOverlay.textContent = "Elige una celda";
-      grid.appendChild(placingOverlay);
+      frame.appendChild(placingOverlay);
 
       const hitLayer = document.createElement("div");
       hitLayer.className = "page-renderer-hit-layer";
       hitLayer.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+      hitLayer.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
 
       for (let index = 0; index < rows * cols; index += 1) {
         const hitCell = document.createElement("button");
@@ -140,11 +150,12 @@
         hitLayer.appendChild(hitCell);
       }
 
-      grid.appendChild(hitLayer);
+      frame.appendChild(hitLayer);
     }
 
     if (!controls.length || !placements.length) {
-      container.appendChild(grid);
+      frame.appendChild(grid);
+      container.appendChild(frame);
       return;
     }
 
@@ -168,13 +179,17 @@
       }
 
       slot.className = `page-renderer-placement type-${control.type || "button"}`;
-      slot.style.gridColumn = `${clamp(placement.col, 1)} / span ${clamp(placement.colSpan, 1)}`;
-      slot.style.gridRow = `${clamp(placement.row, 1)} / span ${clamp(placement.rowSpan, 1)}`;
+      slot.style.gridColumnStart = String(clamp(placement.col, 1));
+      slot.style.gridColumnEnd = `span ${clamp(placement.colSpan, 1)}`;
+      slot.style.gridRowStart = String(clamp(placement.row, 1));
+      slot.style.gridRowEnd = `span ${clamp(placement.rowSpan, 1)}`;
       slot.appendChild(createControlNode(control, resolveIconUrl(control, assets)));
-      grid.appendChild(slot);
+      controlsLayer.appendChild(slot);
     });
 
-    container.appendChild(grid);
+    frame.appendChild(grid);
+    frame.appendChild(controlsLayer);
+    container.appendChild(frame);
   }
 
   globalScope.PageRenderer = { render };
