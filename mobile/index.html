@@ -5,22 +5,80 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Remote Deck Mobile</title>
     <style>
+      :root {
+        color-scheme: dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         font-family: Arial, sans-serif;
-        margin: 16px;
+        margin: 0;
+        padding: 12px;
         color: #f5f5f5;
         background: #0f0f0f;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
       }
 
-      h1 {
-        margin: 0 0 12px;
+      .mobile-header {
+        border: 1px solid #2b2b2b;
+        border-radius: 10px;
+        background: #171717;
+        overflow: hidden;
       }
 
-      .header {
+      .mobile-header-toggle {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        cursor: pointer;
+      }
+
+      .header-title {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        text-align: left;
+      }
+
+      .header-title strong {
+        font-size: 18px;
+      }
+
+      #status {
+        font-size: 13px;
+        color: #bbbbbb;
+      }
+
+      .caret {
+        font-size: 14px;
+        color: #9e9e9e;
+      }
+
+      .mobile-header.is-open .caret {
+        transform: rotate(180deg);
+      }
+
+      .mobile-header-content {
+        display: none;
+        border-top: 1px solid #252525;
+        padding: 12px;
+        gap: 10px;
+      }
+
+      .mobile-header.is-open .mobile-header-content {
         display: grid;
-        grid-template-columns: 1fr;
-        gap: 8px;
-        margin-bottom: 12px;
       }
 
       .selector-row {
@@ -35,51 +93,45 @@
       }
 
       select {
+        width: 100%;
         padding: 8px;
         border-radius: 6px;
         border: 1px solid #2f2f2f;
-        background: #171717;
+        background: #101010;
         color: #f5f5f5;
       }
 
       #activeSummary {
         margin: 0;
         color: #bbbbbb;
+        font-size: 12px;
       }
 
-      #status {
-        font-weight: bold;
+      #stateHint {
+        margin: 0;
+        color: #d08484;
+        font-size: 12px;
+        min-height: 1em;
       }
 
-      button {
-        margin-top: 12px;
-        padding: 10px 14px;
-        border: 0;
-        border-radius: 6px;
-        background: #0069d9;
-        color: #fff;
-      }
-
-      pre {
-        margin-top: 12px;
-        background: #181818;
-        border-radius: 6px;
-        padding: 12px;
-        min-height: 60px;
-        white-space: pre-wrap;
+      .grid-layout {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
       }
 
       #grid {
-        margin-top: 16px;
+        width: 100%;
+        max-height: 100%;
+        aspect-ratio: 9 / 16;
         border: 1px solid #2b2b2b;
         border-radius: 8px;
         padding: 8px;
-        display: grid;
-        gap: 8px;
         position: relative;
-        min-height: 200px;
+        overflow: hidden;
       }
-
 
       .page-renderer-root {
         width: 100%;
@@ -92,7 +144,7 @@
         height: 100%;
         position: relative;
         overflow: hidden;
-        min-height: 200px;
+        min-height: 0;
       }
 
       .page-renderer-grid {
@@ -142,7 +194,6 @@
         margin: 0;
         min-width: 0;
         min-height: 0;
-        box-sizing: border-box;
         width: 100%;
         height: 100%;
       }
@@ -177,47 +228,67 @@
     </style>
   </head>
   <body>
-    <h1>Remote Deck - Mobile</h1>
+    <section class="mobile-header" id="mobileHeader">
+      <button id="headerToggle" class="mobile-header-toggle" type="button" aria-expanded="false" aria-controls="headerContent">
+        <span class="header-title">
+          <strong>Remote Deck</strong>
+          <span>Estado WS: <span id="status">Desconectado</span></span>
+        </span>
+        <span class="caret">▼</span>
+      </button>
 
-    <section class="header">
-      <div class="selector-row">
-        <label for="profileSelect">Perfil</label>
-        <select id="profileSelect"></select>
+      <div id="headerContent" class="mobile-header-content">
+        <div class="selector-row">
+          <label for="profileSelect">Perfil</label>
+          <select id="profileSelect"></select>
+        </div>
+
+        <div class="selector-row">
+          <label for="pageSelect">Página</label>
+          <select id="pageSelect"></select>
+        </div>
+
+        <p id="activeSummary">Perfil activo: - | Página activa: -</p>
+        <p id="stateHint"></p>
       </div>
-
-      <div class="selector-row">
-        <label for="pageSelect">Página</label>
-        <select id="pageSelect"></select>
-      </div>
-
-      <p id="activeSummary">Perfil activo: - | Página activa: -</p>
     </section>
 
-    <p>Estado WS: <span id="status">Desconectado</span></p>
-    <button id="sendEventBtn">Enviar evento</button>
-    <pre id="lastAck">Sin ACK todavía</pre>
-
-    <section id="grid"></section>
+    <main class="grid-layout">
+      <section id="grid"></section>
+    </main>
 
     <script src="/shared/page-renderer.js"></script>
     <script>
       const statusEl = document.getElementById("status");
-      const sendEventBtn = document.getElementById("sendEventBtn");
-      const lastAckEl = document.getElementById("lastAck");
       const profileSelectEl = document.getElementById("profileSelect");
       const pageSelectEl = document.getElementById("pageSelect");
       const activeSummaryEl = document.getElementById("activeSummary");
+      const stateHintEl = document.getElementById("stateHint");
       const gridEl = document.getElementById("grid");
+      const mobileHeaderEl = document.getElementById("mobileHeader");
+      const headerToggleEl = document.getElementById("headerToggle");
 
       const protocol = window.location.protocol === "https:" ? "wss" : "ws";
       const socketUrl = `${protocol}://${window.location.hostname}:3030/ws`;
 
       let socket;
+      let currentState = null;
+      let isSyncingSelects = false;
 
       function setStatus(connected) {
         statusEl.textContent = connected ? "Conectado" : "Desconectado";
-        statusEl.style.color = connected ? "green" : "crimson";
+        statusEl.style.color = connected ? "#4caf50" : "#d84b4b";
       }
+
+      function setHeaderExpanded(expanded) {
+        mobileHeaderEl.classList.toggle("is-open", expanded);
+        headerToggleEl.setAttribute("aria-expanded", String(expanded));
+      }
+
+      headerToggleEl.addEventListener("click", () => {
+        const nextExpanded = !mobileHeaderEl.classList.contains("is-open");
+        setHeaderExpanded(nextExpanded);
+      });
 
       function connect() {
         socket = new WebSocket(socketUrl);
@@ -236,19 +307,55 @@
         });
 
         socket.addEventListener("message", (event) => {
-          lastAckEl.textContent = `ACK recibido: ${event.data}`;
+          try {
+            const message = JSON.parse(event.data);
+            if (message?.type === "state") {
+              loadState();
+            }
+          } catch (_error) {
+            // Ignorar mensajes no esperados
+          }
         });
       }
 
-      function renderSelectors() {
-        profileSelectEl.innerHTML = "";
-        pageSelectEl.innerHTML = "";
-        profileSelectEl.disabled = true;
-        pageSelectEl.disabled = true;
+      function updateSummary(state) {
+        const profileName = state.activeProfile?.name || state.activeProfileId || "-";
+        const pageName = state.activePage?.name || state.activePageId || "-";
+        activeSummaryEl.textContent = `Perfil activo: ${profileName} | Página activa: ${pageName}`;
       }
 
-      function renderSummary(state) {
-        activeSummaryEl.textContent = `Perfil activo: ${state.activeProfileId || "-"} | Página activa: ${state.activePageId || "-"}`;
+      function renderGrid(page, assets) {
+        window.PageRenderer.render(gridEl, {
+          page,
+          assets,
+          interactive: true,
+          onControlPress: ({ placement }) => sendControlPress(placement.elementId, placement.id),
+        });
+      }
+
+      function fillSelect(selectEl, options, selectedId) {
+        selectEl.innerHTML = "";
+
+        options.forEach((item) => {
+          const option = document.createElement("option");
+          option.value = item.id;
+          option.textContent = item.name || item.id;
+          option.selected = item.id === selectedId;
+          selectEl.appendChild(option);
+        });
+
+        selectEl.disabled = options.length === 0;
+      }
+
+      function renderSelectors(state) {
+        const profiles = Array.isArray(state.profiles) ? state.profiles : [];
+        const activeProfile = profiles.find((profile) => profile.id === state.activeProfileId) || null;
+        const pages = Array.isArray(activeProfile?.pages) ? activeProfile.pages : [];
+
+        isSyncingSelects = true;
+        fillSelect(profileSelectEl, profiles, state.activeProfileId);
+        fillSelect(pageSelectEl, pages, state.activePageId);
+        isSyncingSelects = false;
       }
 
       function sendControlPress(elementId, placementId) {
@@ -268,15 +375,6 @@
         );
       }
 
-      function renderGrid(page, assets) {
-        window.PageRenderer.render(gridEl, {
-          page,
-          assets,
-          interactive: true,
-          onControlPress: ({ placement }) => sendControlPress(placement.elementId, placement.id),
-        });
-      }
-
       async function fetchState() {
         const response = await fetch("/api/state");
         if (!response.ok) {
@@ -286,35 +384,84 @@
         return response.json();
       }
 
-      async function loadState() {
-        try {
-          const state = await fetchState();
-          renderSelectors();
-          renderSummary(state);
-          renderGrid(state.page, state.assets);
-        } catch (error) {
-          lastAckEl.textContent = `No se pudo cargar /api/state: ${error.message}`;
+      async function setActiveState(profileId, pageId) {
+        const payload = { profileId };
+        if (pageId != null) {
+          payload.pageId = pageId;
+        }
+
+        const response = await fetch("/api/setActive", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.message || `HTTP ${response.status}`);
         }
       }
 
+      async function loadState() {
+        try {
+          const state = await fetchState();
+          currentState = state;
+          stateHintEl.textContent = "";
+          renderSelectors(state);
+          updateSummary(state);
+          renderGrid(state.page, state.assets);
+        } catch (error) {
+          stateHintEl.textContent = `No se pudo cargar /api/state: ${error.message}`;
+        }
+      }
 
-      sendEventBtn.addEventListener("click", () => {
-        if (!socket || socket.readyState !== WebSocket.OPEN) {
+      profileSelectEl.addEventListener("change", async () => {
+        if (isSyncingSelects) {
           return;
         }
 
-        socket.send(
-          JSON.stringify({
-            type: "event",
-            payload: {
-              kind: "buttonPress",
-              controlId: "testButton",
-            },
-          }),
-        );
+        const selectedProfileId = profileSelectEl.value;
+        if (!selectedProfileId) {
+          return;
+        }
+
+        try {
+          await setActiveState(selectedProfileId);
+          await loadState();
+        } catch (error) {
+          stateHintEl.textContent = `No se pudo actualizar perfil: ${error.message}`;
+          if (currentState) {
+            renderSelectors(currentState);
+          }
+        }
+      });
+
+      pageSelectEl.addEventListener("change", async () => {
+        if (isSyncingSelects) {
+          return;
+        }
+
+        const selectedPageId = pageSelectEl.value;
+        const selectedProfileId = profileSelectEl.value || currentState?.activeProfileId;
+        if (!selectedProfileId || !selectedPageId) {
+          return;
+        }
+
+        try {
+          await setActiveState(selectedProfileId, selectedPageId);
+          await loadState();
+        } catch (error) {
+          stateHintEl.textContent = `No se pudo actualizar página: ${error.message}`;
+          if (currentState) {
+            renderSelectors(currentState);
+          }
+        }
       });
 
       setStatus(false);
+      setHeaderExpanded(false);
       connect();
       loadState();
     </script>
