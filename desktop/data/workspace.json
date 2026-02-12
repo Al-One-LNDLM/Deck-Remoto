@@ -14,11 +14,82 @@
           "id": "page1",
           "name": "Página 1",
           "grid": {
-            "rows": 4,
-            "cols": 3
+            "rows": 6,
+            "cols": 5
           },
           "showGrid": true,
-          "controls": [],
+          "controls": [
+            {
+              "id": "button1",
+              "type": "button",
+              "name": "Botón 1",
+              "folderId": null,
+              "iconAssetId": null
+            },
+            {
+              "id": "button2",
+              "type": "button",
+              "name": "Botón 2",
+              "folderId": null,
+              "iconAssetId": null
+            },
+            {
+              "id": "button3",
+              "type": "button",
+              "name": "Botón 3",
+              "folderId": null,
+              "iconAssetId": null
+            },
+            {
+              "id": "button4",
+              "type": "button",
+              "name": "Botón 4",
+              "folderId": null,
+              "iconAssetId": null
+            },
+            {
+              "id": "button5",
+              "type": "button",
+              "name": "Botón 5",
+              "folderId": null,
+              "iconAssetId": null
+            },
+            {
+              "id": "button6",
+              "type": "button",
+              "name": "Botón 6",
+              "folderId": null,
+              "iconAssetId": null
+            },
+            {
+              "id": "button7",
+              "type": "button",
+              "name": "Botón 7",
+              "folderId": null,
+              "iconAssetId": null
+            },
+            {
+              "id": "button8",
+              "type": "button",
+              "name": "Botón 8",
+              "folderId": null,
+              "iconAssetId": null
+            },
+            {
+              "id": "button9",
+              "type": "button",
+              "name": "Botón 9",
+              "folderId": null,
+              "iconAssetId": null
+            },
+            {
+              "id": "button10",
+              "type": "button",
+              "name": "Botón 10",
+              "folderId": null,
+              "iconAssetId": null
+            }
+          ],
           "folders": [],
           "placements": []
         }
