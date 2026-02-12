@@ -151,9 +151,6 @@
 
     const controlsLayer = document.createElement("div");
     controlsLayer.className = "page-renderer-controls-layer";
-    controlsLayer.style.position = "relative";
-    controlsLayer.style.width = "100%";
-    controlsLayer.style.height = "100%";
     controlsLayer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
     controlsLayer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
 
