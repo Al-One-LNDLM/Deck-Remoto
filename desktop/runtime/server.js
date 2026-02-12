@@ -74,8 +74,8 @@ function toPageContract(page) {
     })),
     placements: placements.map((placement) => ({
       elementId: typeof placement.elementId === "string" ? placement.elementId : placement.controlId,
-      row: Math.max(1, Number(placement.row) || 1),
-      col: Math.max(1, Number(placement.col) || 1),
+      row: Math.max(0, Math.floor(Number(placement.row) || 0)),
+      col: Math.max(0, Math.floor(Number(placement.col) || 0)),
       rowSpan: Math.max(1, Number(placement.rowSpan) || 1),
       colSpan: Math.max(1, Number(placement.colSpan) || 1),
     })).filter((placement) => typeof placement.elementId === "string"),
