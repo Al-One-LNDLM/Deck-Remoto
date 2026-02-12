@@ -163,16 +163,21 @@
       const bottomUrl = resolveAssetUrl(faderSkin?.bottomAssetId, context.assets);
       const grabUrl = resolveAssetUrl(faderSkin?.grabAssetId, context.assets);
 
-      const createTrackPiece = (url, className) => {
-        const piece = document.createElement(url ? "img" : "div");
-        piece.className = className;
-        piece.style.zIndex = "1";
-        if (url) {
-          piece.src = url;
-          piece.alt = "";
-          piece.loading = "lazy";
+      const createTrackPiece = (url, className, missingLabel) => {
+        if (!url) {
+          const missing = document.createElement("div");
+          missing.className = `${className} page-renderer-fader-missing`;
+          missing.style.zIndex = "1";
+          missing.textContent = `${missingLabel} missing`;
+          return missing;
         }
 
+        const piece = document.createElement("img");
+        piece.className = className;
+        piece.style.zIndex = "1";
+        piece.src = url;
+        piece.alt = "";
+        piece.loading = "lazy";
         return piece;
       };
 
@@ -185,15 +190,15 @@
         const isMiddleRow = rowIndex > 0 && rowIndex < subgridRows - 1;
 
         if (isFirstRow) {
-          cell.appendChild(createTrackPiece(topUrl, "page-renderer-fader-top"));
+          cell.appendChild(createTrackPiece(topUrl, "page-renderer-fader-top", "TOP"));
         }
 
         if (isMiddleRow) {
-          cell.appendChild(createTrackPiece(middleUrl, "page-renderer-fader-middle"));
+          cell.appendChild(createTrackPiece(middleUrl, "page-renderer-fader-middle", "MID"));
         }
 
         if (isLastRow) {
-          cell.appendChild(createTrackPiece(bottomUrl, "page-renderer-fader-bottom"));
+          cell.appendChild(createTrackPiece(bottomUrl, "page-renderer-fader-bottom", "BOT"));
         }
 
         faderSubgrid.appendChild(cell);
@@ -375,6 +380,10 @@
       }
 
       slot.className = `page-renderer-placement type-${control.type || "button"}`;
+      if (control.type === "fader") {
+        slot.style.touchAction = "none";
+        slot.style.pointerEvents = "auto";
+      }
       slot.dataset.elementId = control.id;
       slot.dataset.row = String(Math.max(0, Math.floor(Number(placement.row) || 0)));
       slot.dataset.col = String(Math.max(0, Math.floor(Number(placement.col) || 0)));
@@ -389,8 +398,7 @@
       slot.style.gridColumnEnd = `span ${clamp(placement.colSpan, 1)}`;
       slot.style.gridRowStart = String(Math.max(0, Math.floor(Number(placement.row) || 0)) + 1);
       slot.style.gridRowEnd = `span ${clamp(placement.rowSpan, 1)}`;
-      const hasRuntimeFaderValue = Object.prototype.hasOwnProperty.call(params?.state?.faderValues7 || {}, control.id);
-      const value7 = hasRuntimeFaderValue ? clampValue7(params?.state?.faderValues7?.[control.id], 0) : 0;
+      const value7 = clampValue7(params?.state?.faderValues7?.[control.id], 0);
       slot.appendChild(createControlNode(control, resolveIconUrl(control, assets), resolvedStyle, {
         assets,
         value7,
@@ -408,7 +416,9 @@
 
           const offsetY = event.clientY - rect.top;
           const nextValue01 = 1 - Math.max(0, Math.min(1, offsetY / rect.height));
-          onFaderChange({ controlId: control.id, value7: clampValue7(nextValue01 * 127, 0) });
+          if (control.type === "fader") {
+            onFaderChange({ controlId: control.id, value7: clampValue7(nextValue01 * 127, 0) });
+          }
         };
 
         slot.addEventListener("pointerdown", (event) => {
