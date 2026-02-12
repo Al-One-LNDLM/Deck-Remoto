@@ -8,6 +8,58 @@
     return Math.floor(numeric);
   }
 
+
+  function sanitizeHexColor(value, fallback) {
+    return /^#[0-9a-fA-F]{6}$/.test(value || "") ? value.toUpperCase() : fallback;
+  }
+
+  function clampOpacity(value, fallback = 1) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      return fallback;
+    }
+
+    return Math.max(0, Math.min(1, numeric));
+  }
+
+  function hexToRgba(hex, opacity) {
+    const safeHex = sanitizeHexColor(hex, "#000000");
+    const red = Number.parseInt(safeHex.slice(1, 3), 16);
+    const green = Number.parseInt(safeHex.slice(3, 5), 16);
+    const blue = Number.parseInt(safeHex.slice(5, 7), 16);
+    return `rgba(${red}, ${green}, ${blue}, ${clampOpacity(opacity, 1)})`;
+  }
+
+  function resolveControlStyle(control) {
+    const defaults = {
+      backgroundEnabled: false,
+      backgroundColor: "#000000",
+      backgroundOpacity: 1,
+      borderEnabled: true,
+      borderColor: "#FFFFFF",
+      borderOpacity: 1,
+      showLabel: true,
+    };
+
+    const style = control?.style && typeof control.style === "object" ? control.style : {};
+    const merged = {
+      ...defaults,
+      backgroundEnabled: style.backgroundEnabled === true,
+      backgroundColor: sanitizeHexColor(style.backgroundColor, defaults.backgroundColor),
+      backgroundOpacity: clampOpacity(style.backgroundOpacity, defaults.backgroundOpacity),
+      borderEnabled: style.borderEnabled !== false,
+      borderColor: sanitizeHexColor(style.borderColor, defaults.borderColor),
+      borderOpacity: clampOpacity(style.borderOpacity, defaults.borderOpacity),
+      showLabel: style.showLabel !== false,
+    };
+
+    return {
+      ...merged,
+      backgroundCssColor: merged.backgroundEnabled ? hexToRgba(merged.backgroundColor, merged.backgroundOpacity) : "transparent",
+      borderCssColor: merged.borderEnabled ? hexToRgba(merged.borderColor, merged.borderOpacity) : "transparent",
+    };
+  }
+
   function resolveControlForRender(control, page) {
     if (!control || control.type !== "folderButton") {
       return control;
@@ -42,7 +94,7 @@
     return icon.url;
   }
 
-  function createControlNode(control, iconUrl) {
+  function createControlNode(control, iconUrl, style) {
     const node = document.createElement("div");
     const isFader = control?.type === "fader";
     node.className = `page-renderer-control ${isFader ? "is-fader" : "is-button"}`;
@@ -56,10 +108,12 @@
       node.appendChild(img);
     }
 
-    const label = document.createElement("span");
-    label.className = "page-renderer-label";
-    label.textContent = control?.name || control?.id || "Elemento";
-    node.appendChild(label);
+    if (style.showLabel !== false) {
+      const label = document.createElement("span");
+      label.className = "page-renderer-label";
+      label.textContent = control?.name || control?.id || "Elemento";
+      node.appendChild(label);
+    }
 
     return node;
   }
@@ -71,6 +125,8 @@
     const isPlacing = params?.isPlacing === true;
     const onControlPress = typeof params?.onControlPress === "function" ? params.onControlPress : null;
     const onCellClick = typeof params?.onCellClick === "function" ? params.onCellClick : null;
+    const onTileClick = typeof params?.onTileClick === "function" ? params.onTileClick : null;
+    const selectedElementId = typeof params?.selectedElementId === "string" ? params.selectedElementId : null;
 
     container.innerHTML = "";
     container.classList.add("page-renderer-root");
@@ -166,6 +222,7 @@
         return;
       }
 
+      const resolvedStyle = resolveControlStyle(control);
       const slot = document.createElement(interactive ? "button" : "div");
       if (interactive) {
         slot.type = "button";
@@ -178,12 +235,26 @@
         });
       }
 
+      if (!isPlacing && onTileClick) {
+        slot.addEventListener("click", () => onTileClick(control.id));
+      }
+
       slot.className = `page-renderer-placement type-${control.type || "button"}`;
+      slot.dataset.elementId = control.id;
+      slot.dataset.row = String(clamp(placement.row, 1));
+      slot.dataset.col = String(clamp(placement.col, 1));
+      slot.dataset.rowSpan = String(clamp(placement.rowSpan, 1));
+      slot.dataset.colSpan = String(clamp(placement.colSpan, 1));
+      slot.classList.toggle("is-selected", selectedElementId === control.id);
+      slot.style.background = resolvedStyle.backgroundCssColor;
+      slot.style.border = resolvedStyle.borderEnabled
+        ? `1px solid ${resolvedStyle.borderCssColor}`
+        : "none";
       slot.style.gridColumnStart = String(clamp(placement.col, 1));
       slot.style.gridColumnEnd = `span ${clamp(placement.colSpan, 1)}`;
       slot.style.gridRowStart = String(clamp(placement.row, 1));
       slot.style.gridRowEnd = `span ${clamp(placement.rowSpan, 1)}`;
-      slot.appendChild(createControlNode(control, resolveIconUrl(control, assets)));
+      slot.appendChild(createControlNode(control, resolveIconUrl(control, assets), resolvedStyle));
       controlsLayer.appendChild(slot);
     });
 

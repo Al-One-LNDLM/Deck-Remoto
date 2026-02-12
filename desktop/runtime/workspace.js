@@ -50,6 +50,35 @@ function requireName(name, entityLabel = "Nombre") {
   return safeName;
 }
 
+function sanitizeHexColor(value, fallback) {
+  return /^#[0-9a-fA-F]{6}$/.test(value || "") ? value.toUpperCase() : fallback;
+}
+
+function clampOpacity(value, fallback = 1) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+
+  return Math.max(0, Math.min(1, numeric));
+}
+
+function sanitizeControlStyle(style) {
+  if (!style || typeof style !== "object") {
+    return null;
+  }
+
+  return {
+    backgroundEnabled: Boolean(style.backgroundEnabled),
+    backgroundColor: sanitizeHexColor(style.backgroundColor, "#000000"),
+    backgroundOpacity: clampOpacity(style.backgroundOpacity, 1),
+    borderEnabled: style.borderEnabled !== false,
+    borderColor: sanitizeHexColor(style.borderColor, "#FFFFFF"),
+    borderOpacity: clampOpacity(style.borderOpacity, 1),
+    showLabel: style.showLabel !== false,
+  };
+}
+
 function normalizeWorkspace(workspace) {
   const normalized = workspace || createDefaultWorkspace();
   normalized.profiles = Array.isArray(normalized.profiles) ? normalized.profiles : [];
@@ -100,6 +129,13 @@ function normalizeWorkspace(workspace) {
         delete control.borderColor;
         delete control.borderOpacity;
         delete control.showLabel;
+
+        const normalizedStyle = sanitizeControlStyle(control.style);
+        if (normalizedStyle) {
+          control.style = normalizedStyle;
+        } else {
+          delete control.style;
+        }
 
         if (control.type === "fader") {
           const sourceSlots = Array.isArray(control.faderIconAssetIds) ? control.faderIconAssetIds : [];
@@ -484,6 +520,20 @@ function addFolderButton(profileId, pageId, folderId, payload = {}) {
   return addElement(profileId, pageId, "folderButton", { ...payload, folderId });
 }
 
+function getControlAndPlacement(page, elementId) {
+  const control = page.controls.find((item) => item.id === elementId);
+  if (!control) {
+    throw new Error("Elemento no encontrado");
+  }
+
+  const placement = page.placements.find((item) => item.elementId === elementId);
+  if (!placement) {
+    throw new Error("Placement no encontrado");
+  }
+
+  return { control, placement };
+}
+
 function placeElement(profileId, pageId, elementId, row, col, rowSpan = 1, colSpan = 1) {
   const { workspace, page } = getPage(profileId, pageId);
   const element = page.controls.find((item) => item.id === elementId);
@@ -816,6 +866,7 @@ function cloneElementForPaste(sourceElement, idOverride = null) {
     id,
     folderId: null,
     iconAssetId: typeof sourceElement.iconAssetId === "string" ? sourceElement.iconAssetId : null,
+    ...(sourceElement.style ? { style: sanitizeControlStyle(sourceElement.style) } : {}),
     ...(sourceElement.type === "fader"
       ? {
         faderIconAssetIds: [0, 1, 2, 3].map((index) =>
@@ -925,6 +976,104 @@ function duplicateElement(sourceProfileId, sourcePageId, elementId, targetProfil
   targetPage.controls.push(cloned);
   scheduleSave();
   return { workspace, created: { type: "element", id: cloned.id } };
+}
+
+function setPlacementPosition(profileId, pageId, elementId, row, col) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const { placement } = getControlAndPlacement(page, elementId);
+
+  const candidate = {
+    ...placement,
+    row: Math.max(1, Math.floor(Number(row) || 1)),
+    col: Math.max(1, Math.floor(Number(col) || 1)),
+  };
+
+  if (!canPlacePlacement(page, candidate, { excludePlacementId: placement.id })) {
+    throw new Error("No cabe en la celda seleccionada");
+  }
+
+  placement.row = candidate.row;
+  placement.col = candidate.col;
+  scheduleSave();
+  return workspace;
+}
+
+function setPlacementSpan(profileId, pageId, elementId, rowSpan, colSpan) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const { control, placement } = getControlAndPlacement(page, elementId);
+
+  const safeRowSpan = Math.max(1, Math.floor(Number(rowSpan) || 1));
+  const safeColSpan = control.type === "fader"
+    ? 1
+    : Math.max(1, Math.floor(Number(colSpan) || 1));
+
+  const candidate = {
+    ...placement,
+    rowSpan: safeRowSpan,
+    colSpan: safeColSpan,
+  };
+
+  if (!canPlacePlacement(page, candidate, { excludePlacementId: placement.id })) {
+    throw new Error("El span no cabe o solapa");
+  }
+
+  placement.rowSpan = safeRowSpan;
+  placement.colSpan = safeColSpan;
+  scheduleSave();
+  return workspace;
+}
+
+function setControlStyle(profileId, pageId, elementId, patchStyle = {}) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const control = page.controls.find((item) => item.id === elementId);
+
+  if (!control) {
+    throw new Error("Elemento no encontrado");
+  }
+
+  const current = sanitizeControlStyle(control.style) || {
+    backgroundEnabled: false,
+    backgroundColor: "#000000",
+    backgroundOpacity: 1,
+    borderEnabled: true,
+    borderColor: "#FFFFFF",
+    borderOpacity: 1,
+    showLabel: true,
+  };
+
+  const next = { ...current };
+
+  if (Object.prototype.hasOwnProperty.call(patchStyle, "backgroundEnabled")) {
+    next.backgroundEnabled = Boolean(patchStyle.backgroundEnabled);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patchStyle, "backgroundColor")) {
+    next.backgroundColor = sanitizeHexColor(patchStyle.backgroundColor, current.backgroundColor);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patchStyle, "backgroundOpacity")) {
+    next.backgroundOpacity = clampOpacity(patchStyle.backgroundOpacity, current.backgroundOpacity);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patchStyle, "borderEnabled")) {
+    next.borderEnabled = Boolean(patchStyle.borderEnabled);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patchStyle, "borderColor")) {
+    next.borderColor = sanitizeHexColor(patchStyle.borderColor, current.borderColor);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patchStyle, "borderOpacity")) {
+    next.borderOpacity = clampOpacity(patchStyle.borderOpacity, current.borderOpacity);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patchStyle, "showLabel")) {
+    next.showLabel = Boolean(patchStyle.showLabel);
+  }
+
+  control.style = next;
+  scheduleSave();
+  return workspace;
 }
 
 function setElementIcon(profileId, pageId, elementId, assetId) {
@@ -1178,4 +1327,7 @@ module.exports = {
   setActive,
   setPageGrid,
   setPageShowGrid,
+  setPlacementPosition,
+  setPlacementSpan,
+  setControlStyle,
 };

@@ -37,6 +37,9 @@ const {
   duplicateElement,
   setElementIcon,
   setFaderIconSlot,
+  setPlacementPosition,
+  setPlacementSpan,
+  setControlStyle,
 } = require("./runtime/workspace");
 
 let mainWindow;
@@ -155,6 +158,15 @@ app.whenReady().then(() => {
   );
   ipcMain.handle("workspace:setPageShowGrid", (_event, profileId, pageId, showGrid) =>
     setPageShowGrid(profileId, pageId, showGrid),
+  );
+  ipcMain.handle("workspace:setPlacementPosition", (_event, profileId, pageId, elementId, row, col) =>
+    setPlacementPosition(profileId, pageId, elementId, row, col),
+  );
+  ipcMain.handle("workspace:setPlacementSpan", (_event, profileId, pageId, elementId, rowSpan, colSpan) =>
+    setPlacementSpan(profileId, pageId, elementId, rowSpan, colSpan),
+  );
+  ipcMain.handle("workspace:setControlStyle", (_event, profileId, pageId, elementId, patchStyle) =>
+    setControlStyle(profileId, pageId, elementId, patchStyle),
   );
   ipcMain.handle("workspace:deleteProfile", (_event, profileId) => deleteProfile(profileId));
   ipcMain.handle("workspace:deletePage", (_event, profileId, pageId) => deletePage(profileId, pageId));
