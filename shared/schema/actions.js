@@ -2,24 +2,41 @@ function sanitizeHotkeyKeys(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function clampInteger(value, min, max, fallback) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+
+  return Math.max(min, Math.min(max, Math.round(numeric)));
+}
+
 function normalizeAction(action) {
   if (!action || typeof action !== "object") {
     return null;
   }
 
-  if (action.type !== "hotkey") {
-    return null;
+  if (action.type === "hotkey") {
+    const keys = sanitizeHotkeyKeys(action.keys);
+    if (!keys) {
+      return null;
+    }
+
+    return {
+      type: "hotkey",
+      keys,
+    };
   }
 
-  const keys = sanitizeHotkeyKeys(action.keys);
-  if (!keys) {
-    return null;
+  if (action.type === "midiCc") {
+    return {
+      type: "midiCc",
+      channel: clampInteger(action.channel, 1, 16, 1),
+      cc: clampInteger(action.cc, 0, 127, 0),
+    };
   }
 
-  return {
-    type: "hotkey",
-    keys,
-  };
+  return null;
 }
 
 function normalizeActionBinding(actionBinding) {
