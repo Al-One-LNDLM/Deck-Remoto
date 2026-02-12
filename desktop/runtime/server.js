@@ -7,7 +7,32 @@ const { getWorkspace, getActiveState, setActive } = require("./workspace");
 
 const PORT = 3030;
 
-function buildIconAssetsMap(workspace) {
+function getRequestOrigin(request) {
+  const hostHeader = typeof request?.headers?.host === "string" ? request.headers.host.trim() : "";
+  if (hostHeader) {
+    return `http://${hostHeader}`;
+  }
+
+  return `http://localhost:${PORT}`;
+}
+
+function makeAbsoluteUrl(request, url) {
+  if (typeof url !== "string" || !url) {
+    return url;
+  }
+
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  if (url.startsWith("/")) {
+    return `${getRequestOrigin(request)}${url}`;
+  }
+
+  return url;
+}
+
+function buildIconAssetsMap(workspace, request) {
   const icons = workspace?.assets?.icons || {};
   const result = {};
 
@@ -25,7 +50,7 @@ function buildIconAssetsMap(workspace) {
 
     result[assetId] = {
       id: assetId,
-      url: `/assets/icons/${encodeURIComponent(fileName)}`,
+      url: makeAbsoluteUrl(request, `/assets/icons/${encodeURIComponent(fileName)}`),
       mime: "image/png",
     };
   });
@@ -123,7 +148,7 @@ function createRuntimeServer({ onLog }) {
 
     app = express();
     app.use(express.json());
-    app.get("/api/state", (_request, response) => {
+    app.get("/api/state", (request, response) => {
       const workspace = getWorkspace();
       const { activeProfileId, activePageId, activePage } = getActiveState(workspace);
       const activeProfile = workspace?.profiles?.find((profile) => profile.id === activeProfileId) || null;
@@ -140,7 +165,7 @@ function createRuntimeServer({ onLog }) {
           : null,
         page: toPageContract(activePage),
         assets: {
-          icons: buildIconAssetsMap(workspace),
+          icons: buildIconAssetsMap(workspace, request),
         },
       });
     });
