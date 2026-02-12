@@ -23,6 +23,7 @@ const applyGridBtn = document.getElementById("applyGridBtn");
 const gridShowCheckbox = document.getElementById("gridShowCheckbox");
 const gridCanvas = document.getElementById("gridCanvas");
 const gridPlacingHint = document.getElementById("gridPlacingHint");
+const gridSelectedPanel = document.getElementById("gridSelectedPanel");
 
 const state = {
   workspace: null,
@@ -35,6 +36,7 @@ const state = {
   clipboard: null,
   contextMenuNode: null,
   placingElementId: null,
+  selectedElementId: null,
 };
 
 function clampGridValue(value) {
@@ -115,6 +117,15 @@ function normalizePageForRenderer(page) {
       name: control.name,
       iconAssetId: typeof control.iconAssetId === "string" ? control.iconAssetId : null,
       folderId: typeof control.folderId === "string" ? control.folderId : null,
+      style: control.style && typeof control.style === "object" ? {
+        backgroundEnabled: control.style.backgroundEnabled === true,
+        backgroundColor: control.style.backgroundColor,
+        backgroundOpacity: control.style.backgroundOpacity,
+        borderEnabled: control.style.borderEnabled !== false,
+        borderColor: control.style.borderColor,
+        borderOpacity: control.style.borderOpacity,
+        showLabel: control.style.showLabel !== false,
+      } : undefined,
     })),
     placements: placements.map((placement) => ({
       elementId: placement.elementId || placement.controlId,
@@ -175,6 +186,195 @@ async function importPngIconAndRegisterAsset() {
   }
 
   return result.assetId;
+}
+
+
+function sanitizeHexColor(value, fallback = "#000000") {
+  return /^#[0-9a-fA-F]{6}$/.test(value || "") ? value.toUpperCase() : fallback;
+}
+
+function clampOpacity(value, fallback = 1) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.max(0, Math.min(1, parsed));
+}
+
+function getDefaultControlStyle(style) {
+  return {
+    backgroundEnabled: style?.backgroundEnabled === true,
+    backgroundColor: sanitizeHexColor(style?.backgroundColor, "#000000"),
+    backgroundOpacity: clampOpacity(style?.backgroundOpacity, 1),
+    borderEnabled: style?.borderEnabled !== false,
+    borderColor: sanitizeHexColor(style?.borderColor, "#FFFFFF"),
+    borderOpacity: clampOpacity(style?.borderOpacity, 1),
+    showLabel: style?.showLabel !== false,
+  };
+}
+
+function deselectGridElement() {
+  state.selectedElementId = null;
+}
+
+function updateSelectedInspector(ctx) {
+  const controls = Array.isArray(ctx?.page?.controls) ? ctx.page.controls : [];
+  const selected = controls.find((item) => item.id === state.selectedElementId) || null;
+  if (!selected) {
+    gridSelectedPanel.innerHTML = '<h3>Elemento seleccionado</h3><p class="muted">Selecciona un elemento en la rejilla para editarlo.</p>';
+    return;
+  }
+
+  const style = getDefaultControlStyle(selected.style);
+  gridSelectedPanel.innerHTML = '';
+
+  const heading = document.createElement('h3');
+  heading.textContent = 'Elemento seleccionado';
+  gridSelectedPanel.appendChild(heading);
+
+  const nameRow = document.createElement('div');
+  nameRow.className = 'grid-selected-row';
+  nameRow.innerHTML = `<label>Nombre</label><input type="text" value="${selected.name}" readonly />`;
+  gridSelectedPanel.appendChild(nameRow);
+
+  const typeRow = document.createElement('div');
+  typeRow.className = 'grid-selected-row';
+  typeRow.innerHTML = `<label>Tipo</label><input type="text" value="${selected.type}" readonly />`;
+  gridSelectedPanel.appendChild(typeRow);
+
+  function appendToggle(label, key, value) {
+    const row = document.createElement('div');
+    row.className = 'grid-controls-row';
+    const lbl = document.createElement('label');
+    lbl.textContent = label;
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = value;
+    input.addEventListener('change', async () => {
+      state.workspace = await window.runtime.setControlStyle(ctx.profile.id, ctx.page.id, selected.id, { [key]: input.checked });
+      await renderGridTab();
+    });
+    row.append(lbl, input);
+    gridSelectedPanel.appendChild(row);
+  }
+
+  function appendColor(label, key, value) {
+    const row = document.createElement('div');
+    row.className = 'grid-selected-row';
+    const lbl = document.createElement('label');
+    lbl.textContent = label;
+    const input = document.createElement('input');
+    input.type = 'color';
+    input.value = value;
+    input.addEventListener('input', async () => {
+      state.workspace = await window.runtime.setControlStyle(ctx.profile.id, ctx.page.id, selected.id, { [key]: input.value });
+      await renderGridTab();
+    });
+    row.append(lbl, input);
+    gridSelectedPanel.appendChild(row);
+  }
+
+  function appendOpacity(label, key, value) {
+    const row = document.createElement('div');
+    row.className = 'grid-selected-row';
+    const lbl = document.createElement('label');
+    lbl.textContent = label;
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '0';
+    input.max = '1';
+    input.step = '0.05';
+    input.value = String(value);
+    input.addEventListener('change', async () => {
+      state.workspace = await window.runtime.setControlStyle(ctx.profile.id, ctx.page.id, selected.id, { [key]: Number(input.value) });
+      await renderGridTab();
+    });
+    row.append(lbl, input);
+    gridSelectedPanel.appendChild(row);
+  }
+
+  appendToggle('Fondo activo', 'backgroundEnabled', style.backgroundEnabled);
+  appendColor('Color fondo', 'backgroundColor', style.backgroundColor);
+  appendOpacity('Opacidad fondo', 'backgroundOpacity', style.backgroundOpacity);
+  appendToggle('Borde activo', 'borderEnabled', style.borderEnabled);
+  appendColor('Color borde', 'borderColor', style.borderColor);
+  appendOpacity('Opacidad borde', 'borderOpacity', style.borderOpacity);
+  appendToggle('Mostrar etiqueta', 'showLabel', style.showLabel);
+}
+
+function drawSelectionOverlay(ctx) {
+  const prev = gridCanvas.querySelector('.grid-preview-overlay');
+  if (prev) prev.remove();
+
+  if (!state.selectedElementId || state.placingElementId) {
+    return;
+  }
+
+  const tile = gridCanvas.querySelector(`[data-element-id="${state.selectedElementId}"]`);
+  const controlsLayer = gridCanvas.querySelector('.page-renderer-controls-layer');
+  if (!tile || !controlsLayer) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'grid-preview-overlay';
+  const box = document.createElement('div');
+  box.className = 'grid-selection-box';
+
+  const layerRect = controlsLayer.getBoundingClientRect();
+  const tileRect = tile.getBoundingClientRect();
+  const left = tileRect.left - layerRect.left;
+  const top = tileRect.top - layerRect.top;
+  box.style.left = `${left}px`;
+  box.style.top = `${top}px`;
+  box.style.width = `${tileRect.width}px`;
+  box.style.height = `${tileRect.height}px`;
+  overlay.appendChild(box);
+
+  const placement = (ctx.page.placements || []).find((p) => p.elementId === state.selectedElementId);
+  if (!placement) {
+    gridCanvas.appendChild(overlay);
+    return;
+  }
+
+  const rows = clampGridValue(ctx.page.grid?.rows || 1);
+  const cols = clampGridValue(ctx.page.grid?.cols || 1);
+  const cellW = layerRect.width / cols;
+  const cellH = layerRect.height / rows;
+
+  function addHandle(cursor, onPointerUpCalc) {
+    const handle = document.createElement('div');
+    handle.className = 'grid-resize-handle';
+    handle.style.cursor = cursor;
+    handle.style.right = '-5px';
+    handle.style.bottom = '-5px';
+    handle.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const startX = event.clientX;
+      const startY = event.clientY;
+      function up(ev) {
+        window.removeEventListener('pointerup', up);
+        const deltaCols = Math.round((ev.clientX - startX) / cellW);
+        const deltaRows = Math.round((ev.clientY - startY) / cellH);
+        onPointerUpCalc(deltaRows, deltaCols).catch((error) => window.alert(error?.message || 'Resize inválido'));
+      }
+      window.addEventListener('pointerup', up, { once: true });
+    });
+    box.appendChild(handle);
+  }
+
+  addHandle('nwse-resize', async (deltaRows, deltaCols) => {
+    state.workspace = await window.runtime.setPlacementSpan(
+      ctx.profile.id,
+      ctx.page.id,
+      state.selectedElementId,
+      placement.rowSpan + deltaRows,
+      placement.colSpan + deltaCols,
+    );
+    await renderGridTab();
+  });
+
+  gridCanvas.appendChild(overlay);
 }
 
 async function renderGridTab() {
@@ -355,6 +555,10 @@ async function renderGridTab() {
   const page = normalizePageForRenderer(ctx.page);
   const assets = normalizeAssetsForRenderer(state.workspace);
   const isDesktopPlacing = Boolean(state.placingElementId);
+  const isPlacedSelected = placements.some((item) => item.elementId === state.selectedElementId);
+  if (!isPlacedSelected) {
+    state.selectedElementId = null;
+  }
   const hint = isDesktopPlacing
     ? "Haz click en una celda vacía para colocar"
     : "";
@@ -365,6 +569,13 @@ async function renderGridTab() {
     page,
     assets,
     isPlacing: isDesktopPlacing,
+    selectedElementId: state.selectedElementId,
+    onTileClick: isDesktopPlacing
+      ? null
+      : (elementId) => {
+        state.selectedElementId = elementId;
+        renderGridTab();
+      },
     onCellClick: isDesktopPlacing
       ? async (row, col) => {
         if (!state.placingElementId) {
@@ -383,6 +594,59 @@ async function renderGridTab() {
       }
       : null,
   });
+
+  if (!isDesktopPlacing) {
+    const controlsLayer = gridCanvas.querySelector('.page-renderer-controls-layer');
+    if (controlsLayer) {
+      controlsLayer.style.pointerEvents = 'auto';
+      const selectedTile = state.selectedElementId
+        ? controlsLayer.querySelector(`[data-element-id="${state.selectedElementId}"]`)
+        : null;
+      if (selectedTile) {
+        selectedTile.addEventListener('pointerdown', (event) => {
+          if (event.target?.classList?.contains('grid-resize-handle')) {
+            return;
+          }
+          const placement = (ctx.page.placements || []).find((item) => item.elementId === state.selectedElementId);
+          if (!placement) {
+            return;
+          }
+
+          const layerRect = controlsLayer.getBoundingClientRect();
+          const rows = clampGridValue(ctx.page.grid?.rows || 1);
+          const cols = clampGridValue(ctx.page.grid?.cols || 1);
+          const cellW = layerRect.width / cols;
+          const cellH = layerRect.height / rows;
+
+          function onUp(upEvent) {
+            window.removeEventListener('pointerup', onUp);
+            const x = upEvent.clientX - layerRect.left;
+            const y = upEvent.clientY - layerRect.top;
+            const col = Math.max(1, Math.min(cols, Math.floor(x / cellW) + 1));
+            const row = Math.max(1, Math.min(rows, Math.floor(y / cellH) + 1));
+            window.runtime.setPlacementPosition(ctx.profile.id, ctx.page.id, state.selectedElementId, row, col)
+              .then((workspace) => {
+                state.workspace = workspace;
+                renderGridTab();
+              })
+              .catch((error) => window.alert(error?.message || 'No se pudo mover'));
+          }
+
+          window.addEventListener('pointerup', onUp, { once: true });
+        }, { once: true });
+      }
+    }
+
+    gridCanvas.addEventListener('click', (event) => {
+      if (!event.target.closest('.page-renderer-placement')) {
+        deselectGridElement();
+        renderGridTab();
+      }
+    }, { once: true });
+  }
+
+  updateSelectedInspector(ctx);
+  drawSelectionOverlay(ctx);
 }
 
 async function applyGridValues() {
