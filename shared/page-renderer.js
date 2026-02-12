@@ -150,7 +150,9 @@
       const faderTrack = document.createElement("div");
       faderTrack.className = "page-renderer-fader-track";
       faderTrack.style.position = "relative";
+      faderTrack.style.width = "100%";
       faderTrack.style.height = "100%";
+      faderTrack.style.overflow = "hidden";
       const subgridRows = clamp(context.rowSpan, 1);
       const faderSubgrid = document.createElement("div");
       faderSubgrid.className = "page-renderer-fader-subgrid";
@@ -158,6 +160,7 @@
       faderSubgrid.style.gridTemplateRows = `repeat(${subgridRows}, 1fr)`;
       faderSubgrid.style.width = "100%";
       faderSubgrid.style.height = "100%";
+      faderSubgrid.style.minHeight = "0";
       faderSubgrid.style.position = "relative";
 
       const topUrl = resolveAssetUrl(faderSkin?.topAssetId, context.assets);
@@ -177,6 +180,12 @@
         const piece = document.createElement("img");
         piece.className = className;
         piece.style.zIndex = "1";
+        piece.style.display = "block";
+        piece.style.width = "100%";
+        piece.style.height = "100%";
+        piece.style.objectFit = "cover";
+        piece.style.maxWidth = "none";
+        piece.style.maxHeight = "none";
         piece.src = url;
         piece.alt = "";
         piece.loading = "lazy";
@@ -186,6 +195,8 @@
       for (let rowIndex = 0; rowIndex < subgridRows; rowIndex += 1) {
         const cell = document.createElement("div");
         cell.className = "page-renderer-fader-cell";
+        cell.style.minHeight = "0";
+        cell.style.overflow = "hidden";
 
         const isFirstRow = rowIndex === 0;
         const isLastRow = rowIndex === subgridRows - 1;
