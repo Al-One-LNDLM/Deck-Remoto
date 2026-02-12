@@ -14,10 +14,10 @@
           "id": "page1",
           "name": "Página 1",
           "grid": {
-            "rows": 4,
-            "cols": 3
+            "rows": 5,
+            "cols": 4
           },
-          "showGrid": true,
+          "showGrid": false,
           "controls": [
             {
               "id": "button1",
@@ -67,7 +67,7 @@
               "row": 0,
               "col": 0,
               "rowSpan": 1,
-              "colSpan": 1
+              "colSpan": 2
             }
           ],
           "iconAssetId": null
