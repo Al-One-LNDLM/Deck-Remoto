@@ -965,10 +965,16 @@ async function renderActionsTab() {
   hotkeyRow.className = "actions-inspector-row";
   const hotkeyLabel = document.createElement("label");
   hotkeyLabel.textContent = "Keys";
-  const hotkeyInput = document.createElement("input");
-  hotkeyInput.type = "text";
-  hotkeyInput.placeholder = "Ctrl+Alt+K";
-  hotkeyInput.value = hotkeyValue;
+  let hotkeyValueDraft = hotkeyValue;
+  const hotkeyRecorder = window.HotkeyRecorder.createHotkeyRecorder({
+    value: hotkeyValueDraft,
+    placeholder: "Ctrl+Alt+K",
+    onChange: (nextKeys) => {
+      hotkeyValueDraft = nextKeys;
+      syncRows();
+    },
+  });
+  const hotkeyInput = hotkeyRecorder.element;
   hotkeyRow.append(hotkeyLabel, hotkeyInput);
 
   const midiChannelRow = document.createElement("div");
@@ -1009,7 +1015,7 @@ async function renderActionsTab() {
     midiChannelRow.style.display = isMidiCc ? "grid" : "none";
     midiCcRow.style.display = isMidiCc ? "grid" : "none";
     validation.textContent = "";
-    saveButton.disabled = isHotkey && !hotkeyInput.value.trim();
+    saveButton.disabled = isHotkey && !hotkeyValueDraft.trim();
   }
 
   hotkeyInput.addEventListener("input", syncRows);
@@ -1018,7 +1024,7 @@ async function renderActionsTab() {
   saveButton.addEventListener("click", async () => {
     let nextBinding = null;
     if (actionTypeSelect.value === "hotkey") {
-      const keys = hotkeyInput.value.trim();
+      const keys = hotkeyValueDraft.trim();
       if (!keys) {
         validation.textContent = "La combinación no puede estar vacía.";
         return;
@@ -2086,9 +2092,15 @@ function renderInspector(workspace, selection) {
     keysRow.className = "inspector-row";
     const keysLabel = document.createElement("label");
     keysLabel.textContent = "Keys";
-    const keysInput = document.createElement("input");
-    keysInput.placeholder = "Ctrl+Alt+K";
-    keysInput.value = hasHotkeyBinding ? (currentBinding.action.keys || "") : "";
+    let keysValueDraft = hasHotkeyBinding ? (currentBinding.action.keys || "") : "";
+    const keysRecorder = window.HotkeyRecorder.createHotkeyRecorder({
+      value: keysValueDraft,
+      placeholder: "Ctrl+Alt+K",
+      onChange: (nextKeys) => {
+        keysValueDraft = nextKeys;
+      },
+    });
+    const keysInput = keysRecorder.element;
     keysRow.appendChild(keysLabel);
     keysRow.appendChild(keysInput);
     actionSection.appendChild(keysRow);
@@ -2112,7 +2124,7 @@ function renderInspector(workspace, selection) {
           kind: "single",
           action: {
             type: "hotkey",
-            keys: keysInput.value.trim(),
+            keys: keysValueDraft.trim(),
           },
         };
       }
