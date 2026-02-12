@@ -91,14 +91,14 @@
             {
               "id": "button4",
               "type": "button",
-              "name": "SEL TODO",
+              "name": "URL",
               "folderId": null,
               "iconAssetId": null,
               "actionBinding": {
                 "kind": "single",
                 "action": {
-                  "type": "hotkey",
-                  "keys": "Ctrl+E"
+                  "type": "openUrl",
+                  "url": "https://www.youtube.com/watch?v=HpUyf5YU1lM&t=8484s"
                 }
               },
               "style": {
