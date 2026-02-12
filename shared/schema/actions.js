@@ -21,6 +21,16 @@ function sanitizeOpenAppArgs(value) {
     .filter(Boolean);
 }
 
+
+function sanitizeReferenceId(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
 function sanitizeHttpUrl(value) {
   if (typeof value !== "string") {
     return "";
@@ -102,6 +112,20 @@ function normalizeAction(action) {
     };
   }
 
+  if (action.type === "switchPage") {
+    return {
+      type: "switchPage",
+      pageId: sanitizeReferenceId(action.pageId),
+    };
+  }
+
+  if (action.type === "switchProfile") {
+    return {
+      type: "switchProfile",
+      profileId: sanitizeReferenceId(action.profileId),
+    };
+  }
+
   return null;
 }
 
@@ -146,4 +170,5 @@ module.exports = {
   normalizeActionBinding,
   sanitizeOpenAppTarget,
   sanitizeHttpUrl,
+  sanitizeReferenceId,
 };

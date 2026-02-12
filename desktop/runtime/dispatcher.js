@@ -4,7 +4,7 @@ const { shell } = require("electron");
 const KeyboardDriver = require("./keyboard-driver");
 const { sanitizeHttpUrl, sanitizeOpenAppTarget } = require("../../shared/schema/actions");
 
-async function executeAction(action, { log } = {}) {
+async function executeAction(action, { log, runtime } = {}) {
   if (!action || typeof action !== "object") {
     return;
   }
@@ -75,6 +75,53 @@ async function executeAction(action, { log } = {}) {
       }
     }
   }
+
+  if (action.type === "switchPage") {
+    const pageId = typeof action.pageId === "string" ? action.pageId.trim() : "";
+    if (!pageId) {
+      if (typeof log === "function") {
+        log("[DISPATCH] switchPage (null)");
+      }
+      return;
+    }
+
+    if (!runtime || typeof runtime.setActivePage !== "function") {
+      if (typeof log === "function") {
+        log("[DISPATCH] switchPage runtime no disponible");
+      }
+      return;
+    }
+
+    if (typeof log === "function") {
+      log(`[DISPATCH] switchPage ${pageId}`);
+    }
+    runtime.setActivePage(pageId);
+    return;
+  }
+
+  if (action.type === "switchProfile") {
+    const profileId = typeof action.profileId === "string" ? action.profileId.trim() : "";
+    if (!profileId) {
+      if (typeof log === "function") {
+        log("[DISPATCH] switchProfile (null)");
+      }
+      return;
+    }
+
+    if (!runtime || typeof runtime.setActiveProfile !== "function") {
+      if (typeof log === "function") {
+        log("[DISPATCH] switchProfile runtime no disponible");
+      }
+      return;
+    }
+
+    if (typeof log === "function") {
+      log(`[DISPATCH] switchProfile ${profileId}`);
+    }
+    runtime.setActiveProfile(profileId);
+    return;
+  }
+
 
   if (action.type === "openUrl") {
     const sanitizedUrl = sanitizeHttpUrl(action.url);
