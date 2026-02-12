@@ -1,9 +1,9 @@
 {
   "activeProfileId": "profile1",
-  "activePageId": "page2",
+  "activePageId": "page1",
   "lastSession": {
     "activeProfileId": "profile1",
-    "activePageId": "page2"
+    "activePageId": "page1"
   },
   "profiles": [
     {
@@ -18,49 +18,7 @@
             "cols": 3
           },
           "showGrid": true,
-          "controls": [
-            {
-              "id": "button2",
-              "type": "button",
-              "name": "Botón 2",
-              "folderId": "folder1",
-              "iconAssetId": null
-            }
-          ],
-          "folders": [
-            {
-              "id": "folder1",
-              "name": "Apps",
-              "items": [],
-              "iconAssetId": null
-            }
-          ],
-          "placements": []
-        },
-        {
-          "id": "page2",
-          "name": "Página 2",
-          "grid": {
-            "rows": 5,
-            "cols": 4
-          },
-          "showGrid": true,
-          "controls": [
-            {
-              "id": "button3",
-              "type": "button",
-              "name": "Botón 3",
-              "folderId": null,
-              "iconAssetId": null
-            },
-            {
-              "id": "button4",
-              "type": "button",
-              "name": "Botón 4",
-              "folderId": null,
-              "iconAssetId": null
-            }
-          ],
+          "controls": [],
           "folders": [],
           "placements": []
         }
