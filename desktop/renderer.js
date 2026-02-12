@@ -12,6 +12,8 @@ const treeRoot = document.getElementById("treeRoot");
 const inspector = document.getElementById("inspector");
 const addNodeBtn = document.getElementById("addNodeBtn");
 const addMenu = document.getElementById("addMenu");
+const contextMenuEl = document.getElementById("contextMenu");
+const moveModalHost = document.getElementById("moveModalHost");
 const gridProfileSelect = document.getElementById("gridProfileSelect");
 const gridPageSelect = document.getElementById("gridPageSelect");
 const gridElementsList = document.getElementById("gridElementsList");
@@ -54,6 +56,8 @@ const state = {
     selectedPlacementId: null,
     previewMode: "fill",
   },
+  clipboard: null,
+  contextMenuNode: null,
 };
 
 function clampGridValue(value) {
@@ -828,6 +832,110 @@ function buildTreeNodes(workspace) {
   return nodes;
 }
 
+function setSelectionFromNode(node) {
+  state.selection = {
+    kind: node.kind,
+    profileId: node.profileId,
+    pageId: node.pageId || null,
+    folderId: node.folderId || null,
+    elementId: node.elementId || null,
+  };
+}
+
+function closeContextMenu() {
+  contextMenuEl.style.display = "none";
+  contextMenuEl.innerHTML = "";
+  state.contextMenuNode = null;
+}
+
+function createContextMenuItem(label, onClick, danger = false) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "context-menu-item";
+  if (danger) {
+    button.classList.add("danger");
+  }
+
+  button.textContent = label;
+  button.addEventListener("click", async () => {
+    closeContextMenu();
+    await onClick();
+  });
+  return button;
+}
+
+function openMoveModal(title, fields, onConfirm) {
+  moveModalHost.innerHTML = "";
+
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+
+  const modal = document.createElement("div");
+  modal.className = "modal";
+  overlay.appendChild(modal);
+
+  const heading = document.createElement("h3");
+  heading.textContent = title;
+  modal.appendChild(heading);
+
+  const fieldsWrap = document.createElement("div");
+  fieldsWrap.className = "modal-fields";
+  modal.appendChild(fieldsWrap);
+
+  const fieldValues = {};
+  fields.forEach((field) => {
+    const row = document.createElement("div");
+    row.className = "modal-field";
+    const label = document.createElement("label");
+    label.textContent = field.label;
+    row.appendChild(label);
+
+    const select = document.createElement("select");
+    field.options.forEach((option) => {
+      const opt = document.createElement("option");
+      opt.value = option.value;
+      opt.textContent = option.label;
+      if (option.value === field.defaultValue) {
+        opt.selected = true;
+      }
+
+      select.appendChild(opt);
+    });
+    fieldValues[field.key] = select.value;
+    select.addEventListener("change", () => {
+      fieldValues[field.key] = select.value;
+      if (typeof field.onChange === "function") {
+        field.onChange(select.value, fieldValues, fieldsWrap);
+      }
+    });
+    row.appendChild(select);
+    fieldsWrap.appendChild(row);
+  });
+
+  const actions = document.createElement("div");
+  actions.className = "modal-actions";
+  const cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.className = "modal-btn";
+  cancelBtn.textContent = "Cancelar";
+  cancelBtn.addEventListener("click", () => {
+    moveModalHost.innerHTML = "";
+  });
+  const confirmBtn = document.createElement("button");
+  confirmBtn.type = "button";
+  confirmBtn.className = "modal-btn primary";
+  confirmBtn.textContent = "Confirmar";
+  confirmBtn.addEventListener("click", async () => {
+    await onConfirm(fieldValues);
+    moveModalHost.innerHTML = "";
+  });
+
+  actions.appendChild(cancelBtn);
+  actions.appendChild(confirmBtn);
+  modal.appendChild(actions);
+  moveModalHost.appendChild(overlay);
+}
+
 function isNodeSelected(node, selection) {
   if (!selection || node.kind !== selection.kind || node.profileId !== selection.profileId) {
     return false;
@@ -871,18 +979,206 @@ function createTreeItem(node, selection) {
 
   label.textContent = `${prefixMap[node.kind]}: ${node.label}`;
   label.addEventListener("click", () => {
-    state.selection = {
-      kind: node.kind,
-      profileId: node.profileId,
-      pageId: node.pageId,
-      folderId: node.folderId || null,
-      elementId: node.elementId || null,
-    };
+    setSelectionFromNode(node);
     renderNavigation();
+  });
+  label.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    openContextMenuForNode(node, event.clientX, event.clientY);
   });
 
   item.appendChild(label);
   return item;
+}
+
+async function openMovePageDialog(node) {
+  const profileOptions = (state.workspace.profiles || []).map((profile) => ({
+    value: profile.id,
+    label: profile.name,
+  }));
+
+  openMoveModal("Mover página", [
+    {
+      key: "profileId",
+      label: "Perfil destino",
+      options: profileOptions,
+      defaultValue: profileOptions[0]?.value,
+    },
+  ], async ({ profileId }) => {
+    state.workspace = await window.runtime.movePage(node.pageId, node.profileId, profileId);
+    state.selection = { kind: "page", profileId, pageId: node.pageId };
+    renderNavigation();
+    await renderGridTab();
+  });
+}
+
+async function openMoveFolderDialog(node) {
+  const targetProfile = state.workspace.profiles.find((profile) => profile.id === node.profileId);
+  const pageOptions = (targetProfile?.pages || []).map((page) => ({ value: page.id, label: page.name }));
+  openMoveModal("Mover carpeta", [
+    {
+      key: "pageId",
+      label: "Página destino",
+      options: pageOptions,
+      defaultValue: pageOptions.find((item) => item.value !== node.pageId)?.value || pageOptions[0]?.value,
+    },
+  ], async ({ pageId }) => {
+    state.workspace = await window.runtime.moveFolder(node.folderId, node.profileId, node.pageId, node.profileId, pageId);
+    state.selection = { kind: "folder", profileId: node.profileId, pageId, folderId: node.folderId };
+    renderNavigation();
+    await renderGridTab();
+  });
+}
+
+async function openMoveElementDialog(node) {
+  const profile = state.workspace.profiles.find((item) => item.id === node.profileId);
+  const pageOptions = (profile?.pages || []).map((page) => ({ value: page.id, label: page.name }));
+  const defaultPageId = node.pageId;
+
+  const folderOptionsByPage = new Map();
+  (profile?.pages || []).forEach((page) => {
+    const options = [{ value: "", label: "Raíz de página" }];
+    (page.folders || []).forEach((folder) => {
+      options.push({ value: folder.id, label: `Carpeta: ${folder.name}` });
+    });
+    folderOptionsByPage.set(page.id, options);
+  });
+
+  openMoveModal("Mover elemento", [
+    { key: "pageId", label: "Página destino", options: pageOptions, defaultValue: defaultPageId },
+    {
+      key: "folderId",
+      label: "Carpeta destino",
+      options: folderOptionsByPage.get(defaultPageId) || [{ value: "", label: "Raíz de página" }],
+      defaultValue: node.folderId || "",
+    },
+  ], async ({ pageId, folderId }) => {
+    state.workspace = await window.runtime.moveElement(
+      node.elementId,
+      node.profileId,
+      node.pageId,
+      node.profileId,
+      pageId,
+      { targetFolderId: folderId || null },
+    );
+    state.selection = {
+      kind: "element",
+      profileId: node.profileId,
+      pageId,
+      folderId: folderId || null,
+      elementId: node.elementId,
+    };
+    renderNavigation();
+    await renderGridTab();
+  });
+}
+
+function openContextMenuForNode(node, clientX, clientY) {
+  closeContextMenu();
+  state.contextMenuNode = node;
+  setSelectionFromNode(node);
+  renderNavigation();
+
+  const actions = [];
+  if (node.kind === "profile") {
+    actions.push(createContextMenuItem("Copiar perfil", async () => {
+      state.clipboard = { kind: "profile", data: { profileId: node.profileId } };
+    }));
+    actions.push(createContextMenuItem("Eliminar perfil", async () => {
+      state.workspace = await window.runtime.deleteProfile(node.profileId);
+      state.selection = null;
+      renderNavigation();
+      await renderGridTab();
+    }, true));
+    if (state.clipboard?.kind === "page") {
+      actions.push(createContextMenuItem("Pegar página", async () => {
+        const source = state.clipboard.data;
+        const result = await window.runtime.duplicatePage(source.profileId, source.pageId, node.profileId);
+        state.workspace = result.workspace;
+        state.selection = { kind: "page", profileId: node.profileId, pageId: result.created.id };
+        renderNavigation();
+        await renderGridTab();
+      }));
+    }
+  }
+
+  if (node.kind === "page") {
+    actions.push(createContextMenuItem("Eliminar página", async () => {
+      state.workspace = await window.runtime.deletePage(node.profileId, node.pageId);
+      state.selection = null;
+      renderNavigation();
+      await renderGridTab();
+    }, true));
+    actions.push(createContextMenuItem("Mover a otro perfil…", async () => openMovePageDialog(node)));
+    actions.push(createContextMenuItem("Copiar página", async () => {
+      state.clipboard = { kind: "page", data: { profileId: node.profileId, pageId: node.pageId } };
+    }));
+    if (state.clipboard?.kind === "folder") {
+      actions.push(createContextMenuItem("Pegar carpeta", async () => {
+        const source = state.clipboard.data;
+        const result = await window.runtime.duplicateFolder(source.profileId, source.pageId, source.folderId, node.profileId, node.pageId);
+        state.workspace = result.workspace;
+        state.selection = { kind: "folder", profileId: node.profileId, pageId: node.pageId, folderId: result.created.id };
+        renderNavigation();
+        await renderGridTab();
+      }));
+    }
+    if (state.clipboard?.kind === "element") {
+      actions.push(createContextMenuItem("Pegar elemento en raíz", async () => {
+        const source = state.clipboard.data;
+        const result = await window.runtime.duplicateElement(source.profileId, source.pageId, source.elementId, node.profileId, node.pageId, null);
+        state.workspace = result.workspace;
+        state.selection = { kind: "element", profileId: node.profileId, pageId: node.pageId, folderId: null, elementId: result.created.id };
+        renderNavigation();
+        await renderGridTab();
+      }));
+    }
+  }
+
+  if (node.kind === "folder") {
+    actions.push(createContextMenuItem("Eliminar carpeta", async () => {
+      state.workspace = await window.runtime.deleteFolder(node.profileId, node.pageId, node.folderId);
+      state.selection = { kind: "page", profileId: node.profileId, pageId: node.pageId };
+      renderNavigation();
+      await renderGridTab();
+    }, true));
+    actions.push(createContextMenuItem("Mover a otra página…", async () => openMoveFolderDialog(node)));
+    actions.push(createContextMenuItem("Copiar carpeta", async () => {
+      state.clipboard = { kind: "folder", data: { profileId: node.profileId, pageId: node.pageId, folderId: node.folderId } };
+    }));
+    if (state.clipboard?.kind === "element") {
+      actions.push(createContextMenuItem("Pegar elemento en carpeta", async () => {
+        const source = state.clipboard.data;
+        const result = await window.runtime.duplicateElement(source.profileId, source.pageId, source.elementId, node.profileId, node.pageId, node.folderId);
+        state.workspace = result.workspace;
+        state.selection = { kind: "element", profileId: node.profileId, pageId: node.pageId, folderId: node.folderId, elementId: result.created.id };
+        renderNavigation();
+        await renderGridTab();
+      }));
+    }
+  }
+
+  if (node.kind === "element") {
+    actions.push(createContextMenuItem("Eliminar elemento", async () => {
+      state.workspace = await window.runtime.deleteElement(node.profileId, node.pageId, node.elementId);
+      state.selection = { kind: node.folderId ? "folder" : "page", profileId: node.profileId, pageId: node.pageId, folderId: node.folderId || null };
+      renderNavigation();
+      await renderGridTab();
+    }, true));
+    actions.push(createContextMenuItem("Mover a…", async () => openMoveElementDialog(node)));
+    actions.push(createContextMenuItem("Copiar elemento", async () => {
+      state.clipboard = { kind: "element", data: { profileId: node.profileId, pageId: node.pageId, elementId: node.elementId } };
+    }));
+  }
+
+  if (!actions.length) {
+    return;
+  }
+
+  actions.forEach((action) => contextMenuEl.appendChild(action));
+  contextMenuEl.style.display = "grid";
+  contextMenuEl.style.left = `${clientX}px`;
+  contextMenuEl.style.top = `${clientY}px`;
 }
 
 function renderTree(workspace, selection) {
@@ -948,6 +1244,55 @@ function createCrudRow({ typeLabel, name, onRename, onDelete }) {
   row.appendChild(input);
   row.appendChild(deleteBtn);
 
+  return row;
+}
+
+function createPageRow(profileId, page, onSelect) {
+  const row = document.createElement("div");
+  row.className = "inspector-item-row";
+
+  const type = document.createElement("span");
+  type.className = "inspector-item-type";
+  type.textContent = "[Página]";
+
+  const input = document.createElement("input");
+  input.value = page.name;
+  input.addEventListener("change", async (event) => {
+    const nextName = event.target.value.trim();
+    if (!nextName) {
+      event.target.value = page.name;
+      return;
+    }
+
+    state.workspace = await window.runtime.renamePage(profileId, page.id, nextName);
+    renderNavigation();
+    await renderGridTab();
+  });
+
+  const selectBtn = document.createElement("button");
+  selectBtn.type = "button";
+  selectBtn.textContent = "Seleccionar";
+  selectBtn.addEventListener("click", onSelect);
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.textContent = "Eliminar";
+  deleteBtn.className = "danger";
+  deleteBtn.addEventListener("click", async () => {
+    state.workspace = await window.runtime.deletePage(profileId, page.id);
+    state.selection = { kind: "profile", profileId };
+    renderNavigation();
+    await renderGridTab();
+  });
+
+  row.appendChild(type);
+  row.appendChild(input);
+  row.appendChild(selectBtn);
+  row.appendChild(deleteBtn);
+  row.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    openContextMenuForNode({ kind: "page", profileId, pageId: page.id }, event.clientX, event.clientY);
+  });
   return row;
 }
 
@@ -1021,6 +1366,31 @@ function renderInspector(workspace, selection) {
       renderNavigation();
       await renderGridTab();
     }));
+
+    inspector.appendChild(createAddButtons([
+      {
+        label: "+ Añadir Página",
+        onClick: async () => {
+          const result = await window.runtime.addPage(context.profile.id, { name: "" });
+          state.workspace = result.workspace;
+          state.selection = { kind: "page", profileId: context.profile.id, pageId: result.created.id };
+          renderNavigation();
+          await renderGridTab();
+        },
+      },
+    ]));
+
+    inspector.appendChild(createInspectorSection(
+      "Páginas",
+      (context.profile.pages || []).map((page) =>
+        createPageRow(context.profile.id, page, async () => {
+          state.workspace = await window.runtime.setActivePage(context.profile.id, page.id);
+          state.selection = { kind: "page", profileId: context.profile.id, pageId: page.id };
+          renderNavigation();
+          await renderGridTab();
+        })),
+      "Sin páginas en este perfil.",
+    ));
     return;
   }
 
@@ -1176,6 +1546,96 @@ function renderInspector(workspace, selection) {
       renderNavigation();
       await renderGridTab();
     }));
+
+    const iconSection = document.createElement("div");
+    iconSection.className = "inspector-elements";
+    const iconTitle = document.createElement("h4");
+    iconTitle.textContent = context.element.type === "fader" ? "Icono de Fader (4 PNG)" : "Icono";
+    iconSection.appendChild(iconTitle);
+
+    if (context.element.type === "button") {
+      const row = document.createElement("div");
+      row.className = "grid-controls-row";
+      const importBtn = document.createElement("button");
+      importBtn.type = "button";
+      importBtn.textContent = "Importar PNG";
+      importBtn.addEventListener("click", async () => {
+        const next = await window.runtime.importElementIcon(context.profile.id, context.page.id, context.element.id);
+        if (!next) {
+          return;
+        }
+
+        state.workspace = next;
+        renderNavigation();
+      });
+
+      const clearBtn = document.createElement("button");
+      clearBtn.type = "button";
+      clearBtn.textContent = "Quitar";
+      clearBtn.addEventListener("click", async () => {
+        state.workspace = await window.runtime.setElementIcon(context.profile.id, context.page.id, context.element.id, null);
+        renderNavigation();
+      });
+
+      row.appendChild(importBtn);
+      row.appendChild(clearBtn);
+      iconSection.appendChild(row);
+    } else {
+      const slots = Array.isArray(context.element.faderIconAssetIds)
+        ? context.element.faderIconAssetIds
+        : [null, null, null, null];
+      slots.forEach((assetId, slotIndex) => {
+        const row = document.createElement("div");
+        row.className = "grid-controls-row";
+        const label = document.createElement("span");
+        label.textContent = `Slot ${slotIndex + 1}`;
+
+        const importBtn = document.createElement("button");
+        importBtn.type = "button";
+        importBtn.textContent = "Importar PNG";
+        importBtn.addEventListener("click", async () => {
+          const next = await window.runtime.importFaderIconSlot(context.profile.id, context.page.id, context.element.id, slotIndex);
+          if (!next) {
+            return;
+          }
+
+          state.workspace = next;
+          renderNavigation();
+        });
+
+        const clearBtn = document.createElement("button");
+        clearBtn.type = "button";
+        clearBtn.textContent = "Quitar";
+        clearBtn.addEventListener("click", async () => {
+          state.workspace = await window.runtime.setFaderIconSlot(context.profile.id, context.page.id, context.element.id, slotIndex, null);
+          renderNavigation();
+        });
+
+        row.appendChild(label);
+        if (assetId && state.workspace.assets?.icons?.[assetId]?.path) {
+          const preview = document.createElement("img");
+          preview.className = "icon-preview";
+          preview.src = state.workspace.assets.icons[assetId].path;
+          preview.alt = `slot-${slotIndex + 1}`;
+          row.appendChild(preview);
+        }
+        row.appendChild(importBtn);
+        row.appendChild(clearBtn);
+        iconSection.appendChild(row);
+      });
+    }
+    inspector.appendChild(iconSection);
+
+    const actionSection = document.createElement("div");
+    actionSection.className = "inspector-elements";
+    const actionTitle = document.createElement("h4");
+    actionTitle.textContent = "Acción";
+    const actionHint = document.createElement("p");
+    actionHint.className = "muted";
+    actionHint.textContent = "(Pendiente) — aquí se configurará la acción/binding del elemento.";
+    actionSection.appendChild(actionTitle);
+    actionSection.appendChild(actionHint);
+    inspector.appendChild(actionSection);
   }
 }
 
@@ -1187,38 +1647,6 @@ async function handleAddProfile() {
   const result = await window.runtime.addProfile();
   state.workspace = result.workspace;
   state.selection = { kind: "profile", profileId: result.created.id };
-  renderNavigation();
-  await renderGridTab();
-}
-
-async function handleAddPage() {
-  const context = getSelectedNodeContext(state.workspace, state.selection);
-  const targetProfileId = context?.profile?.id || state.workspace.activeProfileId;
-
-  const result = await window.runtime.addPage(targetProfileId);
-  state.workspace = result.workspace;
-  state.selection = {
-    kind: "page",
-    profileId: targetProfileId,
-    pageId: result.created.id,
-  };
-  renderNavigation();
-  await renderGridTab();
-}
-
-async function handleAddFolder() {
-  const context = getSelectedNodeContext(state.workspace, state.selection);
-  const targetProfileId = context?.profile?.id || state.workspace.activeProfileId;
-  const targetPageId = context?.page?.id || state.workspace.activePageId;
-
-  const result = await window.runtime.addFolder(targetProfileId, targetPageId, { name: "" });
-  state.workspace = result.workspace;
-  state.selection = {
-    kind: "folder",
-    profileId: targetProfileId,
-    pageId: targetPageId,
-    folderId: result.created.id,
-  };
   renderNavigation();
   await renderGridTab();
 }
@@ -1290,18 +1718,17 @@ addMenu.addEventListener("click", async (event) => {
     return;
   }
 
-  if (action === "page") {
-    await handleAddPage();
-    return;
-  }
-
-  if (action === "folder") {
-    await handleAddFolder();
-  }
 });
 
 document.addEventListener("click", () => {
   addMenu.classList.remove("open");
+  closeContextMenu();
+});
+
+document.addEventListener("contextmenu", (event) => {
+  if (!event.target.closest(".tree-label") && !event.target.closest(".inspector-item-row")) {
+    closeContextMenu();
+  }
 });
 
 tabButtons.forEach((button) => {

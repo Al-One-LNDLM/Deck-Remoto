@@ -32,6 +32,12 @@ const {
   deleteFolder,
   movePage,
   moveFolder,
+  moveElement,
+  duplicatePage,
+  duplicateFolder,
+  duplicateElement,
+  setElementIcon,
+  setFaderIconSlot,
 } = require("./runtime/workspace");
 
 let mainWindow;
@@ -62,6 +68,16 @@ function sanitizeAssetName(fileName) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-");
 }
 
+function isPngFile(filePath) {
+  const header = fs.readFileSync(filePath);
+  if (header.length < 8) {
+    return false;
+  }
+
+  const pngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  return pngSignature.every((value, index) => header[index] === value);
+}
+
 async function importIconAsset() {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ["openFile"],
@@ -72,11 +88,17 @@ async function importIconAsset() {
     return null;
   }
 
-  const sourcePath = result.filePaths[0];
+  const sourcePath = path.resolve(result.filePaths[0]);
+  if (!isPngFile(sourcePath)) {
+    throw new Error("El archivo seleccionado no es un PNG válido");
+  }
+
   const iconsDir = path.resolve(__dirname, "assets/icons");
   fs.mkdirSync(iconsDir, { recursive: true });
 
-  const targetName = `${Date.now()}-${path.basename(sourcePath).replace(/\s+/g, "-")}`;
+  const parsed = path.parse(sourcePath);
+  const safeName = sanitizeAssetName(parsed.name) || "icon";
+  const targetName = `${Date.now()}-${safeName}.png`;
   const targetPath = path.join(iconsDir, targetName);
   fs.copyFileSync(sourcePath, targetPath);
 
@@ -114,7 +136,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle("workspace:get", () => getWorkspace());
   ipcMain.handle("workspace:addProfile", () => addProfile());
-  ipcMain.handle("workspace:addPage", (_event, profileId) => addPage(profileId));
+  ipcMain.handle("workspace:addPage", (_event, profileId, payload) => addPage(profileId, payload));
   ipcMain.handle("workspace:addFolder", (_event, profileId, pageId, payload) => addFolder(profileId, pageId, payload));
   ipcMain.handle("workspace:addButton", (_event, profileId, pageId, payload) =>
     addButton(profileId, pageId, payload),
@@ -167,7 +189,19 @@ app.whenReady().then(() => {
   ipcMain.handle("workspace:deleteFolder", (_event, profileId, pageId, folderId) => deleteFolder(profileId, pageId, folderId));
   ipcMain.handle("workspace:movePage", (_event, pageId, fromProfileId, toProfileId) => movePage(pageId, fromProfileId, toProfileId));
   ipcMain.handle("workspace:moveFolder", (_event, folderId, fromProfileId, fromPageId, toProfileId, toPageId) => moveFolder(folderId, fromProfileId, fromPageId, toProfileId, toPageId));
-  ipcMain.handle("workspace:importFolderIcon", async (_event, profileId, pageId, folderId) => {
+    ipcMain.handle("workspace:moveElement", (_event, elementId, fromProfileId, fromPageId, toProfileId, toPageId, options) =>
+    moveElement(elementId, fromProfileId, fromPageId, toProfileId, toPageId, options),
+  );
+  ipcMain.handle("workspace:duplicatePage", (_event, sourceProfileId, pageId, targetProfileId) =>
+    duplicatePage(sourceProfileId, pageId, targetProfileId),
+  );
+  ipcMain.handle("workspace:duplicateFolder", (_event, sourceProfileId, sourcePageId, folderId, targetProfileId, targetPageId) =>
+    duplicateFolder(sourceProfileId, sourcePageId, folderId, targetProfileId, targetPageId),
+  );
+  ipcMain.handle("workspace:duplicateElement", (_event, sourceProfileId, sourcePageId, elementId, targetProfileId, targetPageId, targetFolderId) =>
+    duplicateElement(sourceProfileId, sourcePageId, elementId, targetProfileId, targetPageId, targetFolderId),
+  );
+ipcMain.handle("workspace:importFolderIcon", async (_event, profileId, pageId, folderId) => {
     const iconPath = await importIconAsset();
     if (!iconPath) {
       return null;
@@ -176,6 +210,30 @@ app.whenReady().then(() => {
     const { assetId } = registerIconAsset(iconPath);
     return setFolderIcon(profileId, pageId, folderId, assetId);
   });
+  ipcMain.handle("workspace:importElementIcon", async (_event, profileId, pageId, elementId) => {
+    const iconPath = await importIconAsset();
+    if (!iconPath) {
+      return null;
+    }
+
+    const { assetId } = registerIconAsset(iconPath);
+    return setElementIcon(profileId, pageId, elementId, assetId);
+  });
+  ipcMain.handle("workspace:setElementIcon", (_event, profileId, pageId, elementId, assetId) =>
+    setElementIcon(profileId, pageId, elementId, assetId),
+  );
+  ipcMain.handle("workspace:importFaderIconSlot", async (_event, profileId, pageId, elementId, slotIndex) => {
+    const iconPath = await importIconAsset();
+    if (!iconPath) {
+      return null;
+    }
+
+    const { assetId } = registerIconAsset(iconPath);
+    return setFaderIconSlot(profileId, pageId, elementId, slotIndex, assetId);
+  });
+  ipcMain.handle("workspace:setFaderIconSlot", (_event, profileId, pageId, elementId, slotIndex, assetId) =>
+    setFaderIconSlot(profileId, pageId, elementId, slotIndex, assetId),
+  );
   ipcMain.handle("workspace:importBackgroundImage", () => importBackgroundImage());
 
   createWindow();
