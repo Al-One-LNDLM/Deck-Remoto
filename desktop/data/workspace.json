@@ -54,6 +54,13 @@
                 null,
                 null
               ]
+            },
+            {
+              "id": "button2",
+              "type": "button",
+              "name": "Botón 2",
+              "folderId": "folder1",
+              "iconAssetId": null
             }
           ],
           "folders": [
@@ -61,19 +68,10 @@
               "id": "folder1",
               "name": "Apps",
               "items": [],
-              "iconAssetId": "icon_1770888214107"
+              "iconAssetId": null
             }
           ],
-          "placements": [
-            {
-              "id": "placement1",
-              "elementId": "button1",
-              "row": 2,
-              "col": 2,
-              "rowSpan": 1,
-              "colSpan": 1
-            }
-          ]
+          "placements": []
         }
       ]
     }
@@ -121,6 +119,36 @@
         "type": "icon",
         "path": "assets/icons/1770888350522-LEFT.png",
         "createdAt": "2026-02-12T09:25:50.522Z"
+      },
+      "icon_1770888885222": {
+        "id": "icon_1770888885222",
+        "type": "icon",
+        "path": "assets/icons/1770888885221-ESC.png",
+        "createdAt": "2026-02-12T09:34:45.222Z"
+      },
+      "icon_1770888891569": {
+        "id": "icon_1770888891569",
+        "type": "icon",
+        "path": "assets/icons/1770888891568-ESC.png",
+        "createdAt": "2026-02-12T09:34:51.569Z"
+      },
+      "icon_1770889017435": {
+        "id": "icon_1770889017435",
+        "type": "icon",
+        "path": "assets/icons/1770889017434-ESC.png",
+        "createdAt": "2026-02-12T09:36:57.435Z"
+      },
+      "icon_1770889043232": {
+        "id": "icon_1770889043232",
+        "type": "icon",
+        "path": "assets/icons/1770889043232-ESC.png",
+        "createdAt": "2026-02-12T09:37:23.232Z"
+      },
+      "icon_1770889058845": {
+        "id": "icon_1770889058845",
+        "type": "icon",
+        "path": "assets/icons/1770889058844-ESC.png",
+        "createdAt": "2026-02-12T09:37:38.845Z"
       }
     }
   }
