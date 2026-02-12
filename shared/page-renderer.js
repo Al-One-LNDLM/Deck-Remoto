@@ -146,13 +146,16 @@
     const grid = document.createElement("div");
     grid.className = "page-renderer-grid";
     grid.classList.toggle("hide-grid-lines", !showGrid);
-    grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
-    grid.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
+    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
 
     const controlsLayer = document.createElement("div");
     controlsLayer.className = "page-renderer-controls-layer";
-    controlsLayer.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
-    controlsLayer.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
+    controlsLayer.style.position = "relative";
+    controlsLayer.style.width = "100%";
+    controlsLayer.style.height = "100%";
+    controlsLayer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    controlsLayer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
 
     for (let index = 0; index < rows * cols; index += 1) {
       const cell = document.createElement("div");
@@ -187,8 +190,8 @@
 
       const hitLayer = document.createElement("div");
       hitLayer.className = "page-renderer-hit-layer";
-      hitLayer.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
-      hitLayer.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
+      hitLayer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+      hitLayer.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
 
       for (let index = 0; index < rows * cols; index += 1) {
         const hitCell = document.createElement("button");
