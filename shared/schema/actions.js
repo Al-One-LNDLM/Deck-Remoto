@@ -1,0 +1,64 @@
+function sanitizeHotkeyKeys(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeAction(action) {
+  if (!action || typeof action !== "object") {
+    return null;
+  }
+
+  if (action.type !== "hotkey") {
+    return null;
+  }
+
+  const keys = sanitizeHotkeyKeys(action.keys);
+  if (!keys) {
+    return null;
+  }
+
+  return {
+    type: "hotkey",
+    keys,
+  };
+}
+
+function normalizeActionBinding(actionBinding) {
+  if (actionBinding == null) {
+    return null;
+  }
+
+  if (typeof actionBinding !== "object") {
+    return null;
+  }
+
+  if (actionBinding.kind === "single") {
+    const action = normalizeAction(actionBinding.action);
+    if (!action) {
+      return null;
+    }
+
+    return {
+      kind: "single",
+      action,
+    };
+  }
+
+  if (actionBinding.kind === "macro") {
+    const rawSteps = Array.isArray(actionBinding.steps) ? actionBinding.steps : [];
+    const steps = rawSteps
+      .map((step) => normalizeAction(step))
+      .filter(Boolean);
+
+    return {
+      kind: "macro",
+      steps,
+    };
+  }
+
+  return null;
+}
+
+module.exports = {
+  normalizeAction,
+  normalizeActionBinding,
+};

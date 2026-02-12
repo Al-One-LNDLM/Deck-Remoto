@@ -4,6 +4,7 @@ const path = require("path");
 const os = require("os");
 const { WebSocketServer } = require("ws");
 const { getWorkspace, getActiveState, setActive } = require("./workspace");
+const dispatcher = require("./dispatcher");
 
 const PORT = 3030;
 
@@ -96,6 +97,7 @@ function toPageContract(page) {
         borderOpacity: control.style.borderOpacity,
         showLabel: control.style.showLabel !== false,
       } : undefined,
+      actionBinding: control.actionBinding || null,
     })),
     placements: placements.map((placement) => ({
       elementId: typeof placement.elementId === "string" ? placement.elementId : placement.controlId,
@@ -244,25 +246,40 @@ function createRuntimeServer({ onLog }) {
     wsServer.on("connection", (socket) => {
       log("[WS] Cliente conectado");
 
-      socket.on("message", (message) => {
+      socket.on("message", async (message) => {
         const text = message.toString();
-        log(`[WS] Mensaje recibido: ${text}`);
 
+        let parsed = null;
         try {
-          const parsed = JSON.parse(text);
-          if (parsed?.type === "event") {
-            log(`[WS] Evento recibido: ${JSON.stringify(parsed.payload || {})}`);
-          }
+          parsed = JSON.parse(text);
         } catch (_error) {
-          // Ignorar payloads no-JSON
+          return;
         }
 
-        socket.send(
-          JSON.stringify({
-            type: "ack",
-            receivedAt: new Date().toISOString(),
-          }),
-        );
+        if (parsed?.type !== "buttonPress" || typeof parsed.controlId !== "string") {
+          return;
+        }
+
+        const workspace = getWorkspace();
+        const { activeProfile, activePage } = getActiveState(workspace);
+        const control = activePage?.controls?.find((item) => item.id === parsed.controlId) || null;
+
+        if (!control) {
+          log(`[WS] buttonPress ignorado: control no encontrado (${parsed.controlId})`);
+          return;
+        }
+
+        const actionBinding = control.actionBinding;
+        if (!actionBinding || actionBinding.kind !== "single" || actionBinding.action?.type !== "hotkey") {
+          log(`[WS] buttonPress ignorado: sin actionBinding hotkey (${parsed.controlId})`);
+          return;
+        }
+
+        try {
+          await dispatcher.executeAction(actionBinding.action, { log });
+        } catch (error) {
+          log(`[DISPATCH] Error ejecutando acción: ${error instanceof Error ? error.message : String(error)}`);
+        }
       });
 
       socket.on("close", () => {

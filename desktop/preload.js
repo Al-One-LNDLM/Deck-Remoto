@@ -44,6 +44,8 @@ contextBridge.exposeInMainWorld("runtime", {
     ipcRenderer.invoke("workspace:setPlacementSpan", profileId, pageId, elementId, rowSpan, colSpan),
   setControlStyle: (profileId, pageId, elementId, patchStyle) =>
     ipcRenderer.invoke("workspace:setControlStyle", profileId, pageId, elementId, patchStyle),
+  setControlActionBinding: (profileId, pageId, elementId, actionBindingOrNull) =>
+    ipcRenderer.invoke("workspace:setControlActionBinding", profileId, pageId, elementId, actionBindingOrNull),
   deleteProfile: (profileId) => ipcRenderer.invoke("workspace:deleteProfile", profileId),
   deletePage: (profileId, pageId) => ipcRenderer.invoke("workspace:deletePage", profileId, pageId),
   deleteFolder: (profileId, pageId, folderId) => ipcRenderer.invoke("workspace:deleteFolder", profileId, pageId, folderId),
