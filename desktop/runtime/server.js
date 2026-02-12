@@ -270,8 +270,8 @@ function createRuntimeServer({ onLog }) {
         }
 
         const actionBinding = control.actionBinding;
-        if (!actionBinding || actionBinding.kind !== "single" || actionBinding.action?.type !== "hotkey") {
-          log(`[WS] buttonPress ignorado: sin actionBinding hotkey (${parsed.controlId})`);
+        if (!actionBinding || actionBinding.kind !== "single") {
+          log(`[WS] buttonPress ignorado: sin actionBinding single (${parsed.controlId})`);
           return;
         }
 
