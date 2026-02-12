@@ -218,6 +218,15 @@ function deselectGridElement() {
   state.selectedElementId = null;
 }
 
+function deselectGridElementAndRender() {
+  if (!state.selectedElementId) {
+    return;
+  }
+
+  deselectGridElement();
+  renderGridTab();
+}
+
 function updateSelectedInspector(ctx) {
   const controls = Array.isArray(ctx?.page?.controls) ? ctx.page.controls : [];
   const selected = controls.find((item) => item.id === state.selectedElementId) || null;
@@ -312,18 +321,17 @@ function drawSelectionOverlay(ctx) {
   }
 
   const tile = gridCanvas.querySelector(`[data-element-id="${state.selectedElementId}"]`);
-  const controlsLayer = gridCanvas.querySelector('.page-renderer-controls-layer');
-  if (!tile || !controlsLayer) return;
+  if (!tile) return;
 
   const overlay = document.createElement('div');
   overlay.className = 'grid-preview-overlay';
   const box = document.createElement('div');
   box.className = 'grid-selection-box';
 
-  const layerRect = controlsLayer.getBoundingClientRect();
+  const containerRect = gridCanvas.getBoundingClientRect();
   const tileRect = tile.getBoundingClientRect();
-  const left = tileRect.left - layerRect.left;
-  const top = tileRect.top - layerRect.top;
+  const left = tileRect.left - containerRect.left;
+  const top = tileRect.top - containerRect.top;
   box.style.left = `${left}px`;
   box.style.top = `${top}px`;
   box.style.width = `${tileRect.width}px`;
@@ -338,8 +346,8 @@ function drawSelectionOverlay(ctx) {
 
   const rows = clampGridValue(ctx.page.grid?.rows || 1);
   const cols = clampGridValue(ctx.page.grid?.cols || 1);
-  const cellW = layerRect.width / cols;
-  const cellH = layerRect.height / rows;
+  const cellW = containerRect.width / cols;
+  const cellH = containerRect.height / rows;
 
   function addHandle(cursor, onPointerUpCalc) {
     const handle = document.createElement('div');
@@ -637,12 +645,23 @@ async function renderGridTab() {
       }
     }
 
-    gridCanvas.addEventListener('click', (event) => {
-      if (!event.target.closest('.page-renderer-placement')) {
-        deselectGridElement();
-        renderGridTab();
+    gridCanvas.onpointerdowncapture = (event) => {
+      if (state.placingElementId) {
+        return;
       }
-    }, { once: true });
+
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      const clickedTile = target.closest('[data-element-id]');
+      if (!clickedTile) {
+        deselectGridElementAndRender();
+      }
+    };
+  } else {
+    gridCanvas.onpointerdowncapture = null;
   }
 
   updateSelectedInspector(ctx);
@@ -1767,6 +1786,23 @@ document.addEventListener("click", (event) => {
   addMenu.classList.remove("open");
   closeContextMenu();
 });
+
+document.addEventListener("pointerdown", (event) => {
+  if (!gridTab.classList.contains("active") || state.placingElementId) {
+    return;
+  }
+
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    return;
+  }
+
+  if (target.closest("[data-element-id]") || target.closest("#gridCanvas") || target.closest("#gridSelectedPanel")) {
+    return;
+  }
+
+  deselectGridElementAndRender();
+}, true);
 
 document.addEventListener("contextmenu", (event) => {
   if (!event.target.closest(".tree-label") && !event.target.closest(".inspector-item-row")) {
