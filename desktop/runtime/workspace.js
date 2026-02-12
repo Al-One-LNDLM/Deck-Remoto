@@ -983,8 +983,7 @@ function renameFolder(profileId, pageId, folderId, name) {
 function setFolderIcon(profileId, pageId, folderId, assetId) {
   const workspace = getWorkspace();
   const { folder } = getFolder(profileId, pageId, folderId);
-  const iconAsset = workspace.assets?.icons?.[assetId];
-  if (!iconAsset) {
+  if (assetId !== null && !workspace.assets?.icons?.[assetId]) {
     throw new Error("Icono no encontrado");
   }
 
