@@ -91,19 +91,35 @@
               "name": "Fader 1",
               "folderId": null,
               "iconAssetId": null,
-              "actionBinding": null,
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "midiCc",
+                  "channel": 1,
+                  "cc": 0
+                }
+              },
               "faderSkin": {
-                "topAssetId": null,
-                "middleAssetId": "icon_1770935887185",
-                "bottomAssetId": null,
-                "grabAssetId": null
+                "topAssetId": "icon_1770937633113",
+                "middleAssetId": "icon_1770937639490",
+                "bottomAssetId": "icon_1770937645754",
+                "grabAssetId": "icon_1770937563199"
               },
               "faderIconAssetIds": [
-                null,
-                "icon_1770935887185",
-                null,
-                null
-              ]
+                "icon_1770937633113",
+                "icon_1770937639490",
+                "icon_1770937645754",
+                "icon_1770937563199"
+              ],
+              "style": {
+                "backgroundEnabled": true,
+                "backgroundColor": "#000000",
+                "backgroundOpacity": 1,
+                "borderEnabled": true,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": true
+              }
             }
           ],
           "folders": [
@@ -116,19 +132,11 @@
           ],
           "placements": [
             {
-              "id": "placement1",
-              "elementId": "folderButton1",
-              "row": 0,
-              "col": 0,
-              "rowSpan": 2,
-              "colSpan": 3
-            },
-            {
               "id": "placement2",
               "elementId": "fader1",
-              "row": 2,
+              "row": 0,
               "col": 1,
-              "rowSpan": 2,
+              "rowSpan": 4,
               "colSpan": 1
             }
           ],
@@ -373,6 +381,60 @@
         "type": "icon",
         "path": "assets/icons/1770935887184-fader_top.png",
         "createdAt": "2026-02-12T22:38:07.185Z"
+      },
+      "icon_1770937485849": {
+        "id": "icon_1770937485849",
+        "type": "icon",
+        "path": "assets/icons/1770937485848-fader_bottom.png",
+        "createdAt": "2026-02-12T23:04:45.849Z"
+      },
+      "icon_1770937488393": {
+        "id": "icon_1770937488393",
+        "type": "icon",
+        "path": "assets/icons/1770937488393-fader_grab.png",
+        "createdAt": "2026-02-12T23:04:48.393Z"
+      },
+      "icon_1770937491293": {
+        "id": "icon_1770937491293",
+        "type": "icon",
+        "path": "assets/icons/1770937491291-fader_middle.png",
+        "createdAt": "2026-02-12T23:04:51.293Z"
+      },
+      "icon_1770937493122": {
+        "id": "icon_1770937493122",
+        "type": "icon",
+        "path": "assets/icons/1770937493122-fader_top.png",
+        "createdAt": "2026-02-12T23:04:53.122Z"
+      },
+      "icon_1770937559810": {
+        "id": "icon_1770937559810",
+        "type": "icon",
+        "path": "assets/icons/1770937559810-fader_middle.png",
+        "createdAt": "2026-02-12T23:05:59.810Z"
+      },
+      "icon_1770937563199": {
+        "id": "icon_1770937563199",
+        "type": "icon",
+        "path": "assets/icons/1770937563199-fader_grab.png",
+        "createdAt": "2026-02-12T23:06:03.199Z"
+      },
+      "icon_1770937633113": {
+        "id": "icon_1770937633113",
+        "type": "icon",
+        "path": "assets/icons/1770937633112-fader_top.png",
+        "createdAt": "2026-02-12T23:07:13.113Z"
+      },
+      "icon_1770937639490": {
+        "id": "icon_1770937639490",
+        "type": "icon",
+        "path": "assets/icons/1770937639489-fader_middle.png",
+        "createdAt": "2026-02-12T23:07:19.490Z"
+      },
+      "icon_1770937645754": {
+        "id": "icon_1770937645754",
+        "type": "icon",
+        "path": "assets/icons/1770937645753-fader_top.png",
+        "createdAt": "2026-02-12T23:07:25.754Z"
       }
     }
   },
