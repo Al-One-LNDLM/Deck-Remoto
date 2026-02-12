@@ -205,6 +205,11 @@ async function getGridBackgroundImage(imagePath) {
   return gridBackgroundImageCache.get(imageUrl);
 }
 
+async function importPngIconAndRegisterAsset() {
+  const imported = await window.runtime.importIconAsset();
+  return imported?.assetId || null;
+}
+
 function drawImageBackground(ctx2d, image, width, height, fit) {
   if (!image || image.naturalWidth <= 0 || image.naturalHeight <= 0) {
     return;
@@ -1494,15 +1499,27 @@ function renderInspector(workspace, selection) {
     iconBtn.type = "button";
     iconBtn.textContent = "Importar PNG";
     iconBtn.addEventListener("click", async () => {
-      const workspaceNext = await window.runtime.importFolderIcon(context.profile.id, context.page.id, context.folder.id);
-      if (!workspaceNext) {
+      const assetId = await importPngIconAndRegisterAsset();
+      if (!assetId) {
         return;
       }
 
-      state.workspace = workspaceNext;
+      state.workspace = await window.runtime.setFolderIcon(context.profile.id, context.page.id, context.folder.id, assetId);
       renderNavigation();
     });
     iconRow.appendChild(iconBtn);
+
+    if (context.folder.iconAssetId) {
+      const clearBtn = document.createElement("button");
+      clearBtn.type = "button";
+      clearBtn.textContent = "Quitar";
+      clearBtn.addEventListener("click", async () => {
+        state.workspace = await window.runtime.setFolderIcon(context.profile.id, context.page.id, context.folder.id, null);
+        renderNavigation();
+      });
+      iconRow.appendChild(clearBtn);
+    }
+
     inspector.appendChild(iconRow);
 
     inspector.appendChild(createAddButtons([
@@ -1556,29 +1573,41 @@ function renderInspector(workspace, selection) {
     if (context.element.type === "button") {
       const row = document.createElement("div");
       row.className = "grid-controls-row";
+
+      if (context.element.iconAssetId && state.workspace.assets?.icons?.[context.element.iconAssetId]?.path) {
+        const preview = document.createElement("img");
+        preview.className = "icon-preview";
+        preview.src = state.workspace.assets.icons[context.element.iconAssetId].path;
+        preview.alt = "button-icon";
+        row.appendChild(preview);
+      }
+
       const importBtn = document.createElement("button");
       importBtn.type = "button";
       importBtn.textContent = "Importar PNG";
       importBtn.addEventListener("click", async () => {
-        const next = await window.runtime.importElementIcon(context.profile.id, context.page.id, context.element.id);
-        if (!next) {
+        const assetId = await importPngIconAndRegisterAsset();
+        if (!assetId) {
           return;
         }
 
-        state.workspace = next;
-        renderNavigation();
-      });
-
-      const clearBtn = document.createElement("button");
-      clearBtn.type = "button";
-      clearBtn.textContent = "Quitar";
-      clearBtn.addEventListener("click", async () => {
-        state.workspace = await window.runtime.setElementIcon(context.profile.id, context.page.id, context.element.id, null);
+        state.workspace = await window.runtime.setElementIcon(context.profile.id, context.page.id, context.element.id, assetId);
         renderNavigation();
       });
 
       row.appendChild(importBtn);
-      row.appendChild(clearBtn);
+
+      if (context.element.iconAssetId) {
+        const clearBtn = document.createElement("button");
+        clearBtn.type = "button";
+        clearBtn.textContent = "Quitar";
+        clearBtn.addEventListener("click", async () => {
+          state.workspace = await window.runtime.setElementIcon(context.profile.id, context.page.id, context.element.id, null);
+          renderNavigation();
+        });
+        row.appendChild(clearBtn);
+      }
+
       iconSection.appendChild(row);
     } else {
       const slots = Array.isArray(context.element.faderIconAssetIds)
@@ -1594,12 +1623,12 @@ function renderInspector(workspace, selection) {
         importBtn.type = "button";
         importBtn.textContent = "Importar PNG";
         importBtn.addEventListener("click", async () => {
-          const next = await window.runtime.importFaderIconSlot(context.profile.id, context.page.id, context.element.id, slotIndex);
-          if (!next) {
+          const assetId = await importPngIconAndRegisterAsset();
+          if (!assetId) {
             return;
           }
 
-          state.workspace = next;
+          state.workspace = await window.runtime.setFaderIconSlot(context.profile.id, context.page.id, context.element.id, slotIndex, assetId);
           renderNavigation();
         });
 

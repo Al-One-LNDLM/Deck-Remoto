@@ -53,8 +53,11 @@ contextBridge.exposeInMainWorld("runtime", {
     ipcRenderer.invoke("workspace:duplicateFolder", sourceProfileId, sourcePageId, folderId, targetProfileId, targetPageId),
   duplicateElement: (sourceProfileId, sourcePageId, elementId, targetProfileId, targetPageId, targetFolderId) =>
     ipcRenderer.invoke("workspace:duplicateElement", sourceProfileId, sourcePageId, elementId, targetProfileId, targetPageId, targetFolderId),
+  importIconAsset: () => ipcRenderer.invoke("workspace:importIconAsset"),
   importFolderIcon: (profileId, pageId, folderId) =>
     ipcRenderer.invoke("workspace:importFolderIcon", profileId, pageId, folderId),
+  setFolderIcon: (profileId, pageId, folderId, assetId) =>
+    ipcRenderer.invoke("workspace:setFolderIcon", profileId, pageId, folderId, assetId),
   importElementIcon: (profileId, pageId, elementId) =>
     ipcRenderer.invoke("workspace:importElementIcon", profileId, pageId, elementId),
   setElementIcon: (profileId, pageId, elementId, assetId) =>

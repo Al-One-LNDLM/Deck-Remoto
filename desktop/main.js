@@ -201,7 +201,16 @@ app.whenReady().then(() => {
   ipcMain.handle("workspace:duplicateElement", (_event, sourceProfileId, sourcePageId, elementId, targetProfileId, targetPageId, targetFolderId) =>
     duplicateElement(sourceProfileId, sourcePageId, elementId, targetProfileId, targetPageId, targetFolderId),
   );
-ipcMain.handle("workspace:importFolderIcon", async (_event, profileId, pageId, folderId) => {
+  ipcMain.handle("workspace:importIconAsset", async () => {
+    const iconPath = await importIconAsset();
+    if (!iconPath) {
+      return null;
+    }
+
+    const { assetId } = registerIconAsset(iconPath);
+    return { assetId };
+  });
+  ipcMain.handle("workspace:importFolderIcon", async (_event, profileId, pageId, folderId) => {
     const iconPath = await importIconAsset();
     if (!iconPath) {
       return null;
@@ -210,6 +219,9 @@ ipcMain.handle("workspace:importFolderIcon", async (_event, profileId, pageId, f
     const { assetId } = registerIconAsset(iconPath);
     return setFolderIcon(profileId, pageId, folderId, assetId);
   });
+  ipcMain.handle("workspace:setFolderIcon", (_event, profileId, pageId, folderId, assetId) =>
+    setFolderIcon(profileId, pageId, folderId, assetId),
+  );
   ipcMain.handle("workspace:importElementIcon", async (_event, profileId, pageId, elementId) => {
     const iconPath = await importIconAsset();
     if (!iconPath) {
