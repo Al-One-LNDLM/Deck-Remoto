@@ -147,6 +147,27 @@ function normalizeAssetsForRenderer(workspace) {
   return { icons: normalized };
 }
 
+function resolveIconUrl(iconAssetId, iconsMap) {
+  if (!iconAssetId || typeof iconAssetId !== "string") {
+    return null;
+  }
+
+  const icon = iconsMap?.[iconAssetId];
+  if (!icon || typeof icon !== "object") {
+    return null;
+  }
+
+  if (typeof icon.url === "string" && icon.url) {
+    return icon.url;
+  }
+
+  if (typeof icon.path === "string" && icon.path) {
+    return icon.path;
+  }
+
+  return null;
+}
+
 async function renderGridTab() {
   if (!state.workspace) {
     return;
@@ -217,10 +238,11 @@ async function renderGridTab() {
     item.className = "grid-element-item";
 
     const rowLeft = document.createElement("span");
-    if (iconAssetId && state.workspace.assets?.icons?.[iconAssetId]?.path) {
+    const iconUrl = resolveIconUrl(iconAssetId, state.workspace.assets?.icons);
+    if (iconUrl) {
       const icon = document.createElement("img");
       icon.className = "icon-preview";
-      icon.src = state.workspace.assets.icons[iconAssetId].path;
+      icon.src = iconUrl;
       icon.alt = "icon";
       rowLeft.appendChild(icon);
     }
@@ -463,18 +485,26 @@ function buildTreeNodes(workspace) {
   const nodes = [];
 
   workspace.profiles.forEach((profile) => {
-    nodes.push({ kind: "profile", level: 0, profileId: profile.id, label: profile.name });
+    nodes.push({
+      kind: "profile",
+      level: 0,
+      profileId: profile.id,
+      label: profile.name,
+      iconAssetId: typeof profile.iconAssetId === "string" ? profile.iconAssetId : null,
+    });
 
     profile.pages.forEach((page) => {
+      const controls = Array.isArray(page.controls) ? page.controls : [];
       nodes.push({
         kind: "page",
         level: 1,
         profileId: profile.id,
         pageId: page.id,
         label: page.name,
+        iconAssetId: typeof page.iconAssetId === "string" ? page.iconAssetId : null,
       });
 
-      const pageRootElements = (page.controls || []).filter((element) => !element.folderId);
+      const pageRootElements = controls.filter((element) => !element.folderId);
       pageRootElements.forEach((element) => {
         nodes.push({
           kind: "element",
@@ -483,6 +513,7 @@ function buildTreeNodes(workspace) {
           pageId: page.id,
           elementId: element.id,
           label: `${getElementTypeLabel(element.type)}: ${element.name}`,
+          iconAssetId: typeof element.iconAssetId === "string" ? element.iconAssetId : null,
         });
       });
 
@@ -494,9 +525,10 @@ function buildTreeNodes(workspace) {
           pageId: page.id,
           folderId: folder.id,
           label: folder.name,
+          iconAssetId: typeof folder.iconAssetId === "string" ? folder.iconAssetId : null,
         });
 
-        const folderElements = (page.controls || []).filter((element) => element.folderId === folder.id);
+        const folderElements = controls.filter((element) => element.folderId === folder.id);
         folderElements.forEach((element) => {
           nodes.push({
             kind: "element",
@@ -506,6 +538,7 @@ function buildTreeNodes(workspace) {
             folderId: folder.id,
             elementId: element.id,
             label: `${getElementTypeLabel(element.type)}: ${element.name}`,
+            iconAssetId: typeof element.iconAssetId === "string" ? element.iconAssetId : null,
           });
         });
       });
@@ -660,7 +693,18 @@ function createTreeItem(node, selection) {
     element: "ELEMENTO",
   };
 
-  label.textContent = `${prefixMap[node.kind]}: ${node.label}`;
+  const iconUrl = resolveIconUrl(node.iconAssetId, state.workspace?.assets?.icons);
+  if (iconUrl) {
+    const icon = document.createElement("img");
+    icon.className = "icon-preview";
+    icon.src = iconUrl;
+    icon.alt = "icon";
+    label.appendChild(icon);
+  }
+
+  const text = document.createElement("span");
+  text.textContent = `${prefixMap[node.kind]}: ${node.label}`;
+  label.appendChild(text);
   label.addEventListener("click", () => {
     setSelectionFromNode(node);
     renderNavigation();
@@ -1163,11 +1207,11 @@ function renderInspector(workspace, selection) {
     iconRow.appendChild(iconLabel);
 
     if (context.folder.iconAssetId) {
-      const iconInfo = state.workspace.assets?.icons?.[context.folder.iconAssetId];
-      if (iconInfo?.path) {
+      const iconUrl = resolveIconUrl(context.folder.iconAssetId, state.workspace.assets?.icons);
+      if (iconUrl) {
         const iconPreview = document.createElement("img");
         iconPreview.className = "icon-preview";
-        iconPreview.src = iconInfo.path;
+        iconPreview.src = iconUrl;
         iconPreview.alt = "icon preview";
         iconRow.appendChild(iconPreview);
       }
@@ -1269,10 +1313,11 @@ function renderInspector(workspace, selection) {
       const row = document.createElement("div");
       row.className = "grid-controls-row";
 
-      if (context.element.iconAssetId && state.workspace.assets?.icons?.[context.element.iconAssetId]?.path) {
+      const iconUrl = resolveIconUrl(context.element.iconAssetId, state.workspace.assets?.icons);
+      if (iconUrl) {
         const preview = document.createElement("img");
         preview.className = "icon-preview";
-        preview.src = state.workspace.assets.icons[context.element.iconAssetId].path;
+        preview.src = iconUrl;
         preview.alt = "button-icon";
         row.appendChild(preview);
       }
@@ -1336,10 +1381,11 @@ function renderInspector(workspace, selection) {
         });
 
         row.appendChild(label);
-        if (assetId && state.workspace.assets?.icons?.[assetId]?.path) {
+        const iconUrl = resolveIconUrl(assetId, state.workspace.assets?.icons);
+        if (iconUrl) {
           const preview = document.createElement("img");
           preview.className = "icon-preview";
-          preview.src = state.workspace.assets.icons[assetId].path;
+          preview.src = iconUrl;
           preview.alt = `slot-${slotIndex + 1}`;
           row.appendChild(preview);
         }

@@ -55,11 +55,13 @@ function normalizeWorkspace(workspace) {
   normalized.profiles = Array.isArray(normalized.profiles) ? normalized.profiles : [];
 
   normalized.profiles.forEach((profile) => {
+    profile.iconAssetId = typeof profile.iconAssetId === "string" ? profile.iconAssetId : null;
     profile.pages = Array.isArray(profile.pages) ? profile.pages : [];
 
     profile.pages.forEach((page) => {
       page.grid = page.grid || { rows: 4, cols: 3 };
       page.showGrid = page.showGrid !== false;
+      page.iconAssetId = typeof page.iconAssetId === "string" ? page.iconAssetId : null;
       delete page.background;
       delete page.style;
       page.controls = Array.isArray(page.controls) ? page.controls : [];
@@ -71,6 +73,9 @@ function normalizeWorkspace(workspace) {
         folderIds.add(folder.id);
         folder.items = Array.isArray(folder.items) ? folder.items : [];
         folder.iconAssetId = typeof folder.iconAssetId === "string" ? folder.iconAssetId : null;
+        folder.items.forEach((item) => {
+          item.iconAssetId = typeof item.iconAssetId === "string" ? item.iconAssetId : null;
+        });
       });
 
       page.controls = page.controls.filter((control) => {
@@ -138,6 +143,7 @@ function normalizeWorkspace(workspace) {
             type: item.type === "fader" ? "fader" : "button",
             name: item.name || "Elemento",
             folderId: folder.id,
+            iconAssetId: typeof item.iconAssetId === "string" ? item.iconAssetId : null,
           });
         });
         folder.items = [];
