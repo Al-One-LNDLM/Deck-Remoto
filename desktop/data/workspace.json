@@ -18,70 +18,11 @@
             "cols": 3
           },
           "showGrid": true,
-          "controls": [
-            {
-              "id": "button1",
-              "type": "button",
-              "name": "Botón 1",
-              "folderId": null,
-              "iconAssetId": "icon_1770908807948"
-            },
-            {
-              "id": "fader1",
-              "type": "fader",
-              "name": "Fader 1",
-              "folderId": null,
-              "iconAssetId": null,
-              "faderIconAssetIds": [
-                "icon_1770908828188",
-                "icon_1770908832533",
-                "icon_1770908836372",
-                "icon_1770908838335"
-              ]
-            },
-            {
-              "id": "fader2",
-              "type": "fader",
-              "name": "Fader 2",
-              "folderId": "folder1",
-              "iconAssetId": null,
-              "faderIconAssetIds": [
-                null,
-                null,
-                null,
-                null
-              ]
-            },
-            {
-              "id": "folderButton1",
-              "type": "folderButton",
-              "name": "Carpeta 1",
-              "folderId": "folder1",
-              "iconAssetId": null
-            }
-          ],
-          "folders": [
-            {
-              "id": "folder1",
-              "name": "Carpeta 1",
-              "items": [],
-              "iconAssetId": "icon_1770908848983"
-            }
-          ],
-          "placements": [
-            {
-              "id": "placement1",
-              "elementId": "button1",
-              "row": 2,
-              "col": 2,
-              "rowSpan": 1,
-              "colSpan": 1
-            }
-          ],
-          "iconAssetId": null
+          "controls": [],
+          "folders": [],
+          "placements": []
         }
-      ],
-      "iconAssetId": null
+      ]
     }
   ],
   "assets": {
