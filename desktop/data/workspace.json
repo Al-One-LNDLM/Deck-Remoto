@@ -17,7 +17,7 @@
             "rows": 4,
             "cols": 3
           },
-          "showGrid": true,
+          "showGrid": false,
           "controls": [
             {
               "id": "button1",
@@ -48,7 +48,7 @@
                 "borderEnabled": false,
                 "borderColor": "#FFFFFF",
                 "borderOpacity": 1,
-                "showLabel": true
+                "showLabel": false
               }
             }
           ],
@@ -57,17 +57,17 @@
               "id": "folder1",
               "name": "Carpeta 1",
               "items": [],
-              "iconAssetId": null
+              "iconAssetId": "icon_1770912430916"
             }
           ],
           "placements": [
             {
               "id": "placement1",
               "elementId": "folderButton1",
-              "row": 2,
-              "col": 2,
-              "rowSpan": 1,
-              "colSpan": 1
+              "row": 0,
+              "col": 0,
+              "rowSpan": 4,
+              "colSpan": 3
             }
           ],
           "iconAssetId": null
@@ -185,6 +185,12 @@
         "type": "icon",
         "path": "assets/icons/1770908848983-tumba.png",
         "createdAt": "2026-02-12T15:07:28.983Z"
+      },
+      "icon_1770912430916": {
+        "id": "icon_1770912430916",
+        "type": "icon",
+        "path": "assets/icons/1770912430915-LOGOTIPO.png",
+        "createdAt": "2026-02-12T16:07:10.916Z"
       }
     }
   }
