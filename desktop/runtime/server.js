@@ -7,6 +7,65 @@ const { getWorkspace, getActiveState, setActive } = require("./workspace");
 
 const PORT = 3030;
 
+function buildIconAssetsMap(workspace) {
+  const icons = workspace?.assets?.icons || {};
+  const result = {};
+
+  Object.entries(icons).forEach(([assetId, icon]) => {
+    const relativePath = typeof icon?.path === "string" ? icon.path : "";
+    const normalizedPath = relativePath.replace(/\\/g, "/");
+    if (!normalizedPath.startsWith("assets/icons/")) {
+      return;
+    }
+
+    const fileName = path.basename(normalizedPath);
+    if (!fileName) {
+      return;
+    }
+
+    result[assetId] = {
+      id: assetId,
+      url: `/assets/icons/${encodeURIComponent(fileName)}`,
+      mime: "image/png",
+    };
+  });
+
+  return result;
+}
+
+function toPageContract(page) {
+  if (!page) {
+    return null;
+  }
+
+  const controls = Array.isArray(page.controls) ? page.controls : [];
+  const placements = Array.isArray(page.placements) ? page.placements : [];
+
+  return {
+    id: page.id,
+    name: page.name,
+    grid: {
+      rows: Math.max(1, Number(page.grid?.rows) || 1),
+      cols: Math.max(1, Number(page.grid?.cols) || 1),
+    },
+    showGrid: page.showGrid !== false,
+    controls: controls.map((control) => ({
+      id: control.id,
+      type: control.type,
+      name: control.name,
+      iconAssetId: typeof control.iconAssetId === "string" ? control.iconAssetId : null,
+    })),
+    placements: placements.map((placement) => ({
+      elementId: typeof placement.elementId === "string" ? placement.elementId : placement.controlId,
+      row: Math.max(1, Number(placement.row) || 1),
+      col: Math.max(1, Number(placement.col) || 1),
+      rowSpan: Math.max(1, Number(placement.rowSpan) || 1),
+      colSpan: Math.max(1, Number(placement.colSpan) || 1),
+    })).filter((placement) => typeof placement.elementId === "string"),
+  };
+}
+
+
 function getLocalIPv4() {
   const interfaces = os.networkInterfaces();
 
@@ -49,25 +108,15 @@ function createRuntimeServer({ onLog }) {
     app.use(express.json());
     app.get("/api/state", (_request, response) => {
       const workspace = getWorkspace();
-      const { activeProfileId, activePageId, activeProfile, activePage } =
-        getActiveState(workspace);
+      const { activeProfileId, activePageId, activePage } = getActiveState(workspace);
 
       response.json({
         activeProfileId,
         activePageId,
-        profiles: workspace.profiles.map(({ id, name }) => ({ id, name })),
-        pages: (activeProfile?.pages || []).map(({ id, name }) => ({ id, name })),
-        activePage: activePage
-          ? {
-              id: activePage.id,
-              name: activePage.name,
-              grid: activePage.grid,
-              showGrid: activePage.showGrid !== false,
-              placements: activePage.placements || [],
-              elements: activePage.elements || activePage.controls || [],
-              controls: activePage.controls || activePage.elements || [],
-            }
-          : null,
+        page: toPageContract(activePage),
+        assets: {
+          icons: buildIconAssetsMap(workspace),
+        },
       });
     });
 
@@ -91,7 +140,11 @@ function createRuntimeServer({ onLog }) {
       }
     });
     const assetsPath = path.resolve(__dirname, "../assets");
+    app.use("/assets/icons", express.static(path.join(assetsPath, "icons")));
     app.use("/assets", express.static(assetsPath));
+
+    const sharedPath = path.resolve(__dirname, "../../shared");
+    app.use("/shared", express.static(sharedPath));
 
     const mobilePath = path.resolve(__dirname, "../../mobile");
     app.use(express.static(mobilePath));
