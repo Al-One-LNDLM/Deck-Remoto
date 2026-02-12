@@ -129,8 +129,8 @@ function normalizePageForRenderer(page) {
     })),
     placements: placements.map((placement) => ({
       elementId: placement.elementId || placement.controlId,
-      row: Number(placement.row) || 1,
-      col: Number(placement.col) || 1,
+      row: Math.max(0, Math.floor(Number(placement.row) || 0)),
+      col: Math.max(0, Math.floor(Number(placement.col) || 0)),
       rowSpan: Number(placement.rowSpan) || 1,
       colSpan: Number(placement.colSpan) || 1,
     })),
@@ -370,12 +370,14 @@ function drawSelectionOverlay(ctx) {
   }
 
   addHandle('nwse-resize', async (deltaRows, deltaCols) => {
+    const maxRowSpan = Math.max(1, rows - placement.row);
+    const maxColSpan = Math.max(1, cols - placement.col);
     state.workspace = await window.runtime.setPlacementSpan(
       ctx.profile.id,
       ctx.page.id,
       state.selectedElementId,
-      placement.rowSpan + deltaRows,
-      placement.colSpan + deltaCols,
+      Math.max(1, Math.min(maxRowSpan, placement.rowSpan + deltaRows)),
+      Math.max(1, Math.min(maxColSpan, placement.colSpan + deltaCols)),
     );
     await renderGridTab();
   });
@@ -626,10 +628,10 @@ async function renderGridTab() {
 
           function onUp(upEvent) {
             window.removeEventListener('pointerup', onUp);
-            const x = upEvent.clientX - layerRect.left;
-            const y = upEvent.clientY - layerRect.top;
-            const col = Math.max(1, Math.min(cols, Math.floor(x / cellW) + 1));
-            const row = Math.max(1, Math.min(rows, Math.floor(y / cellH) + 1));
+            const nextCol = Math.floor((upEvent.clientX - layerRect.left) / cellW);
+            const nextRow = Math.floor((upEvent.clientY - layerRect.top) / cellH);
+            const col = Math.max(0, Math.min(cols - placement.colSpan, nextCol));
+            const row = Math.max(0, Math.min(rows - placement.rowSpan, nextRow));
             window.runtime.setPlacementPosition(ctx.profile.id, ctx.page.id, state.selectedElementId, row, col)
               .then((workspace) => {
                 state.workspace = workspace;

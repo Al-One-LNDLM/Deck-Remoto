@@ -167,13 +167,13 @@
 
     const occupiedCells = new Set();
     placements.forEach((placement) => {
-      const startRow = clamp(placement.row, 1);
-      const startCol = clamp(placement.col, 1);
+      const startRow = Math.max(0, Math.floor(Number(placement.row) || 0));
+      const startCol = Math.max(0, Math.floor(Number(placement.col) || 0));
       const rowSpan = clamp(placement.rowSpan, 1);
       const colSpan = clamp(placement.colSpan, 1);
       for (let row = startRow; row < startRow + rowSpan; row += 1) {
         for (let col = startCol; col < startCol + colSpan; col += 1) {
-          occupiedCells.add(`${row}:${col}`);
+          occupiedCells.add(`${row + 1}:${col + 1}`);
         }
       }
     });
@@ -201,7 +201,7 @@
           hitCell.disabled = true;
           hitCell.setAttribute("aria-disabled", "true");
         } else {
-          hitCell.addEventListener("click", () => onCellClick(row, col));
+          hitCell.addEventListener("click", () => onCellClick(row - 1, col - 1));
         }
         hitLayer.appendChild(hitCell);
       }
@@ -241,8 +241,8 @@
 
       slot.className = `page-renderer-placement type-${control.type || "button"}`;
       slot.dataset.elementId = control.id;
-      slot.dataset.row = String(clamp(placement.row, 1));
-      slot.dataset.col = String(clamp(placement.col, 1));
+      slot.dataset.row = String(Math.max(0, Math.floor(Number(placement.row) || 0)));
+      slot.dataset.col = String(Math.max(0, Math.floor(Number(placement.col) || 0)));
       slot.dataset.rowSpan = String(clamp(placement.rowSpan, 1));
       slot.dataset.colSpan = String(clamp(placement.colSpan, 1));
       slot.classList.toggle("is-selected", selectedElementId === control.id);
@@ -250,9 +250,9 @@
       slot.style.border = resolvedStyle.borderEnabled
         ? `1px solid ${resolvedStyle.borderCssColor}`
         : "none";
-      slot.style.gridColumnStart = String(clamp(placement.col, 1));
+      slot.style.gridColumnStart = String(Math.max(0, Math.floor(Number(placement.col) || 0)) + 1);
       slot.style.gridColumnEnd = `span ${clamp(placement.colSpan, 1)}`;
-      slot.style.gridRowStart = String(clamp(placement.row, 1));
+      slot.style.gridRowStart = String(Math.max(0, Math.floor(Number(placement.row) || 0)) + 1);
       slot.style.gridRowEnd = `span ${clamp(placement.rowSpan, 1)}`;
       slot.appendChild(createControlNode(control, resolveIconUrl(control, assets), resolvedStyle));
       controlsLayer.appendChild(slot);
