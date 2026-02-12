@@ -82,6 +82,18 @@ function sanitizeControlStyle(style) {
   };
 }
 
+
+function normalizeFaderSkin(control) {
+  const skin = control?.faderSkin && typeof control.faderSkin === "object" ? control.faderSkin : {};
+  const legacy = Array.isArray(control?.faderIconAssetIds) ? control.faderIconAssetIds : [];
+  return {
+    topAssetId: typeof skin.topAssetId === "string" ? skin.topAssetId : (typeof legacy[0] === "string" ? legacy[0] : null),
+    middleAssetId: typeof skin.middleAssetId === "string" ? skin.middleAssetId : (typeof legacy[1] === "string" ? legacy[1] : null),
+    bottomAssetId: typeof skin.bottomAssetId === "string" ? skin.bottomAssetId : (typeof legacy[2] === "string" ? legacy[2] : null),
+    grabAssetId: typeof skin.grabAssetId === "string" ? skin.grabAssetId : (typeof legacy[3] === "string" ? legacy[3] : null),
+  };
+}
+
 function normalizeWorkspace(workspace) {
   const normalized = workspace || createDefaultWorkspace();
   normalized.profiles = Array.isArray(normalized.profiles) ? normalized.profiles : [];
@@ -141,13 +153,16 @@ function normalizeWorkspace(workspace) {
         }
 
         if (control.type === "fader") {
-          const sourceSlots = Array.isArray(control.faderIconAssetIds) ? control.faderIconAssetIds : [];
-          control.faderIconAssetIds = [0, 1, 2, 3].map((slot) => {
-            const value = sourceSlots[slot];
-            return typeof value === "string" ? value : null;
-          });
+          control.faderSkin = normalizeFaderSkin(control);
+          control.faderIconAssetIds = [
+            control.faderSkin.topAssetId,
+            control.faderSkin.middleAssetId,
+            control.faderSkin.bottomAssetId,
+            control.faderSkin.grabAssetId,
+          ];
         } else {
           delete control.faderIconAssetIds;
+          delete control.faderSkin;
         }
 
         control.actionBinding = normalizeActionBinding(control.actionBinding);
@@ -522,7 +537,7 @@ function addElement(profileId, pageId, elementType, payload = {}) {
     folderId,
     iconAssetId: null,
     actionBinding: null,
-    ...(elementType === "fader" ? { faderIconAssetIds: [null, null, null, null] } : {}),
+    ...(elementType === "fader" ? { faderSkin: { topAssetId: null, middleAssetId: null, bottomAssetId: null, grabAssetId: null }, faderIconAssetIds: [null, null, null, null] } : {}),
   });
   scheduleSave();
 
@@ -913,8 +928,13 @@ function cloneElementForPaste(sourceElement, idOverride = null) {
     ...(sourceElement.style ? { style: sanitizeControlStyle(sourceElement.style) } : {}),
     ...(sourceElement.type === "fader"
       ? {
-        faderIconAssetIds: [0, 1, 2, 3].map((index) =>
-          typeof sourceElement.faderIconAssetIds?.[index] === "string" ? sourceElement.faderIconAssetIds[index] : null),
+        faderSkin: normalizeFaderSkin(sourceElement),
+        faderIconAssetIds: [
+          normalizeFaderSkin(sourceElement).topAssetId,
+          normalizeFaderSkin(sourceElement).middleAssetId,
+          normalizeFaderSkin(sourceElement).bottomAssetId,
+          normalizeFaderSkin(sourceElement).grabAssetId,
+        ],
       }
       : {}),
   };
@@ -1169,11 +1189,18 @@ function setFaderIconSlot(profileId, pageId, elementId, slotIndex, assetId) {
     throw new Error("Icono no encontrado");
   }
 
-  element.faderIconAssetIds = Array.isArray(element.faderIconAssetIds)
-    ? [0, 1, 2, 3].map((slot) => (typeof element.faderIconAssetIds[slot] === "string" ? element.faderIconAssetIds[slot] : null))
-    : [null, null, null, null];
+  element.faderSkin = normalizeFaderSkin(element);
+  if (index === 0) element.faderSkin.topAssetId = assetId;
+  if (index === 1) element.faderSkin.middleAssetId = assetId;
+  if (index === 2) element.faderSkin.bottomAssetId = assetId;
+  if (index === 3) element.faderSkin.grabAssetId = assetId;
 
-  element.faderIconAssetIds[index] = assetId;
+  element.faderIconAssetIds = [
+    element.faderSkin.topAssetId,
+    element.faderSkin.middleAssetId,
+    element.faderSkin.bottomAssetId,
+    element.faderSkin.grabAssetId,
+  ];
   scheduleSave();
   return workspace;
 }
