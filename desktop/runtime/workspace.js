@@ -466,6 +466,15 @@ function addFader(profileId, pageId, payload = {}) {
 }
 
 function addFolderButton(profileId, pageId, folderId, payload = {}) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const existingFolderButton = (page.controls || []).find(
+    (control) => control.type === "folderButton" && control.folderId === folderId,
+  );
+
+  if (existingFolderButton) {
+    return { workspace, created: { type: "element", id: existingFolderButton.id } };
+  }
+
   return addElement(profileId, pageId, "folderButton", { ...payload, folderId });
 }
 
