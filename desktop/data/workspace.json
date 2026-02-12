@@ -1,9 +1,9 @@
 {
   "activeProfileId": "profile1",
-  "activePageId": "page2",
+  "activePageId": "page1",
   "lastSession": {
     "activeProfileId": "profile1",
-    "activePageId": "page2"
+    "activePageId": "page1"
   },
   "profiles": [
     {
@@ -18,60 +18,12 @@
             "cols": 4
           },
           "showGrid": false,
-          "style": {
-            "button": {
-              "backgroundEnabled": true,
-              "backgroundColor": "#2b2b2b",
-              "backgroundOpacity": 1,
-              "borderEnabled": true,
-              "borderColor": "#444444",
-              "borderOpacity": 1,
-              "showLabel": false
-            },
-            "fader": {
-              "backgroundEnabled": true,
-              "backgroundColor": "#370fff",
-              "backgroundOpacity": 1,
-              "borderEnabled": false,
-              "borderColor": "#444444",
-              "borderOpacity": 1,
-              "showLabel": false
-            },
-            "folderButton": {
-              "backgroundEnabled": true,
-              "backgroundColor": "#2b2b2b",
-              "backgroundOpacity": 1,
-              "borderEnabled": true,
-              "borderColor": "#444444",
-              "borderOpacity": 1,
-              "showLabel": true
-            }
-          },
           "background": {
-            "type": "solid",
-            "value": "#002aff"
+            "type": "image",
+            "assetId": "assets/backgrounds/1770893818409-g7.png",
+            "fit": "cover"
           },
           "controls": [
-            {
-              "id": "button1",
-              "type": "button",
-              "name": "ESC",
-              "folderId": null,
-              "iconAssetId": null
-            },
-            {
-              "id": "fader1",
-              "type": "fader",
-              "name": "Fader 1",
-              "folderId": null,
-              "iconAssetId": null,
-              "faderIconAssetIds": [
-                null,
-                null,
-                null,
-                null
-              ]
-            },
             {
               "id": "button2",
               "type": "button",
@@ -88,24 +40,7 @@
               "iconAssetId": null
             }
           ],
-          "placements": [
-            {
-              "id": "placement1",
-              "elementId": "button1",
-              "row": 2,
-              "col": 2,
-              "rowSpan": 1,
-              "colSpan": 1
-            },
-            {
-              "id": "placement2",
-              "elementId": "fader1",
-              "row": 1,
-              "col": 4,
-              "rowSpan": 4,
-              "colSpan": 1
-            }
-          ]
+          "placements": []
         },
         {
           "id": "page2",
@@ -115,38 +50,9 @@
             "cols": 3
           },
           "showGrid": true,
-          "style": {
-            "button": {
-              "backgroundEnabled": true,
-              "backgroundColor": "#ff0000",
-              "backgroundOpacity": 1,
-              "borderEnabled": true,
-              "borderColor": "#444444",
-              "borderOpacity": 1,
-              "showLabel": true
-            },
-            "fader": {
-              "backgroundEnabled": true,
-              "backgroundColor": "#2b2b2b",
-              "backgroundOpacity": 1,
-              "borderEnabled": true,
-              "borderColor": "#444444",
-              "borderOpacity": 1,
-              "showLabel": true
-            },
-            "folderButton": {
-              "backgroundEnabled": true,
-              "backgroundColor": "#2b2b2b",
-              "backgroundOpacity": 1,
-              "borderEnabled": true,
-              "borderColor": "#444444",
-              "borderOpacity": 1,
-              "showLabel": true
-            }
-          },
           "background": {
             "type": "solid",
-            "value": "#ff0000"
+            "value": "#000000"
           },
           "controls": [
             {
@@ -165,24 +71,7 @@
             }
           ],
           "folders": [],
-          "placements": [
-            {
-              "id": "placement3",
-              "elementId": "button3",
-              "row": 1,
-              "col": 1,
-              "rowSpan": 3,
-              "colSpan": 3
-            },
-            {
-              "id": "placement4",
-              "elementId": "button4",
-              "row": 4,
-              "col": 2,
-              "rowSpan": 1,
-              "colSpan": 1
-            }
-          ]
+          "placements": []
         }
       ]
     }
