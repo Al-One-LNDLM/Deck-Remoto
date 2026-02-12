@@ -17,7 +17,7 @@
             "rows": 4,
             "cols": 3
           },
-          "showGrid": true,
+          "showGrid": false,
           "controls": [
             {
               "id": "button1",
@@ -111,6 +111,29 @@
                 "borderOpacity": 1,
                 "showLabel": true
               }
+            },
+            {
+              "id": "button7",
+              "type": "button",
+              "name": "COPIAR",
+              "folderId": null,
+              "iconAssetId": "icon_1770926850310",
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "switchPage",
+                  "pageId": "page2"
+                }
+              },
+              "style": {
+                "backgroundEnabled": false,
+                "backgroundColor": "#2424C2",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": false
+              }
             }
           ],
           "folders": [],
@@ -146,9 +169,138 @@
               "col": 1,
               "rowSpan": 1,
               "colSpan": 1
+            },
+            {
+              "id": "placement7",
+              "elementId": "button7",
+              "row": 3,
+              "col": 2,
+              "rowSpan": 1,
+              "colSpan": 1
             }
           ],
           "iconAssetId": null
+        },
+        {
+          "id": "page2",
+          "name": "Página 2",
+          "grid": {
+            "rows": 4,
+            "cols": 3
+          },
+          "showGrid": false,
+          "controls": [
+            {
+              "id": "button5",
+              "type": "button",
+              "name": "COPIAR",
+              "folderId": null,
+              "iconAssetId": "icon_1770926801649",
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "switchPage",
+                  "pageId": "page1"
+                }
+              },
+              "style": {
+                "backgroundEnabled": false,
+                "backgroundColor": "#2424C2",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": false
+              }
+            },
+            {
+              "id": "button6",
+              "type": "button",
+              "name": "COPIAR",
+              "folderId": null,
+              "iconAssetId": "icon_1770926850310",
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "switchPage",
+                  "pageId": "page3"
+                }
+              },
+              "style": {
+                "backgroundEnabled": false,
+                "backgroundColor": "#2424C2",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": false
+              }
+            }
+          ],
+          "folders": [],
+          "placements": [
+            {
+              "id": "placement5",
+              "elementId": "button5",
+              "row": 3,
+              "col": 0,
+              "rowSpan": 1,
+              "colSpan": 1
+            },
+            {
+              "id": "placement6",
+              "elementId": "button6",
+              "row": 3,
+              "col": 2,
+              "rowSpan": 1,
+              "colSpan": 1
+            }
+          ]
+        },
+        {
+          "id": "page3",
+          "name": "Página 3",
+          "grid": {
+            "rows": 4,
+            "cols": 3
+          },
+          "showGrid": false,
+          "controls": [
+            {
+              "id": "button10",
+              "type": "button",
+              "name": "COPIAR",
+              "folderId": null,
+              "iconAssetId": "icon_1770926801649",
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "switchPage",
+                  "pageId": "page2"
+                }
+              },
+              "style": {
+                "backgroundEnabled": false,
+                "backgroundColor": "#2424C2",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": false
+              }
+            }
+          ],
+          "folders": [],
+          "placements": [
+            {
+              "id": "placement8",
+              "elementId": "button10",
+              "row": 3,
+              "col": 0,
+              "rowSpan": 1,
+              "colSpan": 1
+            }
+          ]
         }
       ],
       "iconAssetId": null
@@ -287,6 +439,18 @@
         "type": "icon",
         "path": "assets/icons/1770921103235-LOGOTIPO.png",
         "createdAt": "2026-02-12T18:31:43.236Z"
+      },
+      "icon_1770926801649": {
+        "id": "icon_1770926801649",
+        "type": "icon",
+        "path": "assets/icons/1770926801649-LEFT.png",
+        "createdAt": "2026-02-12T20:06:41.649Z"
+      },
+      "icon_1770926850310": {
+        "id": "icon_1770926850310",
+        "type": "icon",
+        "path": "assets/icons/1770926850310-RIGHT.png",
+        "createdAt": "2026-02-12T20:07:30.310Z"
       }
     }
   }
