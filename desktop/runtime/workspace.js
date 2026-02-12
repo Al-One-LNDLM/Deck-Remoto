@@ -27,10 +27,6 @@ function createDefaultWorkspace() {
               cols: 3,
             },
             showGrid: true,
-            background: {
-              type: "solid",
-              value: "#111111",
-            },
             controls: [],
             folders: [],
             placements: [],
@@ -40,11 +36,6 @@ function createDefaultWorkspace() {
     ],
   };
 }
-
-function sanitizeHexColor(value, fallback) {
-  return /^#[0-9a-fA-F]{6}$/.test(value || "") ? value : fallback;
-}
-
 
 function sanitizeName(name) {
   return typeof name === "string" ? name.trim() : "";
@@ -59,30 +50,6 @@ function requireName(name, entityLabel = "Nombre") {
   return safeName;
 }
 
-function normalizeBackground(background) {
-  if (background?.type === "image") {
-    const safeAssetId = typeof background.assetId === "string" ? background.assetId.trim() : "";
-    const legacyImagePath = typeof background.imagePath === "string" ? background.imagePath.trim() : "";
-    const fit = background.fit === "contain" || background.fit === "stretch" ? background.fit : "cover";
-
-    if (safeAssetId || legacyImagePath) {
-      return {
-        type: "image",
-        assetId: safeAssetId || legacyImagePath,
-        fit,
-      };
-    }
-  }
-
-  const rawColor = typeof background?.value === "string" ? background.value : background?.color;
-  const safeColor = /^#[0-9a-fA-F]{6}$/.test(rawColor || "") ? rawColor : "#111111";
-  return {
-    type: "solid",
-    value: safeColor,
-  };
-}
-
-
 function normalizeWorkspace(workspace) {
   const normalized = workspace || createDefaultWorkspace();
   normalized.profiles = Array.isArray(normalized.profiles) ? normalized.profiles : [];
@@ -93,7 +60,7 @@ function normalizeWorkspace(workspace) {
     profile.pages.forEach((page) => {
       page.grid = page.grid || { rows: 4, cols: 3 };
       page.showGrid = page.showGrid !== false;
-      page.background = normalizeBackground(page.background);
+      delete page.background;
       delete page.style;
       page.controls = Array.isArray(page.controls) ? page.controls : [];
       page.folders = Array.isArray(page.folders) ? page.folders : [];
@@ -399,7 +366,6 @@ function createDefaultPage(pageId, name = null) {
     name: sanitizeName(name) || `Página ${pageId.replace("page", "")}`,
     grid: { rows: 4, cols: 3 },
     showGrid: true,
-    background: { type: "solid", value: "#111111" },
     controls: [],
     folders: [],
     placements: [],
@@ -580,43 +546,6 @@ function updatePlacementSpan(profileId, pageId, placementId, rowSpan, colSpan) {
   placement.colSpan = safeColSpan;
   scheduleSave();
 
-  return workspace;
-}
-
-function setPlacementSpan(profileId, pageId, elementId, rowSpan, colSpan) {
-  const { page } = getPage(profileId, pageId);
-  const placement = page.placements.find((item) => item.elementId === elementId);
-
-  if (!placement) {
-    throw new Error("Placement no encontrado");
-  }
-
-  return updatePlacementSpan(profileId, pageId, placement.id, rowSpan, colSpan);
-}
-
-function setPlacementPosition(profileId, pageId, elementId, row, col) {
-  const { workspace, page } = getPage(profileId, pageId);
-  const placement = page.placements.find((item) => item.elementId === elementId);
-
-  if (!placement) {
-    throw new Error("Placement no encontrado");
-  }
-
-  const safeRow = Number(row);
-  const safeCol = Number(col);
-  const candidate = {
-    ...placement,
-    row: safeRow,
-    col: safeCol,
-  };
-
-  if (!canPlacePlacement(page, candidate, { excludePlacementId: placement.id })) {
-    throw new Error("La posición no cabe o solapa");
-  }
-
-  placement.row = safeRow;
-  placement.col = safeCol;
-  scheduleSave();
   return workspace;
 }
 
@@ -1139,51 +1068,6 @@ function setPageShowGrid(profileId, pageId, showGrid) {
   return workspace;
 }
 
-function setPageBackgroundSolid(profileId, pageId, color) {
-  const { workspace, page } = getPage(profileId, pageId);
-  const safeColor = /^#[0-9a-fA-F]{6}$/.test(color) ? color : "#111111";
-
-  page.background = {
-    type: "solid",
-    value: safeColor,
-  };
-
-  scheduleSave();
-  return workspace;
-}
-
-function setPageBackgroundImage(profileId, pageId, assetId, fit) {
-  const { workspace, page } = getPage(profileId, pageId);
-  const safeAssetId = typeof assetId === "string" ? assetId.trim() : "";
-
-  if (!safeAssetId) {
-    throw new Error("assetId inválido");
-  }
-
-  page.background = {
-    type: "image",
-    assetId: safeAssetId,
-    fit: fit === "contain" || fit === "stretch" ? fit : "cover",
-  };
-
-  scheduleSave();
-  return workspace;
-}
-
-function clearPageBackgroundImage(profileId, pageId) {
-  const { workspace, page } = getPage(profileId, pageId);
-  const safeColor = /^#[0-9a-fA-F]{6}$/.test(page.background?.value || "") ? page.background.value : "#111111";
-
-  page.background = {
-    type: "solid",
-    value: safeColor,
-  };
-
-  scheduleSave();
-  return workspace;
-}
-
-
 function getActiveState(workspace) {
   const activeProfile = workspace.profiles.find(
     (profile) => profile.id === workspace.activeProfileId,
@@ -1237,9 +1121,4 @@ module.exports = {
   setActive,
   setPageGrid,
   setPageShowGrid,
-  setPageBackgroundSolid,
-  setPageBackgroundImage,
-  clearPageBackgroundImage,
-  setPlacementSpan,
-  setPlacementPosition,
 };

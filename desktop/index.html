@@ -131,7 +131,7 @@
 
       .grid-layout {
         display: grid;
-        grid-template-columns: 320px 1fr minmax(180px, 15vw);
+        grid-template-columns: 320px 1fr minmax(220px, 320px);
         gap: 16px;
         min-height: 500px;
       }
@@ -193,12 +193,13 @@
         display: grid;
         gap: 10px;
         align-content: center;
+        justify-items: center;
       }
 
       .grid-canvas-host {
         width: 100%;
         min-width: 180px;
-        max-width: 15vw;
+        max-width: 20vw;
         aspect-ratio: 9 / 16;
         margin: auto;
       }
@@ -214,41 +215,7 @@
         display: block;
         border-radius: 6px;
         background: #111111;
-        cursor: pointer;
-      }
-
-
-      .grid-placement-warning {
-        border: 1px solid #7c5f00;
-        border-radius: 8px;
-        padding: 10px;
-        background: rgba(255, 209, 102, 0.12);
-        color: #ffd166;
-      }
-
-      .grid-placement-warning strong {
-        display: block;
-        margin-bottom: 4px;
-      }
-
-      .grid-placement-inspector {
-        margin-top: 0;
-        border: 1px solid #2f2f2f;
-        border-radius: 8px;
-        padding: 10px;
-        background: #181818;
-        display: grid;
-        gap: 8px;
-        max-width: 100%;
-        overflow-wrap: anywhere;
-      }
-
-      .grid-placement-inspector input {
-        border: 1px solid #3b3b3b;
-        border-radius: 6px;
-        background: #111;
-        color: #f5f5f5;
-        padding: 8px;
+        pointer-events: none;
       }
 
       .tree-toolbar {
@@ -503,14 +470,17 @@
             <select id="gridPageSelect"></select>
           </div>
           <div class="grid-elements">
-            <strong>Elementos (selecciona para colocar)</strong>
+            <strong>Elementos (pendiente)</strong>
             <ul id="gridElementsList"></ul>
           </div>
-          <div id="gridPlacementWarning" class="grid-placement-warning" hidden>
-            <strong>No hay espacio para colocar este fader en la rejilla actual.</strong>
-            <span>Aumenta Rows o reduce placements.</span>
+        </div>
+
+        <div class="grid-canvas-wrap">
+          <div id="gridCanvasHost" class="grid-canvas-host">
+            <div class="grid-canvas-frame">
+              <canvas id="gridCanvas" width="360" height="640"></canvas>
+            </div>
           </div>
-          <div id="gridPlacementInspector" class="grid-placement-inspector muted">Selecciona un placement en el canvas.</div>
         </div>
 
         <div class="grid-column">
@@ -529,34 +499,6 @@
               <input id="gridColsInput" type="number" min="1" max="24" step="1" />
             </div>
             <button id="applyGridBtn" type="button">Aplicar tamaño</button>
-            <h4>Fondo</h4>
-            <div class="grid-controls-row">
-              <label for="gridBgColorInput">Color sólido</label>
-              <input id="gridBgColorInput" type="color" value="#111111" />
-            </div>
-            <div class="grid-controls-row">
-              <button id="addBackgroundImageBtn" type="button">Añadir imagen…</button>
-            </div>
-            <div id="backgroundImageInfo" class="muted">Sin imagen de fondo</div>
-            <div class="grid-controls-row">
-              <label for="backgroundFitSelect">Fit</label>
-              <select id="backgroundFitSelect" disabled>
-                <option value="cover">cover</option>
-                <option value="contain">contain</option>
-                <option value="stretch">stretch</option>
-              </select>
-            </div>
-            <div class="grid-controls-row">
-              <button id="clearBackgroundImageBtn" type="button" class="danger" disabled>Quitar imagen</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid-canvas-wrap">
-          <div id="gridCanvasHost" class="grid-canvas-host">
-            <div class="grid-canvas-frame">
-              <canvas id="gridCanvas" width="360" height="640"></canvas>
-            </div>
           </div>
         </div>
       </section>
