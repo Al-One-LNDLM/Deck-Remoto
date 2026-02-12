@@ -77,6 +77,15 @@ function clamp01(value, fallback = 0) {
   return Math.max(0, Math.min(1, numeric));
 }
 
+function clampValue7(value, fallback = 0) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+
+  return Math.max(0, Math.min(127, Math.round(numeric)));
+}
+
 function resolveFaderSkinContract(control) {
   if (!control || control.type !== "fader") {
     return undefined;
@@ -166,7 +175,7 @@ function createRuntimeServer({ onLog }) {
   let wsServer;
   let running = false;
   const runtimeState = {
-    faderValues: {},
+    faderValues7: {},
   };
 
   function log(message) {
@@ -239,13 +248,13 @@ function createRuntimeServer({ onLog }) {
         : [];
 
       const activePageControls = Array.isArray(activePage?.controls) ? activePage.controls : [];
-      const faderValues = {};
+      const faderValues7 = {};
       activePageControls.forEach((control) => {
         if (control?.type !== "fader" || typeof control?.id !== "string") {
           return;
         }
 
-        faderValues[control.id] = clamp01(runtimeState.faderValues[control.id], 0);
+        faderValues7[control.id] = clampValue7(runtimeState.faderValues7[control.id], 0);
       });
 
       response.json({
@@ -283,7 +292,7 @@ function createRuntimeServer({ onLog }) {
           : null,
         page: toPageContract(activePage),
         profiles,
-        faderValues,
+        faderValues7,
         assets: {
           icons: buildIconAssetsMap(workspace, request),
         },
@@ -428,8 +437,8 @@ function createRuntimeServer({ onLog }) {
             return;
           }
 
-          const value01 = clamp01(parsed.value01, 0);
-          runtimeState.faderValues[parsed.controlId] = value01;
+          const value7 = clampValue7(parsed.value7, 0);
+          runtimeState.faderValues7[parsed.controlId] = value7;
           broadcastWsMessage({
             type: "stateUpdated",
             activeProfileId: workspace.activeProfileId,
@@ -437,7 +446,7 @@ function createRuntimeServer({ onLog }) {
             activeFolderId: workspace.activeFolderId || null,
             faderUpdated: {
               controlId: parsed.controlId,
-              value01,
+              value7,
             },
           });
           return;
@@ -453,6 +462,11 @@ function createRuntimeServer({ onLog }) {
 
         if (!control) {
           log(`[WS] buttonPress ignorado: control no encontrado (${parsed.controlId})`);
+          return;
+        }
+
+        if (control.type === "fader") {
+          log(`[WS] buttonPress ignorado: control fader (${parsed.controlId})`);
           return;
         }
 
