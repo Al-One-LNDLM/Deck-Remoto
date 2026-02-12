@@ -17,12 +17,81 @@
             "rows": 4,
             "cols": 3
           },
-          "showGrid": true,
-          "controls": [],
-          "folders": [],
-          "placements": []
+          "showGrid": false,
+          "controls": [
+            {
+              "id": "button1",
+              "type": "button",
+              "name": "Botón 1",
+              "folderId": "folder1",
+              "iconAssetId": null,
+              "actionBinding": null
+            },
+            {
+              "id": "button2",
+              "type": "button",
+              "name": "Botón 2",
+              "folderId": null,
+              "iconAssetId": "icon_1770917839732",
+              "actionBinding": null,
+              "style": {
+                "backgroundEnabled": true,
+                "backgroundColor": "#FFFFFF",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": false
+              }
+            },
+            {
+              "id": "folderButton1",
+              "type": "folderButton",
+              "name": "Carpeta 1",
+              "folderId": "folder1",
+              "iconAssetId": null,
+              "actionBinding": null,
+              "style": {
+                "backgroundEnabled": true,
+                "backgroundColor": "#EA1010",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": false
+              }
+            }
+          ],
+          "folders": [
+            {
+              "id": "folder1",
+              "name": "Carpeta 1",
+              "items": [],
+              "iconAssetId": "icon_1770917845189"
+            }
+          ],
+          "placements": [
+            {
+              "id": "placement1",
+              "elementId": "button2",
+              "row": 1,
+              "col": 0,
+              "rowSpan": 1,
+              "colSpan": 3
+            },
+            {
+              "id": "placement2",
+              "elementId": "folderButton1",
+              "row": 0,
+              "col": 0,
+              "rowSpan": 1,
+              "colSpan": 3
+            }
+          ],
+          "iconAssetId": null
         }
-      ]
+      ],
+      "iconAssetId": null
     }
   ],
   "assets": {
@@ -140,6 +209,18 @@
         "type": "icon",
         "path": "assets/icons/1770912430915-LOGOTIPO.png",
         "createdAt": "2026-02-12T16:07:10.916Z"
+      },
+      "icon_1770917839732": {
+        "id": "icon_1770917839732",
+        "type": "icon",
+        "path": "assets/icons/1770917839731-LOGOTIPO.png",
+        "createdAt": "2026-02-12T17:37:19.732Z"
+      },
+      "icon_1770917845189": {
+        "id": "icon_1770917845189",
+        "type": "icon",
+        "path": "assets/icons/1770917845188-LOGOTIPO.png",
+        "createdAt": "2026-02-12T17:37:25.189Z"
       }
     }
   }
