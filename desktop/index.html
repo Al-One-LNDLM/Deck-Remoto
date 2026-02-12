@@ -136,6 +136,13 @@
         min-height: 500px;
       }
 
+      .actions-layout {
+        display: grid;
+        grid-template-columns: 320px 1fr minmax(260px, 360px);
+        gap: 16px;
+        min-height: 500px;
+      }
+
       .grid-column {
         display: grid;
         gap: 12px;
@@ -149,6 +156,7 @@
       }
 
       .grid-select-row select,
+      .actions-select-row select,
       .grid-controls input,
       .grid-controls button {
         border: 1px solid #3b3b3b;
@@ -161,6 +169,124 @@
       .grid-controls {
         display: grid;
         gap: 10px;
+      }
+
+      .actions-column {
+        display: grid;
+        gap: 12px;
+        align-content: start;
+        min-height: 0;
+      }
+
+      .actions-select-row {
+        display: grid;
+        gap: 4px;
+      }
+
+      .actions-elements {
+        border: 1px solid #2f2f2f;
+        border-radius: 8px;
+        padding: 10px;
+        background: #181818;
+      }
+
+      .actions-elements ul {
+        margin: 8px 0 0;
+        padding-left: 0;
+        list-style: none;
+        display: grid;
+        gap: 6px;
+        max-height: 420px;
+        overflow: auto;
+      }
+
+      .actions-element-item {
+        display: grid;
+      }
+
+      .actions-element-btn {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 8px;
+        align-items: center;
+        background: #121212;
+        color: #f5f5f5;
+        border: 1px solid #343434;
+        text-align: left;
+      }
+
+      .actions-element-btn.selected {
+        border-color: #2e5fca;
+        background: #223b72;
+      }
+
+      .actions-element-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        object-fit: cover;
+      }
+
+      .actions-element-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .actions-element-type {
+        font-size: 12px;
+        color: #d0d0d0;
+      }
+
+      .actions-preview-wrap {
+        border: 1px solid #2f2f2f;
+        border-radius: 8px;
+        padding: 8px;
+        background: #161616;
+        display: grid;
+        gap: 10px;
+        align-content: center;
+        justify-items: center;
+      }
+
+      .actions-preview-host {
+        width: 100%;
+        min-width: 180px;
+        max-width: 20vw;
+        aspect-ratio: 9 / 16;
+        margin: auto;
+      }
+
+      .actions-inspector {
+        border: 1px solid #2f2f2f;
+        border-radius: 8px;
+        padding: 10px;
+        background: #181818;
+        display: grid;
+        gap: 8px;
+      }
+
+      .actions-inspector-row {
+        display: grid;
+        gap: 4px;
+      }
+
+      .actions-inspector-row input,
+      .actions-inspector-row select {
+        border: 1px solid #3b3b3b;
+        border-radius: 6px;
+        background: #111;
+        color: #f5f5f5;
+        padding: 8px;
+      }
+
+      .actions-validation {
+        color: #ffb3b3;
+        font-size: 12px;
+      }
+
+      .page-renderer-placement.is-selected {
+        box-shadow: 0 0 0 2px #4da3ff;
       }
 
       .grid-controls-row {
@@ -617,6 +743,7 @@
       <button class="tab active" data-tab="server">Servidor</button>
       <button class="tab" data-tab="navigation">Navegación</button>
       <button class="tab" data-tab="grid">Rejilla</button>
+      <button class="tab" data-tab="actions">Acciones</button>
     </div>
 
     <section id="serverTab" class="tab-panel active">
@@ -706,6 +833,41 @@
           <div id="gridSelectedPanel" class="grid-selected-panel">
             <h3>Elemento seleccionado</h3>
             <p class="muted">Selecciona un elemento en la rejilla para editarlo.</p>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section id="actionsTab" class="tab-panel">
+      <section class="panel actions-layout">
+        <div class="actions-column">
+          <h2>Acciones</h2>
+          <div class="actions-select-row">
+            <label for="actionsProfileSelect">Profile</label>
+            <select id="actionsProfileSelect"></select>
+          </div>
+          <div class="actions-select-row">
+            <label for="actionsPageSelect">Page</label>
+            <select id="actionsPageSelect"></select>
+          </div>
+          <div class="actions-elements">
+            <h3>Controles</h3>
+            <ul id="actionsControlsList"></ul>
+          </div>
+        </div>
+
+        <div class="actions-preview-wrap">
+          <div id="actionsPreviewHost" class="actions-preview-host">
+            <div class="grid-canvas-frame">
+              <div id="actionsPreviewCanvas"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions-column">
+          <div id="actionsInspector" class="actions-inspector">
+            <h3>Inspector de Acción</h3>
+            <p class="muted">Selecciona un elemento.</p>
           </div>
         </div>
       </section>

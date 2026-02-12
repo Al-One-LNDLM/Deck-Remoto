@@ -8,6 +8,7 @@ const tabButtons = document.querySelectorAll(".tab");
 const serverTab = document.getElementById("serverTab");
 const navigationTab = document.getElementById("navigationTab");
 const gridTab = document.getElementById("gridTab");
+const actionsTab = document.getElementById("actionsTab");
 const treeRoot = document.getElementById("treeRoot");
 const inspector = document.getElementById("inspector");
 const addNodeBtn = document.getElementById("addNodeBtn");
@@ -24,6 +25,11 @@ const gridShowCheckbox = document.getElementById("gridShowCheckbox");
 const gridCanvas = document.getElementById("gridCanvas");
 const gridPlacingHint = document.getElementById("gridPlacingHint");
 const gridSelectedPanel = document.getElementById("gridSelectedPanel");
+const actionsProfileSelect = document.getElementById("actionsProfileSelect");
+const actionsPageSelect = document.getElementById("actionsPageSelect");
+const actionsControlsList = document.getElementById("actionsControlsList");
+const actionsPreviewCanvas = document.getElementById("actionsPreviewCanvas");
+const actionsInspector = document.getElementById("actionsInspector");
 
 const state = {
   workspace: null,
@@ -37,7 +43,14 @@ const state = {
   contextMenuNode: null,
   placingElementId: null,
   selectedElementId: null,
+  actionsSelection: {
+    profileId: null,
+    pageId: null,
+    controlId: null,
+  },
 };
+
+const ACTIONS_ALLOWED_TYPES = new Set(["button", "toggle", "folderButton", "fader"]);
 
 function clampGridValue(value) {
   const number = Number(value) || 1;
@@ -72,6 +85,43 @@ function getGridContextWorkspace() {
     profile: resolvedProfile,
     page,
   };
+}
+
+function getActionsContextWorkspace() {
+  if (!state.workspace) {
+    return null;
+  }
+
+  const fallbackProfileId = state.workspace.activeProfileId;
+  const profileId = state.actionsSelection.profileId || fallbackProfileId;
+  const profile = state.workspace.profiles.find((item) => item.id === profileId);
+  const resolvedProfile = profile || state.workspace.profiles.find((item) => item.id === fallbackProfileId);
+  if (!resolvedProfile) {
+    return null;
+  }
+
+  const fallbackPageId =
+    (resolvedProfile.id === state.workspace.activeProfileId ? state.workspace.activePageId : null) ||
+    resolvedProfile.pages[0]?.id;
+  const pageId = state.actionsSelection.pageId || fallbackPageId;
+  const page = resolvedProfile.pages.find((item) => item.id === pageId) || resolvedProfile.pages[0];
+  if (!page) {
+    return null;
+  }
+
+  return {
+    profile: resolvedProfile,
+    page,
+  };
+}
+
+function clampActionInt(value, min, max, fallback) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.max(min, Math.min(max, Math.round(parsed)));
 }
 
 function findFolderButtonForFolder(controls, folderId) {
@@ -707,6 +757,306 @@ async function applyShowGrid(showGrid) {
   state.workspace = await window.runtime.setPageShowGrid(ctx.profile.id, ctx.page.id, showGrid);
   renderNavigation();
   await renderGridTab();
+}
+
+function getActionTypeForControl(control) {
+  if (!control) {
+    return "none";
+  }
+
+  const binding = control.actionBinding;
+  if (!binding || binding.kind !== "single") {
+    return "none";
+  }
+
+  if (binding.action?.type === "hotkey") {
+    return "hotkey";
+  }
+
+  if (binding.action?.type === "midiCc") {
+    return "midiCc";
+  }
+
+  return "none";
+}
+
+function getFilteredActionControls(page) {
+  return (page?.controls || []).filter((control) => ACTIONS_ALLOWED_TYPES.has(control.type));
+}
+
+function renderActionsInspectorEmpty() {
+  actionsInspector.innerHTML = "";
+  const title = document.createElement("h3");
+  title.textContent = "Inspector de Acción";
+  const empty = document.createElement("p");
+  empty.className = "muted";
+  empty.textContent = "Selecciona un elemento.";
+  actionsInspector.append(title, empty);
+}
+
+async function renderActionsTab() {
+  if (!state.workspace) {
+    return;
+  }
+
+  const profiles = state.workspace.profiles || [];
+  actionsProfileSelect.innerHTML = "";
+  profiles.forEach((profile) => {
+    const option = document.createElement("option");
+    option.value = profile.id;
+    option.textContent = profile.name;
+    actionsProfileSelect.appendChild(option);
+  });
+
+  const ctx = getActionsContextWorkspace();
+  if (!ctx) {
+    actionsPageSelect.innerHTML = "";
+    actionsControlsList.innerHTML = "";
+    actionsPreviewCanvas.innerHTML = "";
+    renderActionsInspectorEmpty();
+    return;
+  }
+
+  state.actionsSelection.profileId = ctx.profile.id;
+  state.actionsSelection.pageId = ctx.page.id;
+  actionsProfileSelect.value = ctx.profile.id;
+
+  actionsPageSelect.innerHTML = "";
+  ctx.profile.pages.forEach((page) => {
+    const option = document.createElement("option");
+    option.value = page.id;
+    option.textContent = page.name;
+    actionsPageSelect.appendChild(option);
+  });
+  actionsPageSelect.value = ctx.page.id;
+
+  const controls = getFilteredActionControls(ctx.page);
+  const selectedControl = controls.find((item) => item.id === state.actionsSelection.controlId) || null;
+  if (!selectedControl) {
+    state.actionsSelection.controlId = null;
+  }
+
+  actionsControlsList.innerHTML = "";
+  if (!controls.length) {
+    const empty = document.createElement("li");
+    empty.className = "muted";
+    empty.textContent = "No hay controles compatibles en esta página.";
+    actionsControlsList.appendChild(empty);
+  } else {
+    controls.forEach((control) => {
+      const item = document.createElement("li");
+      item.className = "actions-element-item";
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "actions-element-btn";
+      if (state.actionsSelection.controlId === control.id) {
+        button.classList.add("selected");
+      }
+
+      const iconUrl = resolveIconUrl(control.iconAssetId, state.workspace.assets?.icons);
+      if (iconUrl) {
+        const icon = document.createElement("img");
+        icon.className = "actions-element-icon";
+        icon.src = iconUrl;
+        icon.alt = "icon";
+        button.appendChild(icon);
+      } else {
+        const placeholder = document.createElement("span");
+        placeholder.textContent = "◻";
+        button.appendChild(placeholder);
+      }
+
+      const name = document.createElement("span");
+      name.className = "actions-element-name";
+      name.textContent = control.name || control.id;
+
+      const type = document.createElement("span");
+      type.className = "actions-element-type";
+      type.textContent = control.type;
+
+      button.append(name, type);
+      button.addEventListener("click", () => {
+        state.actionsSelection.controlId = control.id;
+        renderActionsTab();
+      });
+
+      item.appendChild(button);
+      actionsControlsList.appendChild(item);
+    });
+  }
+
+  window.PageRenderer.render(actionsPreviewCanvas, {
+    page: normalizePageForRenderer(ctx.page),
+    assets: normalizeAssetsForRenderer(state.workspace),
+    selectedElementId: state.actionsSelection.controlId,
+    onTileClick: (elementId) => {
+      if (!controls.some((control) => control.id === elementId)) {
+        return;
+      }
+
+      state.actionsSelection.controlId = elementId;
+      renderActionsTab();
+    },
+  });
+
+  const selected = controls.find((item) => item.id === state.actionsSelection.controlId) || null;
+  if (!selected) {
+    renderActionsInspectorEmpty();
+    return;
+  }
+
+  actionsInspector.innerHTML = "";
+  const title = document.createElement("h3");
+  title.textContent = "Inspector de Acción";
+  const subtitle = document.createElement("p");
+  subtitle.className = "muted";
+  subtitle.textContent = `${selected.name || selected.id} · ${selected.type}`;
+  actionsInspector.append(title, subtitle);
+
+  const actionRow = document.createElement("div");
+  actionRow.className = "actions-inspector-row";
+  const actionLabel = document.createElement("label");
+  actionLabel.textContent = "Tipo de acción";
+  const actionTypeSelect = document.createElement("select");
+
+  const noneOption = document.createElement("option");
+  noneOption.value = "none";
+  noneOption.textContent = "Ninguna";
+  actionTypeSelect.appendChild(noneOption);
+
+  const supportsHotkey = selected.type === "button" || selected.type === "toggle" || selected.type === "folderButton";
+  const supportsMidiCc = selected.type === "fader";
+
+  if (supportsHotkey) {
+    const hotkeyOption = document.createElement("option");
+    hotkeyOption.value = "hotkey";
+    hotkeyOption.textContent = "Hotkey";
+    actionTypeSelect.appendChild(hotkeyOption);
+  }
+
+  if (supportsMidiCc) {
+    const midiOption = document.createElement("option");
+    midiOption.value = "midiCc";
+    midiOption.textContent = "MIDI CC";
+    actionTypeSelect.appendChild(midiOption);
+  }
+
+  actionTypeSelect.value = getActionTypeForControl(selected);
+  if (![...actionTypeSelect.options].some((option) => option.value === actionTypeSelect.value)) {
+    actionTypeSelect.value = "none";
+  }
+
+  actionRow.append(actionLabel, actionTypeSelect);
+  actionsInspector.appendChild(actionRow);
+
+  const currentBinding = selected.actionBinding;
+  const hotkeyValue = currentBinding?.kind === "single" && currentBinding.action?.type === "hotkey"
+    ? String(currentBinding.action.keys || "")
+    : "";
+  const midiChannelValue = currentBinding?.kind === "single" && currentBinding.action?.type === "midiCc"
+    ? clampActionInt(currentBinding.action.channel, 1, 16, 1)
+    : 1;
+  const midiCcValue = currentBinding?.kind === "single" && currentBinding.action?.type === "midiCc"
+    ? clampActionInt(currentBinding.action.cc, 0, 127, 0)
+    : 0;
+
+  const hotkeyRow = document.createElement("div");
+  hotkeyRow.className = "actions-inspector-row";
+  const hotkeyLabel = document.createElement("label");
+  hotkeyLabel.textContent = "Keys";
+  const hotkeyInput = document.createElement("input");
+  hotkeyInput.type = "text";
+  hotkeyInput.placeholder = "Ctrl+Alt+K";
+  hotkeyInput.value = hotkeyValue;
+  hotkeyRow.append(hotkeyLabel, hotkeyInput);
+
+  const midiChannelRow = document.createElement("div");
+  midiChannelRow.className = "actions-inspector-row";
+  const midiChannelLabel = document.createElement("label");
+  midiChannelLabel.textContent = "Channel (1-16)";
+  const midiChannelInput = document.createElement("input");
+  midiChannelInput.type = "number";
+  midiChannelInput.min = "1";
+  midiChannelInput.max = "16";
+  midiChannelInput.step = "1";
+  midiChannelInput.value = String(midiChannelValue);
+  midiChannelRow.append(midiChannelLabel, midiChannelInput);
+
+  const midiCcRow = document.createElement("div");
+  midiCcRow.className = "actions-inspector-row";
+  const midiCcLabel = document.createElement("label");
+  midiCcLabel.textContent = "CC (0-127)";
+  const midiCcInput = document.createElement("input");
+  midiCcInput.type = "number";
+  midiCcInput.min = "0";
+  midiCcInput.max = "127";
+  midiCcInput.step = "1";
+  midiCcInput.value = String(midiCcValue);
+  midiCcRow.append(midiCcLabel, midiCcInput);
+
+  const validation = document.createElement("p");
+  validation.className = "actions-validation";
+
+  const saveButton = document.createElement("button");
+  saveButton.type = "button";
+  saveButton.textContent = "Guardar acción";
+
+  function syncRows() {
+    const isHotkey = actionTypeSelect.value === "hotkey";
+    const isMidiCc = actionTypeSelect.value === "midiCc";
+    hotkeyRow.style.display = isHotkey ? "grid" : "none";
+    midiChannelRow.style.display = isMidiCc ? "grid" : "none";
+    midiCcRow.style.display = isMidiCc ? "grid" : "none";
+    validation.textContent = "";
+    saveButton.disabled = isHotkey && !hotkeyInput.value.trim();
+  }
+
+  hotkeyInput.addEventListener("input", syncRows);
+  actionTypeSelect.addEventListener("change", syncRows);
+
+  saveButton.addEventListener("click", async () => {
+    let nextBinding = null;
+    if (actionTypeSelect.value === "hotkey") {
+      const keys = hotkeyInput.value.trim();
+      if (!keys) {
+        validation.textContent = "La combinación no puede estar vacía.";
+        return;
+      }
+      nextBinding = {
+        kind: "single",
+        action: {
+          type: "hotkey",
+          keys,
+        },
+      };
+    } else if (actionTypeSelect.value === "midiCc") {
+      const channel = clampActionInt(midiChannelInput.value, 1, 16, 1);
+      const cc = clampActionInt(midiCcInput.value, 0, 127, 0);
+      midiChannelInput.value = String(channel);
+      midiCcInput.value = String(cc);
+      nextBinding = {
+        kind: "single",
+        action: {
+          type: "midiCc",
+          channel,
+          cc,
+        },
+      };
+    }
+
+    state.workspace = await window.runtime.setControlActionBinding(
+      ctx.profile.id,
+      ctx.page.id,
+      selected.id,
+      nextBinding,
+    );
+    await renderActionsTab();
+    renderNavigation();
+  });
+
+  actionsInspector.append(hotkeyRow, midiChannelRow, midiCcRow, validation, saveButton);
+  syncRows();
 }
 
 function appendLog(message) {
@@ -1808,6 +2158,7 @@ function renderNavigation() {
   renderInspector(state.workspace, state.selection);
   updateAddButtonState();
   renderGridTab();
+  renderActionsTab();
 }
 
 function toggleAddMenu() {
@@ -1822,6 +2173,7 @@ function setActiveTab(tabName) {
   serverTab.classList.toggle("active", tabName === "server");
   navigationTab.classList.toggle("active", tabName === "navigation");
   gridTab.classList.toggle("active", tabName === "grid");
+  actionsTab.classList.toggle("active", tabName === "actions");
 }
 
 startBtn.addEventListener("click", async () => {
@@ -1917,6 +2269,19 @@ gridShowCheckbox.addEventListener("change", async (event) => {
   await applyShowGrid(event.target.checked);
 });
 
+actionsProfileSelect.addEventListener("change", () => {
+  state.actionsSelection.profileId = actionsProfileSelect.value;
+  state.actionsSelection.pageId = null;
+  state.actionsSelection.controlId = null;
+  renderActionsTab();
+});
+
+actionsPageSelect.addEventListener("change", () => {
+  state.actionsSelection.pageId = actionsPageSelect.value;
+  state.actionsSelection.controlId = null;
+  renderActionsTab();
+});
+
 
 window.runtime.onLog((message) => {
   appendLog(message);
@@ -1928,6 +2293,7 @@ async function init() {
   state.selection = null;
   renderNavigation();
   await renderGridTab();
+  await renderActionsTab();
 }
 
 init();
