@@ -7,17 +7,18 @@ const {
   addProfile,
   addPage,
   addFolder,
-  addPageElement,
   addPlacement,
   updatePlacementSpan,
   deletePlacement,
-  deletePageElement,
-  renamePageElement,
-  addFolderItem,
-  deleteFolderItem,
-  renameFolderItem,
-  updateName,
-  updateIcon,
+  addButton,
+  addFader,
+  deleteElement,
+  renameElement,
+  renameProfile,
+  renamePage,
+  renameFolder,
+  setFolderIcon,
+  registerIconAsset,
   setActiveProfile,
   setActivePage,
   setPageGrid,
@@ -114,9 +115,12 @@ app.whenReady().then(() => {
   ipcMain.handle("workspace:get", () => getWorkspace());
   ipcMain.handle("workspace:addProfile", () => addProfile());
   ipcMain.handle("workspace:addPage", (_event, profileId) => addPage(profileId));
-  ipcMain.handle("workspace:addFolder", (_event, profileId, pageId) => addFolder(profileId, pageId));
-  ipcMain.handle("workspace:addPageElement", (_event, profileId, pageId, elementType) =>
-    addPageElement(profileId, pageId, elementType),
+  ipcMain.handle("workspace:addFolder", (_event, profileId, pageId, payload) => addFolder(profileId, pageId, payload));
+  ipcMain.handle("workspace:addButton", (_event, profileId, pageId, payload) =>
+    addButton(profileId, pageId, payload),
+  );
+  ipcMain.handle("workspace:addFader", (_event, profileId, pageId, payload) =>
+    addFader(profileId, pageId, payload),
   );
   ipcMain.handle("workspace:addPlacement", (_event, profileId, pageId, elementId, row, col) =>
     addPlacement(profileId, pageId, elementId, row, col),
@@ -127,23 +131,17 @@ app.whenReady().then(() => {
   ipcMain.handle("workspace:deletePlacement", (_event, profileId, pageId, placementId) =>
     deletePlacement(profileId, pageId, placementId),
   );
-  ipcMain.handle("workspace:deletePageElement", (_event, profileId, pageId, elementId) =>
-    deletePageElement(profileId, pageId, elementId),
+  ipcMain.handle("workspace:deleteElement", (_event, profileId, pageId, elementId) =>
+    deleteElement(profileId, pageId, elementId),
   );
-  ipcMain.handle("workspace:renamePageElement", (_event, profileId, pageId, elementId, name) =>
-    renamePageElement(profileId, pageId, elementId, name),
+  ipcMain.handle("workspace:renameElement", (_event, profileId, pageId, elementId, name) =>
+    renameElement(profileId, pageId, elementId, name),
   );
-  ipcMain.handle("workspace:addFolderItem", (_event, profileId, pageId, folderId) =>
-    addFolderItem(profileId, pageId, folderId),
+  ipcMain.handle("workspace:renameProfile", (_event, profileId, name) => renameProfile(profileId, name));
+  ipcMain.handle("workspace:renamePage", (_event, profileId, pageId, name) => renamePage(profileId, pageId, name));
+  ipcMain.handle("workspace:renameFolder", (_event, profileId, pageId, folderId, name) =>
+    renameFolder(profileId, pageId, folderId, name),
   );
-  ipcMain.handle("workspace:deleteFolderItem", (_event, profileId, pageId, folderId, itemId) =>
-    deleteFolderItem(profileId, pageId, folderId, itemId),
-  );
-  ipcMain.handle("workspace:renameFolderItem", (_event, profileId, pageId, folderId, itemId, name) =>
-    renameFolderItem(profileId, pageId, folderId, itemId, name),
-  );
-  ipcMain.handle("workspace:updateName", (_event, payload) => updateName(payload));
-  ipcMain.handle("workspace:updateIcon", (_event, payload) => updateIcon(payload));
   ipcMain.handle("workspace:setActiveProfile", (_event, profileId) => setActiveProfile(profileId));
   ipcMain.handle("workspace:setActivePage", (_event, profileId, pageId) => setActivePage(profileId, pageId));
   ipcMain.handle("workspace:setPageGrid", (_event, profileId, pageId, rows, cols) =>
@@ -169,7 +167,15 @@ app.whenReady().then(() => {
   ipcMain.handle("workspace:deleteFolder", (_event, profileId, pageId, folderId) => deleteFolder(profileId, pageId, folderId));
   ipcMain.handle("workspace:movePage", (_event, pageId, fromProfileId, toProfileId) => movePage(pageId, fromProfileId, toProfileId));
   ipcMain.handle("workspace:moveFolder", (_event, folderId, fromProfileId, fromPageId, toProfileId, toPageId) => moveFolder(folderId, fromProfileId, fromPageId, toProfileId, toPageId));
-  ipcMain.handle("workspace:importIcon", () => importIconAsset());
+  ipcMain.handle("workspace:importFolderIcon", async (_event, profileId, pageId, folderId) => {
+    const iconPath = await importIconAsset();
+    if (!iconPath) {
+      return null;
+    }
+
+    const { assetId } = registerIconAsset(iconPath);
+    return setFolderIcon(profileId, pageId, folderId, assetId);
+  });
   ipcMain.handle("workspace:importBackgroundImage", () => importBackgroundImage());
 
   createWindow();
