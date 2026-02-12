@@ -142,15 +142,20 @@ function normalizeAssetsForRenderer(workspace) {
   const normalized = {};
 
   Object.entries(icons).forEach(([assetId, icon]) => {
-    const assetPath = typeof icon?.path === "string" ? icon.path : "";
-    const filename = assetPath.split("/").pop();
-    if (!filename) {
+    const assetPath = typeof icon?.path === "string" ? icon.path.trim() : "";
+    if (!assetPath) {
       return;
     }
 
+    const filename = assetPath.split("/").pop();
+    const serverUrl = filename ? `/assets/icons/${encodeURIComponent(filename)}` : null;
+
     normalized[assetId] = {
       id: assetId,
-      url: `/assets/icons/${encodeURIComponent(filename)}`,
+      // In desktop the renderer loads from file://, so workspace relative paths are needed.
+      // Keep the HTTP server URL as fallback for contexts that expose /assets/icons.
+      url: assetPath,
+      serverUrl,
       mime: "image/png",
     };
   });
