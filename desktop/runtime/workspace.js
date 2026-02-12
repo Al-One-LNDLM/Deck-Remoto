@@ -1,6 +1,5 @@
 const fs = require("fs");
 const path = require("path");
-const { normalizePageStyle } = require("../../shared/style");
 
 const workspaceFilePath = path.resolve(__dirname, "../data/workspace.json");
 
@@ -28,7 +27,6 @@ function createDefaultWorkspace() {
               cols: 3,
             },
             showGrid: true,
-            style: normalizePageStyle({}),
             background: {
               type: "solid",
               value: "#111111",
@@ -95,8 +93,8 @@ function normalizeWorkspace(workspace) {
     profile.pages.forEach((page) => {
       page.grid = page.grid || { rows: 4, cols: 3 };
       page.showGrid = page.showGrid !== false;
-      page.style = normalizePageStyle(page.style);
       page.background = normalizeBackground(page.background);
+      delete page.style;
       page.controls = Array.isArray(page.controls) ? page.controls : [];
       page.folders = Array.isArray(page.folders) ? page.folders : [];
       page.placements = Array.isArray(page.placements) ? page.placements : [];
@@ -401,7 +399,6 @@ function createDefaultPage(pageId, name = null) {
     name: sanitizeName(name) || `Página ${pageId.replace("page", "")}`,
     grid: { rows: 4, cols: 3 },
     showGrid: true,
-    style: normalizePageStyle({}),
     background: { type: "solid", value: "#111111" },
     controls: [],
     folders: [],
@@ -583,6 +580,43 @@ function updatePlacementSpan(profileId, pageId, placementId, rowSpan, colSpan) {
   placement.colSpan = safeColSpan;
   scheduleSave();
 
+  return workspace;
+}
+
+function setPlacementSpan(profileId, pageId, elementId, rowSpan, colSpan) {
+  const { page } = getPage(profileId, pageId);
+  const placement = page.placements.find((item) => item.elementId === elementId);
+
+  if (!placement) {
+    throw new Error("Placement no encontrado");
+  }
+
+  return updatePlacementSpan(profileId, pageId, placement.id, rowSpan, colSpan);
+}
+
+function setPlacementPosition(profileId, pageId, elementId, row, col) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const placement = page.placements.find((item) => item.elementId === elementId);
+
+  if (!placement) {
+    throw new Error("Placement no encontrado");
+  }
+
+  const safeRow = Number(row);
+  const safeCol = Number(col);
+  const candidate = {
+    ...placement,
+    row: safeRow,
+    col: safeCol,
+  };
+
+  if (!canPlacePlacement(page, candidate, { excludePlacementId: placement.id })) {
+    throw new Error("La posición no cabe o solapa");
+  }
+
+  placement.row = safeRow;
+  placement.col = safeCol;
+  scheduleSave();
   return workspace;
 }
 
@@ -1105,30 +1139,6 @@ function setPageShowGrid(profileId, pageId, showGrid) {
   return workspace;
 }
 
-function setPageStyle(profileId, pageId, partialStyle) {
-  const { workspace, page } = getPage(profileId, pageId);
-  const current = normalizePageStyle(page.style);
-  const next = {
-    ...current,
-  };
-
-  if (partialStyle?.button && typeof partialStyle.button === "object") {
-    next.button = normalizePageStyle({ ...current, button: { ...current.button, ...partialStyle.button } }).button;
-  }
-
-  if (partialStyle?.fader && typeof partialStyle.fader === "object") {
-    next.fader = normalizePageStyle({ ...current, fader: { ...current.fader, ...partialStyle.fader } }).fader;
-  }
-
-  if (partialStyle?.folderButton && typeof partialStyle.folderButton === "object") {
-    next.folderButton = normalizePageStyle({ ...current, folderButton: { ...current.folderButton, ...partialStyle.folderButton } }).folderButton;
-  }
-
-  page.style = next;
-  scheduleSave();
-  return workspace;
-}
-
 function setPageBackgroundSolid(profileId, pageId, color) {
   const { workspace, page } = getPage(profileId, pageId);
   const safeColor = /^#[0-9a-fA-F]{6}$/.test(color) ? color : "#111111";
@@ -1227,8 +1237,9 @@ module.exports = {
   setActive,
   setPageGrid,
   setPageShowGrid,
-  setPageStyle,
   setPageBackgroundSolid,
   setPageBackgroundImage,
   clearPageBackgroundImage,
+  setPlacementSpan,
+  setPlacementPosition,
 };

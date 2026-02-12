@@ -21,20 +21,6 @@ const gridRowsInput = document.getElementById("gridRowsInput");
 const gridColsInput = document.getElementById("gridColsInput");
 const applyGridBtn = document.getElementById("applyGridBtn");
 const gridShowCheckbox = document.getElementById("gridShowCheckbox");
-const styleButtonBackgroundEnabled = document.getElementById("styleButtonBackgroundEnabled");
-const styleButtonBackgroundColor = document.getElementById("styleButtonBackgroundColor");
-const styleButtonBackgroundOpacity = document.getElementById("styleButtonBackgroundOpacity");
-const styleButtonBorderEnabled = document.getElementById("styleButtonBorderEnabled");
-const styleButtonBorderColor = document.getElementById("styleButtonBorderColor");
-const styleButtonBorderOpacity = document.getElementById("styleButtonBorderOpacity");
-const styleButtonShowLabel = document.getElementById("styleButtonShowLabel");
-const styleFaderBackgroundEnabled = document.getElementById("styleFaderBackgroundEnabled");
-const styleFaderBackgroundColor = document.getElementById("styleFaderBackgroundColor");
-const styleFaderBackgroundOpacity = document.getElementById("styleFaderBackgroundOpacity");
-const styleFaderBorderEnabled = document.getElementById("styleFaderBorderEnabled");
-const styleFaderBorderColor = document.getElementById("styleFaderBorderColor");
-const styleFaderBorderOpacity = document.getElementById("styleFaderBorderOpacity");
-const styleFaderShowLabel = document.getElementById("styleFaderShowLabel");
 const gridBgColorInput = document.getElementById("gridBgColorInput");
 const addBackgroundImageBtn = document.getElementById("addBackgroundImageBtn");
 const backgroundImageInfo = document.getElementById("backgroundImageInfo");
@@ -42,7 +28,6 @@ const backgroundFitSelect = document.getElementById("backgroundFitSelect");
 const clearBackgroundImageBtn = document.getElementById("clearBackgroundImageBtn");
 const gridCanvas = document.getElementById("gridCanvas");
 const gridCanvasHost = document.getElementById("gridCanvasHost");
-const gridPreviewModeSelect = document.getElementById("gridPreviewModeSelect");
 const gridPlacementInspector = document.getElementById("gridPlacementInspector");
 const gridPlacementWarning = document.getElementById("gridPlacementWarning");
 
@@ -55,27 +40,15 @@ const state = {
     pageId: null,
     selectedElementId: null,
     selectedPlacementId: null,
-    previewMode: "fill",
   },
   clipboard: null,
   contextMenuNode: null,
+  gridDrag: null,
 };
 
 function clampGridValue(value) {
   const number = Number(value) || 1;
   return Math.max(1, Math.min(24, Math.round(number)));
-}
-
-function getPageStyle(page) {
-  return window.styleResolver.normalizePageStyle(page?.style || {});
-}
-
-function getResolvedControlStyle(page, controlType) {
-  return window.styleResolver.resolveGlobalStyle(page?.style || {}, controlType);
-}
-
-function clampOpacityInput(value) {
-  return window.styleResolver.clampOpacity(value, 1);
 }
 
 function getGridContextWorkspace() {
@@ -238,23 +211,13 @@ function drawPlacement(ctx2d, page, placement, element, metrics, selectedPlaceme
   const width = placement.colSpan * cellW;
   const height = placement.rowSpan * cellH;
   const isSelected = placement.id === selectedPlacementId;
-  const controlType = element?.type === "folderButton" ? "folderButton" : element?.type;
-  const resolvedStyle = getResolvedControlStyle(page, controlType);
 
-  if (resolvedStyle.backgroundEnabled) {
-    ctx2d.fillStyle = resolvedStyle.backgroundCssColor;
-    ctx2d.fillRect(x + 2, y + 2, width - 4, height - 4);
-  }
+  ctx2d.fillStyle = element?.type === "fader" ? "#2f2f2f" : "#252525";
+  ctx2d.fillRect(x + 2, y + 2, width - 4, height - 4);
 
-  if (resolvedStyle.borderEnabled || isSelected) {
-    ctx2d.lineWidth = isSelected ? 3 : 1;
-    ctx2d.strokeStyle = isSelected ? "#ffd166" : resolvedStyle.borderCssColor;
-    ctx2d.strokeRect(x + 2.5, y + 2.5, width - 5, height - 5);
-  }
-
-  if (!resolvedStyle.showLabel) {
-    return;
-  }
+  ctx2d.lineWidth = isSelected ? 3 : 1;
+  ctx2d.strokeStyle = isSelected ? "#ffd166" : "#5d5d5d";
+  ctx2d.strokeRect(x + 2.5, y + 2.5, width - 5, height - 5);
 
   const label = element?.name || placement.elementId;
   ctx2d.fillStyle = "#ffffff";
@@ -330,10 +293,10 @@ function renderPlacementInspector(page) {
       return;
     }
 
-    state.workspace = await window.runtime.updatePlacementSpan(
+    state.workspace = await window.runtime.setPlacementSpan(
       state.gridSelection.profileId,
       state.gridSelection.pageId,
-      placement.id,
+      placement.elementId,
       nextRow,
       nextCol,
     );
@@ -343,12 +306,12 @@ function renderPlacementInspector(page) {
 
   const deleteBtn = document.createElement("button");
   deleteBtn.className = "danger";
-  deleteBtn.textContent = "Eliminar placement";
+  deleteBtn.textContent = "Eliminar elemento";
   deleteBtn.addEventListener("click", async () => {
-    state.workspace = await window.runtime.deletePlacement(
+    state.workspace = await window.runtime.deleteElement(
       state.gridSelection.profileId,
       state.gridSelection.pageId,
-      placement.id,
+      placement.elementId,
     );
     state.gridSelection.selectedPlacementId = null;
     renderNavigation();
@@ -413,6 +376,26 @@ async function renderGridCanvas(page) {
     );
   });
 
+  const selectedPlacement = getPlacementById(page, state.gridSelection.selectedPlacementId);
+  if (selectedPlacement) {
+    const x = (selectedPlacement.col - 1) * cellW;
+    const y = (selectedPlacement.row - 1) * cellH;
+    const w = selectedPlacement.colSpan * cellW;
+    const h = selectedPlacement.rowSpan * cellH;
+    const handles = [
+      [x, y],[x+w/2,y],[x+w,y],[x,y+h/2],[x+w,y+h/2],[x,y+h],[x+w/2,y+h],[x+w,y+h]
+    ];
+    ctx2d.fillStyle = "#ffd166";
+    handles.forEach(([hx,hy]) => ctx2d.fillRect(hx-4, hy-4, 8, 8));
+    ctx2d.fillStyle = "#ff5a5a";
+    ctx2d.fillRect(x + w - 18, y + 4, 14, 14);
+    ctx2d.fillStyle = "#111";
+    ctx2d.font = "bold 10px Arial";
+    ctx2d.textAlign = "center";
+    ctx2d.textBaseline = "middle";
+    ctx2d.fillText("X", x + w - 11, y + 11);
+  }
+
   const selectedElement = getElementById(page, state.gridSelection.selectedElementId);
   if (selectedElement) {
     const { candidates } = getPlacementCandidates(page, selectedElement);
@@ -442,6 +425,63 @@ function getCanvasCell(page, event) {
   };
 }
 
+function getPlacementAtCell(page, row, col) {
+  return (page.placements || []).find((item) => {
+    const insideRow = row >= item.row && row <= item.row + item.rowSpan - 1;
+    const insideCol = col >= item.col && col <= item.col + item.colSpan - 1;
+    return insideRow && insideCol;
+  }) || null;
+}
+
+function getHandleAtCell(placement, row, col) {
+  const top = row === placement.row;
+  const bottom = row === placement.row + placement.rowSpan - 1;
+  const left = col === placement.col;
+  const right = col === placement.col + placement.colSpan - 1;
+  if (!top && !bottom && !left && !right) return null;
+  if (top && left) return "nw";
+  if (top && right) return "ne";
+  if (bottom && left) return "sw";
+  if (bottom && right) return "se";
+  if (top) return "n";
+  if (bottom) return "s";
+  if (left) return "w";
+  if (right) return "e";
+  return null;
+}
+
+async function applyGridDrag(event) {
+  if (!state.gridDrag) return;
+  const ctx = getGridContextWorkspace();
+  if (!ctx) return;
+  const page = ctx.page;
+  const placement = getPlacementById(page, state.gridDrag.placementId);
+  if (!placement) return;
+  const { row, col } = getCanvasCell(page, event);
+  const start = state.gridDrag.startPlacement;
+
+  if (state.gridDrag.mode === "move") {
+    const nextRow = Math.max(1, Math.min(clampGridValue(page.grid?.rows || 1), start.row + (row - state.gridDrag.startRow)));
+    const nextCol = Math.max(1, Math.min(clampGridValue(page.grid?.cols || 1), start.col + (col - state.gridDrag.startCol)));
+    if (!canPlaceOnGrid(page, nextRow, nextCol, start.rowSpan, start.colSpan, placement.id)) return;
+    state.workspace = await window.runtime.setPlacementPosition(ctx.profile.id, ctx.page.id, placement.elementId, nextRow, nextCol);
+  } else {
+    const dRow = row - state.gridDrag.startRow;
+    const dCol = col - state.gridDrag.startCol;
+    let rowSpan = start.rowSpan;
+    let colSpan = start.colSpan;
+    if (state.gridDrag.handle.includes("s")) rowSpan = Math.max(1, start.rowSpan + dRow);
+    if (state.gridDrag.handle.includes("e")) colSpan = Math.max(1, start.colSpan + dCol);
+    if (state.gridDrag.handle.includes("n")) rowSpan = Math.max(1, start.rowSpan - dRow);
+    if (state.gridDrag.handle.includes("w")) colSpan = Math.max(1, start.colSpan - dCol);
+    if (!canPlaceOnGrid(page, placement.row, placement.col, rowSpan, colSpan, placement.id)) return;
+    state.workspace = await window.runtime.setPlacementSpan(ctx.profile.id, ctx.page.id, placement.elementId, rowSpan, colSpan);
+  }
+
+  renderNavigation();
+  await renderGridTab();
+}
+
 async function onGridCanvasClick(event) {
   const ctx = getGridContextWorkspace();
   if (!ctx) {
@@ -451,13 +491,29 @@ async function onGridCanvasClick(event) {
   const page = ctx.page;
   const { row, col } = getCanvasCell(page, event);
 
-  const placement = (page.placements || []).find((item) => {
-    const insideRow = row >= item.row && row <= item.row + item.rowSpan - 1;
-    const insideCol = col >= item.col && col <= item.col + item.colSpan - 1;
-    return insideRow && insideCol;
-  });
+  const placement = getPlacementAtCell(page, row, col);
 
   if (placement) {
+    if (state.gridSelection.selectedPlacementId === placement.id) {
+      const rect = gridCanvas.getBoundingClientRect();
+      const rows = clampGridValue(page.grid?.rows || 1);
+      const cols = clampGridValue(page.grid?.cols || 1);
+      const cellW = rect.width / cols;
+      const cellH = rect.height / rows;
+      const localX = event.clientX - rect.left;
+      const localY = event.clientY - rect.top;
+      const x = (placement.col - 1) * cellW;
+      const y = (placement.row - 1) * cellH;
+      const w = placement.colSpan * cellW;
+      if (localX >= x + w - 18 && localX <= x + w - 4 && localY >= y + 4 && localY <= y + 18) {
+        state.workspace = await window.runtime.deleteElement(ctx.profile.id, ctx.page.id, placement.elementId);
+        state.gridSelection.selectedPlacementId = null;
+        state.gridSelection.selectedElementId = null;
+        renderNavigation();
+        await renderGridTab();
+        return;
+      }
+    }
     state.gridSelection.selectedPlacementId = placement.id;
     state.gridSelection.selectedElementId = placement.elementId;
     await renderGridTab();
@@ -538,23 +594,6 @@ async function renderGridTab() {
   gridRowsInput.value = clampGridValue(ctx.page.grid?.rows || 4);
   gridColsInput.value = clampGridValue(ctx.page.grid?.cols || 3);
   gridShowCheckbox.checked = ctx.page.showGrid !== false;
-  const pageStyle = getPageStyle(ctx.page);
-  styleButtonBackgroundEnabled.checked = pageStyle.button.backgroundEnabled;
-  styleButtonBackgroundColor.value = pageStyle.button.backgroundColor;
-  styleButtonBackgroundOpacity.value = pageStyle.button.backgroundOpacity;
-  styleButtonBorderEnabled.checked = pageStyle.button.borderEnabled;
-  styleButtonBorderColor.value = pageStyle.button.borderColor;
-  styleButtonBorderOpacity.value = pageStyle.button.borderOpacity;
-  styleButtonShowLabel.checked = pageStyle.button.showLabel;
-
-  styleFaderBackgroundEnabled.checked = pageStyle.fader.backgroundEnabled;
-  styleFaderBackgroundColor.value = pageStyle.fader.backgroundColor;
-  styleFaderBackgroundOpacity.value = pageStyle.fader.backgroundOpacity;
-  styleFaderBorderEnabled.checked = pageStyle.fader.borderEnabled;
-  styleFaderBorderColor.value = pageStyle.fader.borderColor;
-  styleFaderBorderOpacity.value = pageStyle.fader.borderOpacity;
-  styleFaderShowLabel.checked = pageStyle.fader.showLabel;
-
   const background = ctx.page.background || { type: "solid", value: "#111111" };
   gridBgColorInput.value = background.value || "#111111";
 
@@ -566,8 +605,6 @@ async function renderGridTab() {
     ? `Imagen: ${background.assetId.split("/").pop()}`
     : "Sin imagen de fondo";
 
-  gridPreviewModeSelect.value = state.gridSelection.previewMode;
-  gridCanvasHost.classList.toggle("preview-9x16", state.gridSelection.previewMode === "9x16");
 
   gridElementsList.innerHTML = "";
   const elements = ctx.page.controls || [];
@@ -625,17 +662,6 @@ async function applyShowGrid(showGrid) {
   }
 
   state.workspace = await window.runtime.setPageShowGrid(ctx.profile.id, ctx.page.id, showGrid);
-  renderNavigation();
-  await renderGridTab();
-}
-
-async function applyPageStyle(styleType, partialStyle) {
-  const ctx = getGridContextWorkspace();
-  if (!ctx) {
-    return;
-  }
-
-  state.workspace = await window.runtime.setPageStyle(ctx.profile.id, ctx.page.id, { [styleType]: partialStyle });
   renderNavigation();
   await renderGridTab();
 }
@@ -1739,9 +1765,16 @@ addMenu.addEventListener("click", async (event) => {
 
 });
 
-document.addEventListener("click", () => {
+document.addEventListener("click", (event) => {
   addMenu.classList.remove("open");
   closeContextMenu();
+  if (!event.target.closest("#gridCanvas") && !event.target.closest("#gridElementsList")) {
+    if (state.gridSelection.selectedPlacementId || state.gridSelection.selectedElementId) {
+      state.gridSelection.selectedPlacementId = null;
+      state.gridSelection.selectedElementId = null;
+      renderGridTab();
+    }
+  }
 });
 
 document.addEventListener("contextmenu", (event) => {
@@ -1777,58 +1810,52 @@ gridShowCheckbox.addEventListener("change", async (event) => {
   await applyShowGrid(event.target.checked);
 });
 
-styleButtonBackgroundEnabled.addEventListener("change", async (event) => {
-  await applyPageStyle("button", { backgroundEnabled: event.target.checked });
-});
-styleButtonBackgroundColor.addEventListener("input", async (event) => {
-  await applyPageStyle("button", { backgroundColor: event.target.value });
-});
-styleButtonBackgroundOpacity.addEventListener("change", async (event) => {
-  await applyPageStyle("button", { backgroundOpacity: clampOpacityInput(event.target.value) });
-});
-styleButtonBorderEnabled.addEventListener("change", async (event) => {
-  await applyPageStyle("button", { borderEnabled: event.target.checked });
-});
-styleButtonBorderColor.addEventListener("input", async (event) => {
-  await applyPageStyle("button", { borderColor: event.target.value });
-});
-styleButtonBorderOpacity.addEventListener("change", async (event) => {
-  await applyPageStyle("button", { borderOpacity: clampOpacityInput(event.target.value) });
-});
-styleButtonShowLabel.addEventListener("change", async (event) => {
-  await applyPageStyle("button", { showLabel: event.target.checked });
-});
-
-styleFaderBackgroundEnabled.addEventListener("change", async (event) => {
-  await applyPageStyle("fader", { backgroundEnabled: event.target.checked });
-});
-styleFaderBackgroundColor.addEventListener("input", async (event) => {
-  await applyPageStyle("fader", { backgroundColor: event.target.value });
-});
-styleFaderBackgroundOpacity.addEventListener("change", async (event) => {
-  await applyPageStyle("fader", { backgroundOpacity: clampOpacityInput(event.target.value) });
-});
-styleFaderBorderEnabled.addEventListener("change", async (event) => {
-  await applyPageStyle("fader", { borderEnabled: event.target.checked });
-});
-styleFaderBorderColor.addEventListener("input", async (event) => {
-  await applyPageStyle("fader", { borderColor: event.target.value });
-});
-styleFaderBorderOpacity.addEventListener("change", async (event) => {
-  await applyPageStyle("fader", { borderOpacity: clampOpacityInput(event.target.value) });
-});
-styleFaderShowLabel.addEventListener("change", async (event) => {
-  await applyPageStyle("fader", { showLabel: event.target.checked });
-});
-
-
-gridPreviewModeSelect.addEventListener("change", () => {
-  state.gridSelection.previewMode = gridPreviewModeSelect.value;
-  renderGridTab();
-});
-
 gridCanvas.addEventListener("click", async (event) => {
+  if (state.gridDrag) return;
   await onGridCanvasClick(event);
+});
+
+gridCanvas.addEventListener("pointerdown", async (event) => {
+  const ctx = getGridContextWorkspace();
+  if (!ctx) return;
+  const { row, col } = getCanvasCell(ctx.page, event);
+  const placement = getPlacementAtCell(ctx.page, row, col);
+  if (!placement) return;
+  state.gridSelection.selectedPlacementId = placement.id;
+  state.gridSelection.selectedElementId = placement.elementId;
+  const handle = getHandleAtCell(placement, row, col);
+  state.gridDrag = {
+    placementId: placement.id,
+    startRow: row,
+    startCol: col,
+    startPlacement: { ...placement },
+    mode: handle ? "resize" : "move",
+    handle,
+  };
+  await renderGridTab();
+});
+
+gridCanvas.addEventListener("pointermove", async (event) => {
+  if (!state.gridDrag) return;
+  await applyGridDrag(event);
+});
+
+gridCanvas.addEventListener("pointerup", () => {
+  state.gridDrag = null;
+});
+
+gridCanvas.addEventListener("contextmenu", async (event) => {
+  event.preventDefault();
+  const ctx = getGridContextWorkspace();
+  if (!ctx) return;
+  const { row, col } = getCanvasCell(ctx.page, event);
+  const placement = getPlacementAtCell(ctx.page, row, col);
+  if (!placement) return;
+  state.workspace = await window.runtime.deleteElement(ctx.profile.id, ctx.page.id, placement.elementId);
+  state.gridSelection.selectedPlacementId = null;
+  state.gridSelection.selectedElementId = null;
+  renderNavigation();
+  await renderGridTab();
 });
 
 gridBgColorInput.addEventListener("input", async (event) => {

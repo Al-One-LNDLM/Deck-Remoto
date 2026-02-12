@@ -131,7 +131,7 @@
 
       .grid-layout {
         display: grid;
-        grid-template-columns: 320px 1fr;
+        grid-template-columns: 320px 1fr minmax(180px, 15vw);
         gap: 16px;
         min-height: 500px;
       }
@@ -192,48 +192,20 @@
         background: #161616;
         display: grid;
         gap: 10px;
-        max-height: 75vh;
-        overflow: auto;
-      }
-
-      .grid-preview-row {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      }
-
-      .grid-preview-row select {
-        border: 1px solid #3b3b3b;
-        border-radius: 6px;
-        background: #111;
-        color: #f5f5f5;
-        padding: 8px;
+        align-content: center;
       }
 
       .grid-canvas-host {
         width: 100%;
-        height: clamp(220px, calc(75vh - 180px), 460px);
-        max-height: 100%;
-        min-height: 0;
-        display: grid;
-        place-items: stretch;
-      }
-
-      .grid-canvas-host.preview-9x16 {
-        place-items: center;
+        min-width: 180px;
+        max-width: 15vw;
+        aspect-ratio: 9 / 16;
+        margin: auto;
       }
 
       .grid-canvas-frame {
         width: 100%;
         height: 100%;
-      }
-
-      .grid-canvas-host.preview-9x16 .grid-canvas-frame {
-        aspect-ratio: 9 / 16;
-        height: auto;
-        max-height: 100%;
-        width: auto;
-        max-width: 100%;
       }
 
       #gridCanvas {
@@ -530,16 +502,20 @@
             <label for="gridPageSelect">Page</label>
             <select id="gridPageSelect"></select>
           </div>
-
           <div class="grid-elements">
             <strong>Elementos (selecciona para colocar)</strong>
             <ul id="gridElementsList"></ul>
           </div>
+          <div id="gridPlacementWarning" class="grid-placement-warning" hidden>
+            <strong>No hay espacio para colocar este fader en la rejilla actual.</strong>
+            <span>Aumenta Rows o reduce placements.</span>
+          </div>
+          <div id="gridPlacementInspector" class="grid-placement-inspector muted">Selecciona un placement en el canvas.</div>
         </div>
 
         <div class="grid-column">
           <div class="grid-controls">
-            <h3>Ajustes globales</h3>
+            <h3>Ajustes</h3>
             <div class="grid-controls-row">
               <label for="gridShowCheckbox">Mostrar rejilla</label>
               <input id="gridShowCheckbox" type="checkbox" checked />
@@ -553,7 +529,6 @@
               <input id="gridColsInput" type="number" min="1" max="24" step="1" />
             </div>
             <button id="applyGridBtn" type="button">Aplicar tamaño</button>
-
             <h4>Fondo</h4>
             <div class="grid-controls-row">
               <label for="gridBgColorInput">Color sólido</label>
@@ -574,46 +549,14 @@
             <div class="grid-controls-row">
               <button id="clearBackgroundImageBtn" type="button" class="danger" disabled>Quitar imagen</button>
             </div>
-
-            <h4>Estilo global: Botones</h4>
-            <div class="grid-controls-row"><label for="styleButtonBackgroundEnabled">Fondo</label><input id="styleButtonBackgroundEnabled" type="checkbox" checked /></div>
-            <div class="grid-controls-row"><label for="styleButtonBackgroundColor">Color fondo</label><input id="styleButtonBackgroundColor" type="color" value="#2b2b2b" /></div>
-            <div class="grid-controls-row"><label for="styleButtonBackgroundOpacity">Opacidad fondo</label><input id="styleButtonBackgroundOpacity" type="number" min="0" max="1" step="0.05" value="1" /></div>
-            <div class="grid-controls-row"><label for="styleButtonBorderEnabled">Borde</label><input id="styleButtonBorderEnabled" type="checkbox" checked /></div>
-            <div class="grid-controls-row"><label for="styleButtonBorderColor">Color borde</label><input id="styleButtonBorderColor" type="color" value="#444444" /></div>
-            <div class="grid-controls-row"><label for="styleButtonBorderOpacity">Opacidad borde</label><input id="styleButtonBorderOpacity" type="number" min="0" max="1" step="0.05" value="1" /></div>
-            <div class="grid-controls-row"><label for="styleButtonShowLabel">Mostrar etiqueta</label><input id="styleButtonShowLabel" type="checkbox" checked /></div>
-
-            <h4>Estilo global: Faders</h4>
-            <div class="grid-controls-row"><label for="styleFaderBackgroundEnabled">Fondo</label><input id="styleFaderBackgroundEnabled" type="checkbox" checked /></div>
-            <div class="grid-controls-row"><label for="styleFaderBackgroundColor">Color fondo</label><input id="styleFaderBackgroundColor" type="color" value="#2b2b2b" /></div>
-            <div class="grid-controls-row"><label for="styleFaderBackgroundOpacity">Opacidad fondo</label><input id="styleFaderBackgroundOpacity" type="number" min="0" max="1" step="0.05" value="1" /></div>
-            <div class="grid-controls-row"><label for="styleFaderBorderEnabled">Borde</label><input id="styleFaderBorderEnabled" type="checkbox" checked /></div>
-            <div class="grid-controls-row"><label for="styleFaderBorderColor">Color borde</label><input id="styleFaderBorderColor" type="color" value="#444444" /></div>
-            <div class="grid-controls-row"><label for="styleFaderBorderOpacity">Opacidad borde</label><input id="styleFaderBorderOpacity" type="number" min="0" max="1" step="0.05" value="1" /></div>
-            <div class="grid-controls-row"><label for="styleFaderShowLabel">Mostrar etiqueta</label><input id="styleFaderShowLabel" type="checkbox" checked /></div>
-
-            </div>
           </div>
+        </div>
 
-          <div class="grid-canvas-wrap">
-            <div class="grid-preview-row">
-              <label for="gridPreviewModeSelect">Canvas Preview</label>
-              <select id="gridPreviewModeSelect">
-                <option value="fill">Fill</option>
-                <option value="9x16">9:16</option>
-              </select>
+        <div class="grid-canvas-wrap">
+          <div id="gridCanvasHost" class="grid-canvas-host">
+            <div class="grid-canvas-frame">
+              <canvas id="gridCanvas" width="360" height="640"></canvas>
             </div>
-            <div id="gridCanvasHost" class="grid-canvas-host">
-              <div class="grid-canvas-frame">
-                <canvas id="gridCanvas" width="900" height="460"></canvas>
-              </div>
-            </div>
-            <div id="gridPlacementWarning" class="grid-placement-warning" hidden>
-              <strong>No hay espacio para colocar este fader en la rejilla actual.</strong>
-              <span>Aumenta Rows o reduce placements.</span>
-            </div>
-            <div id="gridPlacementInspector" class="grid-placement-inspector muted">Selecciona un placement en el canvas.</div>
           </div>
         </div>
       </section>

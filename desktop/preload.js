@@ -16,6 +16,10 @@ contextBridge.exposeInMainWorld("runtime", {
     ipcRenderer.invoke("workspace:addPlacement", profileId, pageId, elementId, row, col),
   updatePlacementSpan: (profileId, pageId, placementId, rowSpan, colSpan) =>
     ipcRenderer.invoke("workspace:updatePlacementSpan", profileId, pageId, placementId, rowSpan, colSpan),
+  setPlacementSpan: (profileId, pageId, elementId, rowSpan, colSpan) =>
+    ipcRenderer.invoke("workspace:setPlacementSpan", profileId, pageId, elementId, rowSpan, colSpan),
+  setPlacementPosition: (profileId, pageId, elementId, row, col) =>
+    ipcRenderer.invoke("workspace:setPlacementPosition", profileId, pageId, elementId, row, col),
   deletePlacement: (profileId, pageId, placementId) =>
     ipcRenderer.invoke("workspace:deletePlacement", profileId, pageId, placementId),
   deleteElement: (profileId, pageId, elementId) =>
@@ -32,8 +36,6 @@ contextBridge.exposeInMainWorld("runtime", {
     ipcRenderer.invoke("workspace:setPageGrid", profileId, pageId, rows, cols),
   setPageShowGrid: (profileId, pageId, showGrid) =>
     ipcRenderer.invoke("workspace:setPageShowGrid", profileId, pageId, showGrid),
-  setPageStyle: (profileId, pageId, partialStyle) =>
-    ipcRenderer.invoke("workspace:setPageStyle", profileId, pageId, partialStyle),
   setPageBackgroundSolid: (profileId, pageId, color) =>
     ipcRenderer.invoke("workspace:setPageBackgroundSolid", profileId, pageId, color),
   setPageBackgroundImage: (profileId, pageId, assetId, fit) =>
