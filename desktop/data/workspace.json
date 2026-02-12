@@ -87,6 +87,29 @@
                 "borderOpacity": 1,
                 "showLabel": true
               }
+            },
+            {
+              "id": "button4",
+              "type": "button",
+              "name": "SEL TODO",
+              "folderId": null,
+              "iconAssetId": null,
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "hotkey",
+                  "keys": "Ctrl+E"
+                }
+              },
+              "style": {
+                "backgroundEnabled": true,
+                "backgroundColor": "#6866D1",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": true
+              }
             }
           ],
           "folders": [],
@@ -114,10 +137,20 @@
               "col": 2,
               "rowSpan": 1,
               "colSpan": 1
+            },
+            {
+              "id": "placement4",
+              "elementId": "button4",
+              "row": 0,
+              "col": 1,
+              "rowSpan": 1,
+              "colSpan": 1
             }
-          ]
+          ],
+          "iconAssetId": null
         }
-      ]
+      ],
+      "iconAssetId": null
     }
   ],
   "assets": {
