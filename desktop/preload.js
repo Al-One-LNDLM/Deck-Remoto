@@ -7,27 +7,25 @@ contextBridge.exposeInMainWorld("runtime", {
   getWorkspace: () => ipcRenderer.invoke("workspace:get"),
   addProfile: () => ipcRenderer.invoke("workspace:addProfile"),
   addPage: (profileId) => ipcRenderer.invoke("workspace:addPage", profileId),
-  addFolder: (profileId, pageId) => ipcRenderer.invoke("workspace:addFolder", profileId, pageId),
-  addPageElement: (profileId, pageId, elementType) =>
-    ipcRenderer.invoke("workspace:addPageElement", profileId, pageId, elementType),
+  addFolder: (profileId, pageId, payload) => ipcRenderer.invoke("workspace:addFolder", profileId, pageId, payload),
+  addButton: (profileId, pageId, payload) =>
+    ipcRenderer.invoke("workspace:addButton", profileId, pageId, payload),
+  addFader: (profileId, pageId, payload) =>
+    ipcRenderer.invoke("workspace:addFader", profileId, pageId, payload),
   addPlacement: (profileId, pageId, elementId, row, col) =>
     ipcRenderer.invoke("workspace:addPlacement", profileId, pageId, elementId, row, col),
   updatePlacementSpan: (profileId, pageId, placementId, rowSpan, colSpan) =>
     ipcRenderer.invoke("workspace:updatePlacementSpan", profileId, pageId, placementId, rowSpan, colSpan),
   deletePlacement: (profileId, pageId, placementId) =>
     ipcRenderer.invoke("workspace:deletePlacement", profileId, pageId, placementId),
-  deletePageElement: (profileId, pageId, elementId) =>
-    ipcRenderer.invoke("workspace:deletePageElement", profileId, pageId, elementId),
-  renamePageElement: (profileId, pageId, elementId, name) =>
-    ipcRenderer.invoke("workspace:renamePageElement", profileId, pageId, elementId, name),
-  addFolderItem: (profileId, pageId, folderId) =>
-    ipcRenderer.invoke("workspace:addFolderItem", profileId, pageId, folderId),
-  deleteFolderItem: (profileId, pageId, folderId, itemId) =>
-    ipcRenderer.invoke("workspace:deleteFolderItem", profileId, pageId, folderId, itemId),
-  renameFolderItem: (profileId, pageId, folderId, itemId, name) =>
-    ipcRenderer.invoke("workspace:renameFolderItem", profileId, pageId, folderId, itemId, name),
-  updateName: (payload) => ipcRenderer.invoke("workspace:updateName", payload),
-  updateIcon: (payload) => ipcRenderer.invoke("workspace:updateIcon", payload),
+  deleteElement: (profileId, pageId, elementId) =>
+    ipcRenderer.invoke("workspace:deleteElement", profileId, pageId, elementId),
+  renameElement: (profileId, pageId, elementId, name) =>
+    ipcRenderer.invoke("workspace:renameElement", profileId, pageId, elementId, name),
+  renameProfile: (profileId, name) => ipcRenderer.invoke("workspace:renameProfile", profileId, name),
+  renamePage: (profileId, pageId, name) => ipcRenderer.invoke("workspace:renamePage", profileId, pageId, name),
+  renameFolder: (profileId, pageId, folderId, name) =>
+    ipcRenderer.invoke("workspace:renameFolder", profileId, pageId, folderId, name),
   setActiveProfile: (profileId) => ipcRenderer.invoke("workspace:setActiveProfile", profileId),
   setActivePage: (profileId, pageId) => ipcRenderer.invoke("workspace:setActivePage", profileId, pageId),
   setPageGrid: (profileId, pageId, rows, cols) =>
@@ -47,7 +45,8 @@ contextBridge.exposeInMainWorld("runtime", {
   deleteFolder: (profileId, pageId, folderId) => ipcRenderer.invoke("workspace:deleteFolder", profileId, pageId, folderId),
   movePage: (pageId, fromProfileId, toProfileId) => ipcRenderer.invoke("workspace:movePage", pageId, fromProfileId, toProfileId),
   moveFolder: (folderId, fromProfileId, fromPageId, toProfileId, toPageId) => ipcRenderer.invoke("workspace:moveFolder", folderId, fromProfileId, fromPageId, toProfileId, toPageId),
-  importIcon: () => ipcRenderer.invoke("workspace:importIcon"),
+  importFolderIcon: (profileId, pageId, folderId) =>
+    ipcRenderer.invoke("workspace:importFolderIcon", profileId, pageId, folderId),
   importBackgroundImage: () => ipcRenderer.invoke("workspace:importBackgroundImage"),
   onLog: (listener) => {
     const handler = (_, message) => listener(message);

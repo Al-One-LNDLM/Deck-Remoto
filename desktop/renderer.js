@@ -729,500 +729,195 @@ function getSelectedNodeContext(workspace, selection) {
     return null;
   }
 
-  if (selection.type === "profile") {
-    const profile = workspace.profiles.find((item) => item.id === selection.id);
-    return profile ? { type: "profile", profile } : null;
+  const profile = workspace.profiles.find((item) => item.id === selection.profileId);
+  if (!profile) {
+    return null;
   }
 
-  for (const profile of workspace.profiles) {
-    if (selection.type === "page") {
-      const page = profile.pages.find((item) => item.id === selection.id);
-      if (page) {
-        return { type: "page", profile, page };
-      }
+  if (selection.kind === "profile") {
+    return { kind: "profile", profile };
+  }
+
+  const page = profile.pages.find((item) => item.id === selection.pageId);
+  if (!page) {
+    return null;
+  }
+
+  if (selection.kind === "page") {
+    return { kind: "page", profile, page };
+  }
+
+  if (selection.kind === "folder") {
+    const folder = page.folders.find((item) => item.id === selection.folderId);
+    return folder ? { kind: "folder", profile, page, folder } : null;
+  }
+
+  if (selection.kind === "element") {
+    const element = (page.controls || []).find((item) => item.id === selection.elementId);
+    if (!element) {
+      return null;
     }
 
-    if (selection.type === "folder") {
-      for (const page of profile.pages) {
-        const folder = page.folders.find((item) => item.id === selection.id);
-        if (folder) {
-          return { type: "folder", profile, page, folder };
-        }
-      }
+    if (selection.folderId && element.folderId !== selection.folderId) {
+      return null;
     }
+
+    return { kind: "element", profile, page, element };
   }
 
   return null;
 }
 
-function buildTreeActions(node, workspace) {
-  if (node.type === "profile") {
-    return [
-      {
-        label: "Set Active Profile",
-        onClick: async () => {
-          state.workspace = await window.runtime.setActiveProfile(node.id);
-          renderNavigation();
-        },
-      },
-      {
-        label: "Nueva Página",
-        onClick: async () => {
-          const result = await window.runtime.addPage(node.id);
-          state.workspace = result.workspace;
-          state.selection = result.created;
-          renderNavigation();
-        },
-      },
-      {
-        label: "Delete Profile…",
-        onClick: async () => {
-          const confirmed = await openSimpleModal({
-            title: "Eliminar perfil",
-            message: `¿Eliminar ${node.name}? Esto no se puede deshacer.`,
-            confirmText: "Eliminar",
-            danger: true,
-          });
-          if (!confirmed) return;
-          state.workspace = await window.runtime.deleteProfile(node.id);
-          if (state.selection?.type === "profile" && state.selection.id === node.id) {
-            state.selection = {
-              type: "profile",
-              id: state.workspace.activeProfileId,
-            };
-          }
-          renderNavigation();
-        },
-      },
-    ];
-  }
-
-  if (node.type === "page") {
-    return [
-      {
-        label: "Set Active Page",
-        onClick: async () => {
-          state.workspace = await window.runtime.setActivePage(node.profileId, node.id);
-          renderNavigation();
-        },
-      },
-      {
-        label: "Nueva Carpeta",
-        onClick: async () => {
-          const result = await window.runtime.addFolder(node.profileId, node.id);
-          state.workspace = result.workspace;
-          state.selection = result.created;
-          renderNavigation();
-        },
-      },
-      {
-        label: "Move Page to Profile…",
-        onClick: async () => {
-          const choices = state.workspace.profiles
-            .filter((profile) => profile.id !== node.profileId)
-            .map((profile) => ({ value: profile.id, label: `${profile.name} (${profile.id})` }));
-          if (!choices.length) {
-            return;
-          }
-          const values = await openSimpleModal({
-            title: "Mover página",
-            message: "Selecciona el perfil destino.",
-            fields: [{ name: "toProfileId", label: "Perfil destino", options: choices }],
-            confirmText: "Mover",
-          });
-          if (!values) return;
-          state.workspace = await window.runtime.movePage(node.id, node.profileId, values.toProfileId);
-          renderNavigation();
-        },
-      },
-      {
-        label: "Delete Page…",
-        onClick: async () => {
-          const confirmed = await openSimpleModal({
-            title: "Eliminar página",
-            message: `¿Eliminar ${node.name}? Esto no se puede deshacer.`,
-            confirmText: "Eliminar",
-            danger: true,
-          });
-          if (!confirmed) return;
-          state.workspace = await window.runtime.deletePage(node.profileId, node.id);
-          if (state.selection?.type === "page" && state.selection.id === node.id) {
-            state.selection = {
-              type: "page",
-              id: state.workspace.activePageId,
-            };
-          }
-          renderNavigation();
-        },
-      },
-    ];
-  }
-
-  if (node.type === "folder") {
-    return [
-      {
-        label: "Move Folder to Page…",
-        onClick: async () => {
-          const profileOptions = state.workspace.profiles.map((profile) => ({
-            value: profile.id,
-            label: `${profile.name} (${profile.id})`,
-          }));
-          const defaultProfile = state.workspace.profiles.find((profile) => profile.id === node.profileId)?.id;
-          const values = await openSimpleModal({
-            title: "Mover carpeta",
-            message: "Selecciona página destino.",
-            fields: [
-              {
-                name: "toProfileId",
-                label: "Perfil destino",
-                options: profileOptions,
-                defaultValue: defaultProfile,
-              },
-              {
-                name: "toPageId",
-                label: "Página destino",
-                optionsResolver: (draft) => {
-                  const profileId = draft.toProfileId || defaultProfile;
-                  const profile = state.workspace.profiles.find((item) => item.id === profileId);
-                  return (profile?.pages || []).map((page) => ({
-                    value: page.id,
-                    label: `${page.name} (${page.id})`,
-                  }));
-                },
-              },
-            ],
-            confirmText: "Mover",
-          });
-          if (!values) return;
-          state.workspace = await window.runtime.moveFolder(
-            node.id,
-            node.profileId,
-            node.pageId,
-            values.toProfileId,
-            values.toPageId,
-          );
-          renderNavigation();
-        },
-      },
-      {
-        label: "Delete Folder…",
-        onClick: async () => {
-          const confirmed = await openSimpleModal({
-            title: "Eliminar carpeta",
-            message: `¿Eliminar ${node.name}? Esto no se puede deshacer.`,
-            confirmText: "Eliminar",
-            danger: true,
-          });
-          if (!confirmed) return;
-          state.workspace = await window.runtime.deleteFolder(node.profileId, node.pageId, node.id);
-          if (state.selection?.type === "folder" && state.selection.id === node.id) {
-            state.selection = {
-              type: "page",
-              id: node.pageId,
-            };
-          }
-          renderNavigation();
-        },
-      },
-    ];
-  }
-
-  return [];
+function getElementTypeLabel(type) {
+  return type === "fader" ? "Fader" : "Botón";
 }
 
-function buildCreateActions(node) {
-  if (node.type === "page") {
-    return [
-      {
-        label: "Nuevo Botón",
-        onClick: async () => {
-          const result = await window.runtime.addPageElement(node.profileId, node.id, "button");
-          state.workspace = result.workspace;
-          state.selection = { type: "page", id: node.id };
-          renderNavigation();
-        },
-      },
-      {
-        label: "Nuevo Fader",
-        onClick: async () => {
-          const result = await window.runtime.addPageElement(node.profileId, node.id, "fader");
-          state.workspace = result.workspace;
-          state.selection = { type: "page", id: node.id };
-          renderNavigation();
-        },
-      },
-    ];
-  }
-
-  if (node.type === "folder") {
-    return [
-      {
-        label: "Nuevo Botón",
-        onClick: async () => {
-          const result = await window.runtime.addFolderItem(node.profileId, node.pageId, node.id);
-          state.workspace = result.workspace;
-          state.selection = { type: "folder", id: node.id };
-          renderNavigation();
-        },
-      },
-    ];
-  }
-
-  return [];
-}
-
-function renderTree(workspace, selection) {
-  treeRoot.innerHTML = "";
+function buildTreeNodes(workspace) {
+  const nodes = [];
 
   workspace.profiles.forEach((profile) => {
-    treeRoot.appendChild(
-      createTreeItem(
-        { type: "profile", id: profile.id, name: profile.name, level: 0 },
-        selection,
-        workspace,
-      ),
-    );
+    nodes.push({ kind: "profile", level: 0, profileId: profile.id, label: profile.name });
 
     profile.pages.forEach((page) => {
-      treeRoot.appendChild(
-        createTreeItem(
-          {
-            type: "page",
-            id: page.id,
-            name: page.name,
-            level: 1,
-            profileId: profile.id,
-          },
-          selection,
-          workspace,
-        ),
-      );
+      nodes.push({
+        kind: "page",
+        level: 1,
+        profileId: profile.id,
+        pageId: page.id,
+        label: page.name,
+      });
+
+      const pageRootElements = (page.controls || []).filter((element) => !element.folderId);
+      pageRootElements.forEach((element) => {
+        nodes.push({
+          kind: "element",
+          level: 2,
+          profileId: profile.id,
+          pageId: page.id,
+          elementId: element.id,
+          label: `${getElementTypeLabel(element.type)}: ${element.name}`,
+        });
+      });
 
       page.folders.forEach((folder) => {
-        treeRoot.appendChild(
-          createTreeItem(
-            {
-              type: "folder",
-              id: folder.id,
-              name: folder.name,
-              level: 2,
-              profileId: profile.id,
-              pageId: page.id,
-            },
-            selection,
-            workspace,
-          ),
-        );
+        nodes.push({
+          kind: "folder",
+          level: 2,
+          profileId: profile.id,
+          pageId: page.id,
+          folderId: folder.id,
+          label: folder.name,
+        });
+
+        const folderElements = (page.controls || []).filter((element) => element.folderId === folder.id);
+        folderElements.forEach((element) => {
+          nodes.push({
+            kind: "element",
+            level: 3,
+            profileId: profile.id,
+            pageId: page.id,
+            folderId: folder.id,
+            elementId: element.id,
+            label: `${getElementTypeLabel(element.type)}: ${element.name}`,
+          });
+        });
       });
     });
   });
+
+  return nodes;
 }
 
-function createTreeItem(node, selection, workspace) {
+function isNodeSelected(node, selection) {
+  if (!selection || node.kind !== selection.kind || node.profileId !== selection.profileId) {
+    return false;
+  }
+
+  if (node.kind === "profile") {
+    return true;
+  }
+
+  if (node.pageId !== selection.pageId) {
+    return false;
+  }
+
+  if (node.kind === "page") {
+    return true;
+  }
+
+  if (node.kind === "folder") {
+    return node.folderId === selection.folderId;
+  }
+
+  return node.elementId === selection.elementId;
+}
+
+function createTreeItem(node, selection) {
   const item = document.createElement("li");
   item.className = `tree-item tree-level-${node.level}`;
 
   const label = document.createElement("button");
   label.className = "tree-label";
-  if (selection && selection.type === node.type && selection.id === node.id) {
+  if (isNodeSelected(node, selection)) {
     label.classList.add("selected");
   }
-  const isActiveProfile = node.type === "profile" && workspace.activeProfileId === node.id;
-  const isActivePage =
-    node.type === "page" && workspace.activeProfileId === node.profileId && workspace.activePageId === node.id;
-  const activeSuffix = isActiveProfile || isActivePage ? " • active" : "";
-  label.textContent = `${node.type.toUpperCase()}: ${node.name}${activeSuffix}`;
+
+  const prefixMap = {
+    profile: "PERFIL",
+    page: "PÁGINA",
+    folder: "CARPETA",
+    element: "ELEMENTO",
+  };
+
+  label.textContent = `${prefixMap[node.kind]}: ${node.label}`;
   label.addEventListener("click", () => {
-    state.selection = { type: node.type, id: node.id };
+    state.selection = {
+      kind: node.kind,
+      profileId: node.profileId,
+      pageId: node.pageId,
+      folderId: node.folderId || null,
+      elementId: node.elementId || null,
+    };
     renderNavigation();
   });
 
   item.appendChild(label);
-
-  const createActions = buildCreateActions(node);
-  if (createActions.length > 0) {
-    const addBtn = document.createElement("button");
-    addBtn.className = "tree-actions-btn";
-    addBtn.textContent = "+";
-    addBtn.title = "Crear elemento";
-    addBtn.addEventListener("click", (event) => {
-      event.stopPropagation();
-      openContextMenu(event.currentTarget, createActions);
-    });
-    item.appendChild(addBtn);
-  }
-
-  const actions = buildTreeActions(node, workspace);
-  const actionBtn = document.createElement("button");
-  actionBtn.className = "tree-actions-btn";
-  actionBtn.textContent = "⋯";
-  actionBtn.title = "Acciones";
-  actionBtn.addEventListener("click", (event) => {
-    event.stopPropagation();
-    openContextMenu(event.currentTarget, actions);
-  });
-  item.appendChild(actionBtn);
-
   return item;
 }
 
-function openContextMenu(anchor, actions) {
-  closeContextMenus();
-
-  const menu = document.createElement("div");
-  menu.className = "context-menu";
-
-  actions.forEach((action) => {
-    const actionItem = document.createElement("button");
-    actionItem.className = "context-menu-item";
-    actionItem.textContent = action.label;
-    actionItem.addEventListener("click", async () => {
-      closeContextMenus();
-      await action.onClick();
-    });
-    menu.appendChild(actionItem);
+function renderTree(workspace, selection) {
+  treeRoot.innerHTML = "";
+  const nodes = buildTreeNodes(workspace);
+  nodes.forEach((node) => {
+    treeRoot.appendChild(createTreeItem(node, selection));
   });
-
-  document.body.appendChild(menu);
-
-  const rect = anchor.getBoundingClientRect();
-  menu.style.top = `${rect.bottom + 4}px`;
-  menu.style.left = `${Math.max(8, rect.left - 120)}px`;
 }
 
-function closeContextMenus() {
-  document.querySelectorAll(".context-menu").forEach((menu) => menu.remove());
-}
-
-function createSelectRow(field, draft) {
+function createNameEditorRow(title, value, onSave) {
   const row = document.createElement("div");
-  row.className = "modal-field";
+  row.className = "inspector-row";
 
   const label = document.createElement("label");
-  label.textContent = field.label;
-
-  const select = document.createElement("select");
-
-  const refreshOptions = () => {
-    const options = field.optionsResolver ? field.optionsResolver(draft) : field.options || [];
-    const current = select.value || draft[field.name] || field.defaultValue || "";
-    select.innerHTML = "";
-
-    options.forEach((option) => {
-      const opt = document.createElement("option");
-      opt.value = option.value;
-      opt.textContent = option.label;
-      select.appendChild(opt);
-    });
-
-    const nextValue = options.some((option) => option.value === current)
-      ? current
-      : options[0]?.value || "";
-    select.value = nextValue;
-    draft[field.name] = nextValue;
-  };
-
-  select.addEventListener("change", () => {
-    draft[field.name] = select.value;
-    if (typeof field.onChange === "function") {
-      field.onChange(draft, refreshers);
-    }
-  });
-
+  label.textContent = title;
   row.appendChild(label);
-  row.appendChild(select);
 
-  const refreshers = { refreshOptions };
-
-  if (field.defaultValue && !draft[field.name]) {
-    draft[field.name] = field.defaultValue;
-  }
-
-  refreshOptions();
-
-  return { row, refreshOptions };
-}
-
-function openSimpleModal({ title, message, confirmText = "Aceptar", cancelText = "Cancelar", danger = false, fields }) {
-  return new Promise((resolve) => {
-    const overlay = document.createElement("div");
-    overlay.className = "modal-overlay";
-
-    const modal = document.createElement("div");
-    modal.className = "modal";
-
-    const titleEl = document.createElement("h3");
-    titleEl.textContent = title;
-    modal.appendChild(titleEl);
-
-    const messageEl = document.createElement("p");
-    messageEl.textContent = message;
-    modal.appendChild(messageEl);
-
-    const draft = {};
-    const fieldControls = [];
-
-    if (Array.isArray(fields) && fields.length > 0) {
-      const fieldWrapper = document.createElement("div");
-      fieldWrapper.className = "modal-fields";
-
-      fields.forEach((field) => {
-        const control = createSelectRow(field, draft);
-        fieldControls.push(control);
-        fieldWrapper.appendChild(control.row);
-      });
-
-      if (fields.some((field) => field.optionsResolver)) {
-        const [firstControl] = fieldControls;
-        firstControl.row.querySelector("select").addEventListener("change", () => {
-          fieldControls.forEach((control) => control.refreshOptions());
-        });
-      }
-
-      modal.appendChild(fieldWrapper);
+  const input = document.createElement("input");
+  input.value = value || "";
+  input.addEventListener("change", async (event) => {
+    const nextName = event.target.value.trim();
+    if (!nextName) {
+      event.target.value = value || "";
+      return;
     }
 
-    const actions = document.createElement("div");
-    actions.className = "modal-actions";
-
-    const cancelBtn = document.createElement("button");
-    cancelBtn.className = "modal-btn";
-    cancelBtn.textContent = cancelText;
-
-    const confirmBtn = document.createElement("button");
-    confirmBtn.className = `modal-btn ${danger ? "danger" : "primary"}`;
-    confirmBtn.textContent = confirmText;
-
-    const close = (value) => {
-      overlay.remove();
-      resolve(value);
-    };
-
-    cancelBtn.addEventListener("click", () => close(null));
-    confirmBtn.addEventListener("click", () => {
-      if (!fields?.length) {
-        close(true);
-        return;
-      }
-      close(draft);
-    });
-
-    overlay.addEventListener("click", (event) => {
-      if (event.target === overlay) {
-        close(null);
-      }
-    });
-
-    actions.appendChild(cancelBtn);
-    actions.appendChild(confirmBtn);
-    modal.appendChild(actions);
-    overlay.appendChild(modal);
-
-    document.body.appendChild(overlay);
+    await onSave(nextName);
   });
+  row.appendChild(input);
+
+  return row;
 }
 
-function createElementEditorRow({ typeLabel, value, onRename, onDelete }) {
+function createCrudRow({ typeLabel, name, onRename, onDelete }) {
   const row = document.createElement("div");
   row.className = "inspector-item-row";
 
@@ -1231,13 +926,15 @@ function createElementEditorRow({ typeLabel, value, onRename, onDelete }) {
   type.textContent = `[${typeLabel}]`;
 
   const input = document.createElement("input");
-  input.value = value;
-  input.addEventListener("input", (event) => {
-    const nextName = event.target.value;
-    clearTimeout(state.renameTimer);
-    state.renameTimer = setTimeout(async () => {
-      await onRename(nextName);
-    }, 300);
+  input.value = name;
+  input.addEventListener("change", async (event) => {
+    const nextName = event.target.value.trim();
+    if (!nextName) {
+      event.target.value = name;
+      return;
+    }
+
+    await onRename(nextName);
   });
 
   const deleteBtn = document.createElement("button");
@@ -1254,7 +951,7 @@ function createElementEditorRow({ typeLabel, value, onRename, onDelete }) {
   return row;
 }
 
-function renderElementsSection({ title, emptyMessage, rows }) {
+function createInspectorSection(title, rows, emptyMessage) {
   const section = document.createElement("div");
   section.className = "inspector-elements";
 
@@ -1274,6 +971,38 @@ function renderElementsSection({ title, emptyMessage, rows }) {
   return section;
 }
 
+function createAddButtons(buttons) {
+  const wrap = document.createElement("div");
+  wrap.className = "grid-controls-row";
+
+  buttons.forEach(({ label, onClick }) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = label;
+    btn.addEventListener("click", onClick);
+    wrap.appendChild(btn);
+  });
+
+  return wrap;
+}
+
+async function addElementAndSelect(profileId, pageId, type, folderId = null) {
+  const result = type === "button"
+    ? await window.runtime.addButton(profileId, pageId, { name: "", folderId })
+    : await window.runtime.addFader(profileId, pageId, { name: "", folderId });
+
+  state.workspace = result.workspace;
+  state.selection = {
+    kind: "element",
+    profileId,
+    pageId,
+    folderId: folderId || null,
+    elementId: result.created.id,
+  };
+  renderNavigation();
+  await renderGridTab();
+}
+
 function renderInspector(workspace, selection) {
   const context = getSelectedNodeContext(workspace, selection);
 
@@ -1286,127 +1015,167 @@ function renderInspector(workspace, selection) {
   inspector.classList.remove("muted");
   inspector.innerHTML = "";
 
-  const title = document.createElement("h3");
-  title.textContent = `Tipo: ${context.type}`;
-  inspector.appendChild(title);
+  if (context.kind === "profile") {
+    inspector.appendChild(createNameEditorRow("Nombre de perfil", context.profile.name, async (name) => {
+      state.workspace = await window.runtime.renameProfile(context.profile.id, name);
+      renderNavigation();
+      await renderGridTab();
+    }));
+    return;
+  }
 
-  const nameRow = document.createElement("div");
-  nameRow.className = "inspector-row";
-  const nameLabel = document.createElement("label");
-  nameLabel.textContent = "Nombre";
-  const nameInput = document.createElement("input");
-  const selectedNode = context[context.type];
-  nameInput.value = selectedNode.name || "";
-  nameInput.addEventListener("input", (event) => {
-    const nextName = event.target.value;
-    clearTimeout(state.renameTimer);
-    state.renameTimer = setTimeout(async () => {
-      state.workspace = await window.runtime.updateName({
-        type: context.type,
-        id: selectedNode.id,
-        name: nextName,
-      });
-      renderTree(state.workspace, state.selection);
-    }, 300);
-  });
-  nameRow.appendChild(nameLabel);
-  nameRow.appendChild(nameInput);
-  inspector.appendChild(nameRow);
+  if (context.kind === "page") {
+    inspector.appendChild(createNameEditorRow("Nombre de página", context.page.name, async (name) => {
+      state.workspace = await window.runtime.renamePage(context.profile.id, context.page.id, name);
+      renderNavigation();
+      await renderGridTab();
+    }));
 
-  if (context.type === "folder") {
+    inspector.appendChild(createAddButtons([
+      { label: "+ Botón", onClick: async () => addElementAndSelect(context.profile.id, context.page.id, "button") },
+      { label: "+ Fader", onClick: async () => addElementAndSelect(context.profile.id, context.page.id, "fader") },
+      {
+        label: "+ Carpeta",
+        onClick: async () => {
+          const result = await window.runtime.addFolder(context.profile.id, context.page.id, { name: "" });
+          state.workspace = result.workspace;
+          state.selection = {
+            kind: "folder",
+            profileId: context.profile.id,
+            pageId: context.page.id,
+            folderId: result.created.id,
+          };
+          renderNavigation();
+        },
+      },
+    ]));
+
+    const rootElements = (context.page.controls || []).filter((element) => !element.folderId);
+    inspector.appendChild(createInspectorSection(
+      "Elementos (Page root)",
+      rootElements.map((element) =>
+        createCrudRow({
+          typeLabel: getElementTypeLabel(element.type),
+          name: element.name,
+          onRename: async (name) => {
+            state.workspace = await window.runtime.renameElement(context.profile.id, context.page.id, element.id, name);
+            renderNavigation();
+            await renderGridTab();
+          },
+          onDelete: async () => {
+            state.workspace = await window.runtime.deleteElement(context.profile.id, context.page.id, element.id);
+            renderNavigation();
+            await renderGridTab();
+          },
+        }),
+      ),
+      "Sin elementos en la raíz de la página.",
+    ));
+
+    inspector.appendChild(createInspectorSection(
+      "Carpetas",
+      (context.page.folders || []).map((folder) =>
+        createCrudRow({
+          typeLabel: "Carpeta",
+          name: folder.name,
+          onRename: async (name) => {
+            state.workspace = await window.runtime.renameFolder(context.profile.id, context.page.id, folder.id, name);
+            renderNavigation();
+          },
+          onDelete: async () => {
+            state.workspace = await window.runtime.deleteFolder(context.profile.id, context.page.id, folder.id);
+            if (state.selection?.kind === "folder" && state.selection.folderId === folder.id) {
+              state.selection = { kind: "page", profileId: context.profile.id, pageId: context.page.id };
+            }
+            renderNavigation();
+            await renderGridTab();
+          },
+        }),
+      ),
+      "Sin carpetas en esta página.",
+    ));
+    return;
+  }
+
+  if (context.kind === "folder") {
+    inspector.appendChild(createNameEditorRow("Nombre de carpeta", context.folder.name, async (name) => {
+      state.workspace = await window.runtime.renameFolder(context.profile.id, context.page.id, context.folder.id, name);
+      renderNavigation();
+    }));
+
     const iconRow = document.createElement("div");
     iconRow.className = "inspector-row";
     const iconLabel = document.createElement("label");
-    iconLabel.textContent = "Icono (PNG)";
+    iconLabel.textContent = "Icono PNG";
     iconRow.appendChild(iconLabel);
 
-    if (selectedNode.iconPath) {
-      const iconPreview = document.createElement("img");
-      iconPreview.className = "icon-preview";
-      iconPreview.src = selectedNode.iconPath;
-      iconPreview.alt = "icon preview";
-      iconRow.appendChild(iconPreview);
+    if (context.folder.iconAssetId) {
+      const iconInfo = state.workspace.assets?.icons?.[context.folder.iconAssetId];
+      if (iconInfo?.path) {
+        const iconPreview = document.createElement("img");
+        iconPreview.className = "icon-preview";
+        iconPreview.src = iconInfo.path;
+        iconPreview.alt = "icon preview";
+        iconRow.appendChild(iconPreview);
+      }
     }
 
     const iconBtn = document.createElement("button");
+    iconBtn.type = "button";
     iconBtn.textContent = "Importar PNG";
     iconBtn.addEventListener("click", async () => {
-      const iconPath = await window.runtime.importIcon();
-      if (!iconPath) {
+      const workspaceNext = await window.runtime.importFolderIcon(context.profile.id, context.page.id, context.folder.id);
+      if (!workspaceNext) {
         return;
       }
 
-      state.workspace = await window.runtime.updateIcon({
-        type: context.type,
-        id: selectedNode.id,
-        iconPath,
-      });
+      state.workspace = workspaceNext;
       renderNavigation();
     });
-
     iconRow.appendChild(iconBtn);
     inspector.appendChild(iconRow);
+
+    inspector.appendChild(createAddButtons([
+      {
+        label: "+ Botón",
+        onClick: async () => addElementAndSelect(context.profile.id, context.page.id, "button", context.folder.id),
+      },
+      {
+        label: "+ Fader",
+        onClick: async () => addElementAndSelect(context.profile.id, context.page.id, "fader", context.folder.id),
+      },
+    ]));
+
+    const folderElements = (context.page.controls || []).filter((element) => element.folderId === context.folder.id);
+    inspector.appendChild(createInspectorSection(
+      "Elementos en esta carpeta",
+      folderElements.map((element) =>
+        createCrudRow({
+          typeLabel: getElementTypeLabel(element.type),
+          name: element.name,
+          onRename: async (name) => {
+            state.workspace = await window.runtime.renameElement(context.profile.id, context.page.id, element.id, name);
+            renderNavigation();
+            await renderGridTab();
+          },
+          onDelete: async () => {
+            state.workspace = await window.runtime.deleteElement(context.profile.id, context.page.id, element.id);
+            renderNavigation();
+            await renderGridTab();
+          },
+        }),
+      ),
+      "Sin elementos en esta carpeta.",
+    ));
+    return;
   }
 
-  if (context.type === "page") {
-    const info = document.createElement("p");
-    info.className = "muted";
-    info.textContent = `Grid: ${context.page.grid.rows} rows x ${context.page.grid.cols} cols`;
-    inspector.appendChild(info);
-
-    const rows = context.page.controls.map((element) =>
-      createElementEditorRow({
-        typeLabel: element.type,
-        value: element.name,
-        onRename: async (nextName) => {
-          state.workspace = await window.runtime.renamePageElement(context.profile.id, context.page.id, element.id, nextName);
-          renderNavigation();
-        },
-        onDelete: async () => {
-          state.workspace = await window.runtime.deletePageElement(context.profile.id, context.page.id, element.id);
-          renderNavigation();
-        },
-      }),
-    );
-
-    inspector.appendChild(
-      renderElementsSection({
-        title: "Elementos",
-        emptyMessage: "Sin elementos en la página.",
-        rows,
-      }),
-    );
-  }
-
-  if (context.type === "folder") {
-    const rows = context.folder.items.map((item) =>
-      createElementEditorRow({
-        typeLabel: item.type,
-        value: item.name,
-        onRename: async (nextName) => {
-          state.workspace = await window.runtime.renameFolderItem(
-            context.profile.id,
-            context.page.id,
-            context.folder.id,
-            item.id,
-            nextName,
-          );
-          renderNavigation();
-        },
-        onDelete: async () => {
-          state.workspace = await window.runtime.deleteFolderItem(context.profile.id, context.page.id, context.folder.id, item.id);
-          renderNavigation();
-        },
-      }),
-    );
-
-    inspector.appendChild(
-      renderElementsSection({
-        title: "Elementos",
-        emptyMessage: "Sin elementos en la carpeta.",
-        rows,
-      }),
-    );
+  if (context.kind === "element") {
+    inspector.appendChild(createNameEditorRow("Nombre de elemento", context.element.name, async (name) => {
+      state.workspace = await window.runtime.renameElement(context.profile.id, context.page.id, context.element.id, name);
+      renderNavigation();
+      await renderGridTab();
+    }));
   }
 }
 
@@ -1417,44 +1186,39 @@ function updateAddButtonState() {
 async function handleAddProfile() {
   const result = await window.runtime.addProfile();
   state.workspace = result.workspace;
-  state.selection = result.created;
+  state.selection = { kind: "profile", profileId: result.created.id };
   renderNavigation();
   await renderGridTab();
 }
 
 async function handleAddPage() {
   const context = getSelectedNodeContext(state.workspace, state.selection);
-  let targetProfileId = context?.profile?.id || null;
-
-  if (!targetProfileId) {
-    targetProfileId = state.workspace.activeProfileId;
-  }
+  const targetProfileId = context?.profile?.id || state.workspace.activeProfileId;
 
   const result = await window.runtime.addPage(targetProfileId);
   state.workspace = result.workspace;
-  state.selection = result.created;
+  state.selection = {
+    kind: "page",
+    profileId: targetProfileId,
+    pageId: result.created.id,
+  };
   renderNavigation();
   await renderGridTab();
 }
 
 async function handleAddFolder() {
   const context = getSelectedNodeContext(state.workspace, state.selection);
-  let targetProfileId = null;
-  let targetPageId = null;
+  const targetProfileId = context?.profile?.id || state.workspace.activeProfileId;
+  const targetPageId = context?.page?.id || state.workspace.activePageId;
 
-  if (context?.type === "page" || context?.type === "folder") {
-    targetProfileId = context.profile.id;
-    targetPageId = context.page.id;
-  }
-
-  if (!targetProfileId || !targetPageId) {
-    targetProfileId = state.workspace.activeProfileId;
-    targetPageId = state.workspace.activePageId;
-  }
-
-  const result = await window.runtime.addFolder(targetProfileId, targetPageId);
+  const result = await window.runtime.addFolder(targetProfileId, targetPageId, { name: "" });
   state.workspace = result.workspace;
-  state.selection = result.created;
+  state.selection = {
+    kind: "folder",
+    profileId: targetProfileId,
+    pageId: targetPageId,
+    folderId: result.created.id,
+  };
   renderNavigation();
   await renderGridTab();
 }
@@ -1538,7 +1302,6 @@ addMenu.addEventListener("click", async (event) => {
 
 document.addEventListener("click", () => {
   addMenu.classList.remove("open");
-  closeContextMenus();
 });
 
 tabButtons.forEach((button) => {
