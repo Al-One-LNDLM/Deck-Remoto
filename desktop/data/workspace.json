@@ -17,22 +17,14 @@
             "rows": 4,
             "cols": 3
           },
-          "showGrid": false,
+          "showGrid": true,
           "controls": [
             {
               "id": "button1",
               "type": "button",
-              "name": "Botón 1",
-              "folderId": null,
-              "iconAssetId": null,
-              "actionBinding": null
-            },
-            {
-              "id": "button2",
-              "type": "button",
               "name": "COPIAR",
               "folderId": null,
-              "iconAssetId": "icon_1770917839732",
+              "iconAssetId": "icon_1770921103236",
               "actionBinding": {
                 "kind": "single",
                 "action": {
@@ -42,7 +34,30 @@
               },
               "style": {
                 "backgroundEnabled": true,
-                "backgroundColor": "#888686",
+                "backgroundColor": "#2424C2",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": true
+              }
+            },
+            {
+              "id": "button2",
+              "type": "button",
+              "name": "PEGAR",
+              "folderId": null,
+              "iconAssetId": "icon_1770921103236",
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "hotkey",
+                  "keys": "Ctrl+V"
+                }
+              },
+              "style": {
+                "backgroundEnabled": true,
+                "backgroundColor": "#4026AB",
                 "backgroundOpacity": 1,
                 "borderEnabled": false,
                 "borderColor": "#FFFFFF",
@@ -53,19 +68,19 @@
             {
               "id": "button3",
               "type": "button",
-              "name": "PEGAR",
+              "name": "CORTAR",
               "folderId": null,
-              "iconAssetId": "icon_1770917839732",
+              "iconAssetId": "icon_1770921103236",
               "actionBinding": {
                 "kind": "single",
                 "action": {
                   "type": "hotkey",
-                  "keys": "Ctrl+V"
+                  "keys": "Ctrl+X"
                 }
               },
               "style": {
                 "backgroundEnabled": true,
-                "backgroundColor": "#888686",
+                "backgroundColor": "#2623CD",
                 "backgroundOpacity": 1,
                 "borderEnabled": false,
                 "borderColor": "#FFFFFF",
@@ -78,25 +93,31 @@
           "placements": [
             {
               "id": "placement1",
-              "elementId": "button2",
-              "row": 1,
-              "col": 0,
-              "rowSpan": 1,
-              "colSpan": 3
-            },
-            {
-              "id": "placement2",
-              "elementId": "button3",
+              "elementId": "button1",
               "row": 0,
               "col": 0,
               "rowSpan": 1,
-              "colSpan": 3
+              "colSpan": 1
+            },
+            {
+              "id": "placement2",
+              "elementId": "button2",
+              "row": 1,
+              "col": 1,
+              "rowSpan": 1,
+              "colSpan": 1
+            },
+            {
+              "id": "placement3",
+              "elementId": "button3",
+              "row": 0,
+              "col": 2,
+              "rowSpan": 1,
+              "colSpan": 1
             }
-          ],
-          "iconAssetId": null
+          ]
         }
-      ],
-      "iconAssetId": null
+      ]
     }
   ],
   "assets": {
@@ -226,6 +247,12 @@
         "type": "icon",
         "path": "assets/icons/1770917845188-LOGOTIPO.png",
         "createdAt": "2026-02-12T17:37:25.189Z"
+      },
+      "icon_1770921103236": {
+        "id": "icon_1770921103236",
+        "type": "icon",
+        "path": "assets/icons/1770921103235-LOGOTIPO.png",
+        "createdAt": "2026-02-12T18:31:43.236Z"
       }
     }
   }
