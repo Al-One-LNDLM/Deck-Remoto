@@ -15,7 +15,7 @@
           "name": "Página 1",
           "grid": {
             "rows": 4,
-            "cols": 3
+            "cols": 4
           },
           "showGrid": false,
           "style": {
@@ -26,7 +26,7 @@
               "borderEnabled": true,
               "borderColor": "#444444",
               "borderOpacity": 1,
-              "showLabel": true
+              "showLabel": false
             },
             "fader": {
               "backgroundEnabled": true,
@@ -49,7 +49,7 @@
           },
           "background": {
             "type": "solid",
-            "value": "#000000"
+            "value": "#002aff"
           },
           "controls": [
             {
@@ -57,16 +57,7 @@
               "type": "button",
               "name": "ESC",
               "folderId": null,
-              "iconAssetId": null,
-              "styleOverride": {
-                "backgroundEnabled": true,
-                "backgroundColor": "#ff0000",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#ce7e7e",
-                "borderOpacity": 1,
-                "showLabel": false
-              }
+              "iconAssetId": null
             },
             {
               "id": "fader1",
@@ -97,7 +88,24 @@
               "iconAssetId": null
             }
           ],
-          "placements": []
+          "placements": [
+            {
+              "id": "placement1",
+              "elementId": "button1",
+              "row": 2,
+              "col": 2,
+              "rowSpan": 1,
+              "colSpan": 1
+            },
+            {
+              "id": "placement2",
+              "elementId": "fader1",
+              "row": 1,
+              "col": 4,
+              "rowSpan": 4,
+              "colSpan": 1
+            }
+          ]
         }
       ]
     }
