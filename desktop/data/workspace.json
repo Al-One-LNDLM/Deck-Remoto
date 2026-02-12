@@ -41,8 +41,8 @@
           "id": "page2",
           "name": "Página 2",
           "grid": {
-            "rows": 4,
-            "cols": 3
+            "rows": 5,
+            "cols": 4
           },
           "showGrid": true,
           "controls": [
