@@ -72,6 +72,22 @@ function getGridContextWorkspace() {
   };
 }
 
+function findFolderButtonForFolder(controls, folderId) {
+  if (!Array.isArray(controls) || !folderId) {
+    return null;
+  }
+
+  return controls.find((control) => control.type === "folderButton" && control.folderId === folderId) || null;
+}
+
+function isFolderPlaced(placements, folderButtonId) {
+  if (!Array.isArray(placements) || !folderButtonId) {
+    return false;
+  }
+
+  return placements.some((placement) => placement.elementId === folderButtonId);
+}
+
 function normalizePageForRenderer(page) {
   if (!page) {
     return null;
@@ -175,20 +191,10 @@ async function renderGridTab() {
   const placedIds = new Set(placements.map((placement) => placement.elementId));
   const controls = Array.isArray(ctx.page.controls) ? ctx.page.controls : [];
 
+  const placeableControlTypes = new Set(["button", "fader", "toggle"]);
   const placeableControls = controls
-    .filter((control) => control.type !== "folderButton")
+    .filter((control) => placeableControlTypes.has(control.type))
     .filter((control) => !control.folderId);
-
-  const folderButtonsByFolderId = new Map();
-  controls
-    .filter((control) => control.type === "folderButton")
-    .forEach((control) => {
-      if (!control.folderId || !folderById.has(control.folderId) || folderButtonsByFolderId.has(control.folderId)) {
-        return;
-      }
-
-      folderButtonsByFolderId.set(control.folderId, control);
-    });
 
   gridElementsList.innerHTML = "";
 
@@ -277,46 +283,35 @@ async function renderGridTab() {
     appendElementSectionEmpty();
   } else {
     folders.forEach((folder) => {
-      const folderButton = folderButtonsByFolderId.get(folder.id);
-
-      if (!folderButton) {
-        const item = document.createElement("li");
-        item.className = "grid-element-item";
-
-        const rowLeft = document.createElement("span");
-        const text = document.createElement("span");
-        text.textContent = `${folder.name} (sin acceso)`;
-        rowLeft.appendChild(text);
-
-        const createAction = document.createElement("button");
-        createAction.type = "button";
-        createAction.textContent = "Crear acceso";
-        createAction.addEventListener("click", async () => {
-          const result = await window.runtime.addFolderButton(ctx.profile.id, ctx.page.id, folder.id, {
-            name: `Acceso a ${folder.name}`,
-          });
-          state.workspace = result.workspace;
-          await renderGridTab();
-          renderNavigation();
-        });
-
-        item.appendChild(rowLeft);
-        item.appendChild(createAction);
-        gridElementsList.appendChild(item);
-        return;
-      }
+      const folderButton = findFolderButtonForFolder(controls, folder.id);
+      const folderButtonId = folderButton?.id || null;
+      const folderPlaced = isFolderPlaced(placements, folderButtonId);
 
       appendPlaceableElementRow(
-        `Acceso a: ${folder.name}`,
-        folderButton.iconAssetId || folder.iconAssetId || null,
-        placedIds.has(folderButton.id),
-        () => {
-          state.placingElementId = folderButton.id;
+        folder.name,
+        folder.iconAssetId || folderButton?.iconAssetId || null,
+        folderPlaced,
+        async () => {
+          let resolvedFolderButtonId = folderButtonId;
+          if (!resolvedFolderButtonId) {
+            const result = await window.runtime.addFolderButton(ctx.profile.id, ctx.page.id, folder.id, {
+              name: folder.name,
+            });
+            state.workspace = result.workspace;
+            resolvedFolderButtonId = result.created.id;
+            renderNavigation();
+          }
+
+          state.placingElementId = resolvedFolderButtonId;
           renderGridTab();
         },
         async () => {
-          state.workspace = await window.runtime.unplaceElement(ctx.profile.id, ctx.page.id, folderButton.id);
-          if (state.placingElementId === folderButton.id) {
+          if (!folderButtonId) {
+            return;
+          }
+
+          state.workspace = await window.runtime.unplaceElement(ctx.profile.id, ctx.page.id, folderButtonId);
+          if (state.placingElementId === folderButtonId) {
             state.placingElementId = null;
           }
           renderNavigation();
@@ -325,14 +320,6 @@ async function renderGridTab() {
       );
     });
   }
-
-  const folderButtons = controls
-    .filter((control) => control.type === "folderButton")
-    .filter((control) => control.folderId && folderById.has(control.folderId));
-  appendElementGroup("Accesos a carpetas", folderButtons, (element) => {
-    const linkedFolder = folderById.get(element.folderId);
-    return `${element.name || "Acceso"} → ${linkedFolder?.name || "Carpeta"}`;
-  });
 
   const page = normalizePageForRenderer(ctx.page);
   const assets = normalizeAssetsForRenderer(state.workspace);
