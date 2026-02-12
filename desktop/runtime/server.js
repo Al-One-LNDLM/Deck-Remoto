@@ -62,6 +62,15 @@ function toPageContract(page) {
       name: control.name,
       iconAssetId: typeof control.iconAssetId === "string" ? control.iconAssetId : null,
       folderId: typeof control.folderId === "string" ? control.folderId : null,
+      style: control.style && typeof control.style === "object" ? {
+        backgroundEnabled: control.style.backgroundEnabled === true,
+        backgroundColor: control.style.backgroundColor,
+        backgroundOpacity: control.style.backgroundOpacity,
+        borderEnabled: control.style.borderEnabled !== false,
+        borderColor: control.style.borderColor,
+        borderOpacity: control.style.borderOpacity,
+        showLabel: control.style.showLabel !== false,
+      } : undefined,
     })),
     placements: placements.map((placement) => ({
       elementId: typeof placement.elementId === "string" ? placement.elementId : placement.controlId,

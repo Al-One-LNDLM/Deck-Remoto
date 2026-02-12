@@ -38,6 +38,12 @@ contextBridge.exposeInMainWorld("runtime", {
     ipcRenderer.invoke("workspace:setPageGrid", profileId, pageId, rows, cols),
   setPageShowGrid: (profileId, pageId, showGrid) =>
     ipcRenderer.invoke("workspace:setPageShowGrid", profileId, pageId, showGrid),
+  setPlacementPosition: (profileId, pageId, elementId, row, col) =>
+    ipcRenderer.invoke("workspace:setPlacementPosition", profileId, pageId, elementId, row, col),
+  setPlacementSpan: (profileId, pageId, elementId, rowSpan, colSpan) =>
+    ipcRenderer.invoke("workspace:setPlacementSpan", profileId, pageId, elementId, rowSpan, colSpan),
+  setControlStyle: (profileId, pageId, elementId, patchStyle) =>
+    ipcRenderer.invoke("workspace:setControlStyle", profileId, pageId, elementId, patchStyle),
   deleteProfile: (profileId) => ipcRenderer.invoke("workspace:deleteProfile", profileId),
   deletePage: (profileId, pageId) => ipcRenderer.invoke("workspace:deletePage", profileId, pageId),
   deleteFolder: (profileId, pageId, folderId) => ipcRenderer.invoke("workspace:deleteFolder", profileId, pageId, folderId),
