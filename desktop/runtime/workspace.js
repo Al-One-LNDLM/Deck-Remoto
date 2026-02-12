@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { normalizeActionBinding } = require("../../shared/schema/actions");
 
 const workspaceFilePath = path.resolve(__dirname, "../data/workspace.json");
 
@@ -146,6 +147,8 @@ function normalizeWorkspace(workspace) {
         } else {
           delete control.faderIconAssetIds;
         }
+
+        control.actionBinding = normalizeActionBinding(control.actionBinding);
       });
 
       const controlIds = new Set(page.controls.map((control) => control.id));
@@ -507,6 +510,7 @@ function addElement(profileId, pageId, elementType, payload = {}) {
       : `${typeLabel} ${itemNumber}`),
     folderId,
     iconAssetId: null,
+    actionBinding: null,
     ...(elementType === "fader" ? { faderIconAssetIds: [null, null, null, null] } : {}),
   });
   scheduleSave();
@@ -1103,6 +1107,19 @@ function setControlStyle(profileId, pageId, elementId, patchStyle = {}) {
   return workspace;
 }
 
+function setControlActionBinding(profileId, pageId, elementId, actionBindingOrNull) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const control = page.controls.find((item) => item.id === elementId);
+
+  if (!control) {
+    throw new Error("Elemento no encontrado");
+  }
+
+  control.actionBinding = normalizeActionBinding(actionBindingOrNull);
+  scheduleSave();
+  return workspace;
+}
+
 function setElementIcon(profileId, pageId, elementId, assetId) {
   const { workspace, page } = getPage(profileId, pageId);
   const element = page.controls.find((item) => item.id === elementId);
@@ -1357,4 +1374,5 @@ module.exports = {
   setPlacementPosition,
   setPlacementSpan,
   setControlStyle,
+  setControlActionBinding,
 };
