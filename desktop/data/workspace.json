@@ -38,7 +38,19 @@
               "name": "Botón 2"
             }
           ],
-          "folders": [],
+          "folders": [
+            {
+              "id": "folder1",
+              "name": "Carpeta 1",
+              "items": [
+                {
+                  "id": "item1",
+                  "type": "button",
+                  "name": "Botón 1"
+                }
+              ]
+            }
+          ],
           "placements": [
             {
               "id": "placement1",
@@ -69,6 +81,13 @@
           "style": {
             "buttonShowBackground": true,
             "buttonShowLabel": true,
+            "buttonBackgroundColor": "#2b2b2b",
+            "buttonShowBorder": true,
+            "buttonBorderColor": "#444444",
+            "faderShowBackground": true,
+            "faderBackgroundColor": "#2b2b2b",
+            "faderShowBorder": true,
+            "faderBorderColor": "#444444",
             "faderShowLabel": true
           }
         },
@@ -81,7 +100,7 @@
           },
           "background": {
             "type": "solid",
-            "color": "#004bad"
+            "color": "#000000"
           },
           "controls": [
             {
@@ -101,10 +120,17 @@
               "colSpan": 1
             }
           ],
-          "showGrid": false,
+          "showGrid": true,
           "style": {
             "buttonShowBackground": true,
             "buttonShowLabel": true,
+            "buttonBackgroundColor": "#ff0000",
+            "buttonShowBorder": true,
+            "buttonBorderColor": "#ffffff",
+            "faderShowBackground": true,
+            "faderBackgroundColor": "#2b2b2b",
+            "faderShowBorder": true,
+            "faderBorderColor": "#444444",
             "faderShowLabel": true
           }
         }
@@ -133,6 +159,13 @@
           "style": {
             "buttonShowBackground": true,
             "buttonShowLabel": true,
+            "buttonBackgroundColor": "#2b2b2b",
+            "buttonShowBorder": true,
+            "buttonBorderColor": "#444444",
+            "faderShowBackground": true,
+            "faderBackgroundColor": "#2b2b2b",
+            "faderShowBorder": true,
+            "faderBorderColor": "#444444",
             "faderShowLabel": true
           }
         }
