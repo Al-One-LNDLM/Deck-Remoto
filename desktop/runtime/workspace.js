@@ -57,6 +57,19 @@ function sanitizeHexColor(value, fallback) {
   return /^#[0-9a-fA-F]{6}$/.test(value || "") ? value : fallback;
 }
 
+function sanitizeName(name) {
+  return typeof name === "string" ? name.trim() : "";
+}
+
+function requireName(name, entityLabel = "Nombre") {
+  const safeName = sanitizeName(name);
+  if (!safeName) {
+    throw new Error(`${entityLabel} no puede estar vacío`);
+  }
+
+  return safeName;
+}
+
 function normalizePageStyle(style) {
   return {
     buttonShowBackground: style?.buttonShowBackground !== false,
@@ -109,11 +122,43 @@ function normalizeWorkspace(workspace) {
       page.folders = Array.isArray(page.folders) ? page.folders : [];
       page.placements = Array.isArray(page.placements) ? page.placements : [];
 
+      const folderIds = new Set();
       page.folders.forEach((folder) => {
+        folderIds.add(folder.id);
         folder.items = Array.isArray(folder.items) ? folder.items : [];
+        folder.iconAssetId = typeof folder.iconAssetId === "string" ? folder.iconAssetId : null;
+      });
+
+      page.controls.forEach((control) => {
+        const folderId = typeof control.folderId === "string" ? control.folderId : null;
+        control.folderId = folderId && folderIds.has(folderId) ? folderId : null;
+      });
+
+      page.folders.forEach((folder) => {
+        folder.items.forEach((item) => {
+          if (page.controls.some((control) => control.id === item.id)) {
+            return;
+          }
+
+          page.controls.push({
+            id: item.id,
+            type: item.type === "fader" ? "fader" : "button",
+            name: item.name || "Elemento",
+            folderId: folder.id,
+          });
+        });
+        folder.items = [];
       });
     });
   });
+
+  if (!normalized.assets || typeof normalized.assets !== "object") {
+    normalized.assets = {};
+  }
+
+  normalized.assets.icons = normalized.assets.icons && typeof normalized.assets.icons === "object"
+    ? normalized.assets.icons
+    : {};
 
   if (!normalized.activeProfileId && normalized.profiles[0]) {
     normalized.activeProfileId = normalized.profiles[0].id;
@@ -204,11 +249,6 @@ function nextElementId(prefix) {
         used.add(control.id);
       });
 
-      page.folders.forEach((folder) => {
-        folder.items.forEach((item) => {
-          used.add(item.id);
-        });
-      });
     });
   });
 
@@ -398,14 +438,15 @@ function addPage(profileId) {
   return { workspace, created: { type: "page", id: pageId } };
 }
 
-function addFolder(profileId, pageId) {
+function addFolder(profileId, pageId, payload = {}) {
   const { workspace, page } = getPage(profileId, pageId);
 
   const folderId = nextIdFromWorkspace("folder");
   const folder = {
     id: folderId,
-    name: `Carpeta ${folderId.replace("folder", "")}`,
+    name: sanitizeName(payload.name) || `Carpeta ${folderId.replace("folder", "")}`,
     items: [],
+    iconAssetId: null,
   };
 
   page.folders.push(folder);
@@ -414,7 +455,7 @@ function addFolder(profileId, pageId) {
   return { workspace, created: { type: "folder", id: folderId } };
 }
 
-function addPageElement(profileId, pageId, elementType) {
+function addElement(profileId, pageId, elementType, payload = {}) {
   const { workspace, page } = getPage(profileId, pageId);
 
   if (elementType !== "button" && elementType !== "fader") {
@@ -426,14 +467,31 @@ function addPageElement(profileId, pageId, elementType) {
   const itemNumber = elementId.replace(prefix, "");
   const typeLabel = elementType === "button" ? "Botón" : "Fader";
 
+  const folderId = typeof payload.folderId === "string" && payload.folderId
+    ? payload.folderId
+    : null;
+
+  if (folderId && !page.folders.some((folder) => folder.id === folderId)) {
+    throw new Error("Carpeta no encontrada");
+  }
+
   page.controls.push({
     id: elementId,
     type: elementType,
-    name: `${typeLabel} ${itemNumber}`,
+    name: sanitizeName(payload.name) || `${typeLabel} ${itemNumber}`,
+    folderId,
   });
   scheduleSave();
 
-  return { workspace, created: { type: "pageElement", id: elementId } };
+  return { workspace, created: { type: "element", id: elementId } };
+}
+
+function addButton(profileId, pageId, payload = {}) {
+  return addElement(profileId, pageId, "button", payload);
+}
+
+function addFader(profileId, pageId, payload = {}) {
+  return addElement(profileId, pageId, "fader", payload);
 }
 
 function deletePageElement(profileId, pageId, elementId) {
@@ -451,6 +509,10 @@ function deletePageElement(profileId, pageId, elementId) {
   return workspace;
 }
 
+function deleteElement(profileId, pageId, elementId) {
+  return deletePageElement(profileId, pageId, elementId);
+}
+
 function renamePageElement(profileId, pageId, elementId, name) {
   const { workspace, page } = getPage(profileId, pageId);
   const element = page.controls.find((item) => item.id === elementId);
@@ -459,10 +521,14 @@ function renamePageElement(profileId, pageId, elementId, name) {
     throw new Error("Elemento no encontrado");
   }
 
-  element.name = name;
+  element.name = requireName(name, "Nombre del elemento");
   scheduleSave();
 
   return workspace;
+}
+
+function renameElement(profileId, pageId, elementId, name) {
+  return renamePageElement(profileId, pageId, elementId, name);
 }
 
 function addPlacement(profileId, pageId, elementId, row, col) {
@@ -538,49 +604,6 @@ function deletePlacement(profileId, pageId, placementId) {
   }
 
   page.placements.splice(placementIndex, 1);
-  scheduleSave();
-
-  return workspace;
-}
-
-function addFolderItem(profileId, pageId, folderId) {
-  const { workspace, folder } = getFolder(profileId, pageId, folderId);
-  const itemId = nextElementId("item");
-  const itemNumber = itemId.replace("item", "");
-
-  folder.items.push({
-    id: itemId,
-    type: "button",
-    name: `Botón ${itemNumber}`,
-  });
-  scheduleSave();
-
-  return { workspace, created: { type: "folderItem", id: itemId } };
-}
-
-function deleteFolderItem(profileId, pageId, folderId, itemId) {
-  const { workspace, folder } = getFolder(profileId, pageId, folderId);
-  const itemIndex = folder.items.findIndex((item) => item.id === itemId);
-
-  if (itemIndex === -1) {
-    throw new Error("Elemento no encontrado");
-  }
-
-  folder.items.splice(itemIndex, 1);
-  scheduleSave();
-
-  return workspace;
-}
-
-function renameFolderItem(profileId, pageId, folderId, itemId, name) {
-  const { workspace, folder } = getFolder(profileId, pageId, folderId);
-  const item = folder.items.find((currentItem) => currentItem.id === itemId);
-
-  if (!item) {
-    throw new Error("Elemento no encontrado");
-  }
-
-  item.name = name;
   scheduleSave();
 
   return workspace;
@@ -697,6 +720,11 @@ function deleteFolder(profileId, pageId, folderId) {
   }
 
   page.folders.splice(folderIndex, 1);
+  page.controls.forEach((control) => {
+    if (control.folderId === folderId) {
+      control.folderId = null;
+    }
+  });
   ensureValidActiveSelection();
   scheduleSave();
 
@@ -755,59 +783,60 @@ function moveFolder(folderId, fromProfileId, fromPageId, toProfileId, toPageId) 
   return workspace;
 }
 
-function getNode(type, id) {
+function renameProfile(profileId, name) {
   const workspace = getWorkspace();
-
-  if (type === "profile") {
-    const profile = workspace.profiles.find((item) => item.id === id);
-    return { node: profile, profile };
+  const profile = workspace.profiles.find((item) => item.id === profileId);
+  if (!profile) {
+    throw new Error("Perfil no encontrado");
   }
 
-  for (const profile of workspace.profiles) {
-    if (type === "page") {
-      const page = profile.pages.find((item) => item.id === id);
-      if (page) {
-        return { node: page, profile, page };
-      }
-    }
-
-    for (const page of profile.pages) {
-      if (type === "folder") {
-        const folder = page.folders.find((item) => item.id === id);
-        if (folder) {
-          return { node: folder, profile, page, folder };
-        }
-      }
-    }
-  }
-
-  return { node: null };
+  profile.name = requireName(name, "Nombre del perfil");
+  scheduleSave();
+  return workspace;
 }
 
-function updateName({ type, id, name }) {
-  const { node } = getNode(type, id);
-
-  if (!node) {
-    throw new Error("Nodo no encontrado");
-  }
-
-  node.name = name;
+function renamePage(profileId, pageId, name) {
+  const { workspace, page } = getPage(profileId, pageId);
+  page.name = requireName(name, "Nombre de página");
   scheduleSave();
-
-  return getWorkspace();
+  return workspace;
 }
 
-function updateIcon({ type, id, iconPath }) {
-  const { node } = getNode(type, id);
+function renameFolder(profileId, pageId, folderId, name) {
+  const { workspace, folder } = getFolder(profileId, pageId, folderId);
+  folder.name = requireName(name, "Nombre de carpeta");
+  scheduleSave();
+  return workspace;
+}
 
-  if (!node) {
-    throw new Error("Nodo no encontrado");
+function setFolderIcon(profileId, pageId, folderId, assetId) {
+  const workspace = getWorkspace();
+  const { folder } = getFolder(profileId, pageId, folderId);
+  const iconAsset = workspace.assets?.icons?.[assetId];
+  if (!iconAsset) {
+    throw new Error("Icono no encontrado");
   }
 
-  node.iconPath = iconPath;
+  folder.iconAssetId = assetId;
   scheduleSave();
+  return workspace;
+}
 
-  return getWorkspace();
+function registerIconAsset(assetPath) {
+  const workspace = getWorkspace();
+  workspace.assets = workspace.assets || {};
+  workspace.assets.icons = workspace.assets.icons || {};
+
+  const assetId = `icon_${Date.now()}`;
+  workspace.assets.icons[assetId] = {
+    id: assetId,
+    type: "icon",
+    path: assetPath,
+    createdAt: new Date().toISOString(),
+  };
+
+  scheduleSave();
+  return { workspace, assetId };
 }
 
 function setActiveProfile(profileId) {
@@ -1026,23 +1055,24 @@ module.exports = {
   getWorkspace,
   saveWorkspace,
   getActiveState,
-  updateName,
-  updateIcon,
   addProfile,
   addPage,
   addFolder,
-  addPageElement,
+  addButton,
+  addFader,
   addPlacement,
   updatePlacementSpan,
   deletePlacement,
-  deletePageElement,
-  renamePageElement,
-  addFolderItem,
-  deleteFolderItem,
-  renameFolderItem,
+  deleteElement,
+  renameElement,
+  renameProfile,
+  renamePage,
+  renameFolder,
   deleteProfile,
   deletePage,
   deleteFolder,
+  setFolderIcon,
+  registerIconAsset,
   movePage,
   moveFolder,
   ensureValidActiveSelection,
