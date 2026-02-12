@@ -12,8 +12,14 @@ contextBridge.exposeInMainWorld("runtime", {
     ipcRenderer.invoke("workspace:addButton", profileId, pageId, payload),
   addFader: (profileId, pageId, payload) =>
     ipcRenderer.invoke("workspace:addFader", profileId, pageId, payload),
+  addFolderButton: (profileId, pageId, folderId, payload) =>
+    ipcRenderer.invoke("workspace:addFolderButton", profileId, pageId, folderId, payload),
   addPlacement: (profileId, pageId, elementId, row, col) =>
     ipcRenderer.invoke("workspace:addPlacement", profileId, pageId, elementId, row, col),
+  placeElement: (profileId, pageId, elementId, row, col) =>
+    ipcRenderer.invoke("workspace:placeElement", profileId, pageId, elementId, row, col),
+  unplaceElement: (profileId, pageId, elementId) =>
+    ipcRenderer.invoke("workspace:unplaceElement", profileId, pageId, elementId),
   updatePlacementSpan: (profileId, pageId, placementId, rowSpan, colSpan) =>
     ipcRenderer.invoke("workspace:updatePlacementSpan", profileId, pageId, placementId, rowSpan, colSpan),
   deletePlacement: (profileId, pageId, placementId) =>

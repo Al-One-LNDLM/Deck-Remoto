@@ -12,6 +12,9 @@ const {
   deletePlacement,
   addButton,
   addFader,
+  addFolderButton,
+  placeElement,
+  unplaceElement,
   deleteElement,
   renameElement,
   renameProfile,
@@ -116,8 +119,17 @@ app.whenReady().then(() => {
   ipcMain.handle("workspace:addFader", (_event, profileId, pageId, payload) =>
     addFader(profileId, pageId, payload),
   );
+  ipcMain.handle("workspace:addFolderButton", (_event, profileId, pageId, folderId, payload) =>
+    addFolderButton(profileId, pageId, folderId, payload),
+  );
   ipcMain.handle("workspace:addPlacement", (_event, profileId, pageId, elementId, row, col) =>
     addPlacement(profileId, pageId, elementId, row, col),
+  );
+  ipcMain.handle("workspace:placeElement", (_event, profileId, pageId, elementId, row, col) =>
+    placeElement(profileId, pageId, elementId, row, col),
+  );
+  ipcMain.handle("workspace:unplaceElement", (_event, profileId, pageId, elementId) =>
+    unplaceElement(profileId, pageId, elementId),
   );
   ipcMain.handle("workspace:updatePlacementSpan", (_event, profileId, pageId, placementId, rowSpan, colSpan) =>
     updatePlacementSpan(profileId, pageId, placementId, rowSpan, colSpan),
