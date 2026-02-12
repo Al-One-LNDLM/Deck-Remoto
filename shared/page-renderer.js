@@ -140,61 +140,82 @@
       const faderSkin = resolveFaderSkin(control);
       const faderTrack = document.createElement("div");
       faderTrack.className = "page-renderer-fader-track";
+      const subgridRows = clamp(context.rowSpan, 1);
+      const faderSubgrid = document.createElement("div");
+      faderSubgrid.className = "page-renderer-fader-subgrid";
+      faderSubgrid.style.display = "grid";
+      faderSubgrid.style.gridTemplateRows = `repeat(${subgridRows}, 1fr)`;
+      faderSubgrid.style.width = "100%";
+      faderSubgrid.style.height = "100%";
+      faderSubgrid.style.position = "relative";
 
       const topUrl = resolveAssetUrl(faderSkin?.topAssetId, context.assets);
       const middleUrl = resolveAssetUrl(faderSkin?.middleAssetId, context.assets);
       const bottomUrl = resolveAssetUrl(faderSkin?.bottomAssetId, context.assets);
       const grabUrl = resolveAssetUrl(faderSkin?.grabAssetId, context.assets);
 
-      const top = document.createElement(topUrl ? "img" : "div");
-      top.className = "page-renderer-fader-top";
-      if (topUrl) {
-        top.src = topUrl;
-        top.alt = "";
-        top.loading = "lazy";
-      }
+      const createTrackPiece = (url, className) => {
+        const piece = document.createElement(url ? "img" : "div");
+        piece.className = className;
+        piece.style.zIndex = "1";
+        if (url) {
+          piece.src = url;
+          piece.alt = "";
+          piece.loading = "lazy";
+        }
 
-      const middle = document.createElement("div");
-      middle.className = "page-renderer-fader-middle";
-      if (middleUrl) {
-        middle.style.backgroundImage = `url('${middleUrl}')`;
-        middle.style.backgroundRepeat = "repeat-y";
-        middle.style.backgroundPosition = "center";
-        middle.style.backgroundSize = "100% auto";
-      }
+        return piece;
+      };
 
-      const bottom = document.createElement(bottomUrl ? "img" : "div");
-      bottom.className = "page-renderer-fader-bottom";
-      if (bottomUrl) {
-        bottom.src = bottomUrl;
-        bottom.alt = "";
-        bottom.loading = "lazy";
+      for (let rowIndex = 0; rowIndex < subgridRows; rowIndex += 1) {
+        const cell = document.createElement("div");
+        cell.className = "page-renderer-fader-cell";
+
+        const isFirstRow = rowIndex === 0;
+        const isLastRow = rowIndex === subgridRows - 1;
+        const isMiddleRow = rowIndex > 0 && rowIndex < subgridRows - 1;
+
+        if (isFirstRow) {
+          cell.appendChild(createTrackPiece(topUrl, "page-renderer-fader-top"));
+        }
+
+        if (isMiddleRow) {
+          cell.appendChild(createTrackPiece(middleUrl, "page-renderer-fader-middle"));
+        }
+
+        if (isLastRow) {
+          cell.appendChild(createTrackPiece(bottomUrl, "page-renderer-fader-bottom"));
+        }
+
+        faderSubgrid.appendChild(cell);
       }
 
       const grab = document.createElement(grabUrl ? "img" : "div");
       grab.className = "page-renderer-fader-grab";
+      grab.style.zIndex = "2";
       if (grabUrl) {
         grab.src = grabUrl;
         grab.alt = "";
         grab.loading = "lazy";
       }
 
-      faderTrack.appendChild(top);
-      faderTrack.appendChild(middle);
-      faderTrack.appendChild(bottom);
+      faderTrack.appendChild(faderSubgrid);
       faderTrack.appendChild(grab);
       node.appendChild(faderTrack);
 
       const value01 = clamp01(context.value01, 0);
       const updateGrabPosition = () => {
         const trackHeight = faderTrack.clientHeight;
-        const grabHeight = grab.clientHeight || Math.max(24, Math.round(trackHeight * 0.18));
+        const grabHeight = grab.clientHeight || Math.max(1, trackHeight / subgridRows);
         const range = Math.max(0, trackHeight - grabHeight);
         grab.style.top = `${(1 - value01) * range}px`;
       };
 
       updateGrabPosition();
       window.requestAnimationFrame(updateGrabPosition);
+      if (grab.tagName === "IMG") {
+        grab.addEventListener("load", updateGrabPosition, { once: true });
+      }
 
       return node;
     }
@@ -358,8 +379,13 @@
       slot.style.gridColumnEnd = `span ${clamp(placement.colSpan, 1)}`;
       slot.style.gridRowStart = String(Math.max(0, Math.floor(Number(placement.row) || 0)) + 1);
       slot.style.gridRowEnd = `span ${clamp(placement.rowSpan, 1)}`;
-      const value01 = clamp01(params?.state?.faderValues?.[control.id], 0);
-      slot.appendChild(createControlNode(control, resolveIconUrl(control, assets), resolvedStyle, { assets, value01 }));
+      const hasRuntimeFaderValue = Object.prototype.hasOwnProperty.call(params?.state?.faderValues || {}, control.id);
+      const value01 = hasRuntimeFaderValue ? clamp01(params?.state?.faderValues?.[control.id], 0) : 0;
+      slot.appendChild(createControlNode(control, resolveIconUrl(control, assets), resolvedStyle, {
+        assets,
+        value01,
+        rowSpan: clamp(placement.rowSpan, 1),
+      }));
 
       const isMobileFaderDragEnabled = isFaderDragEnabled;
       if (isMobileFaderDragEnabled) {
