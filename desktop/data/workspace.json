@@ -17,20 +17,71 @@
             "rows": 4,
             "cols": 3
           },
-          "showGrid": true,
+          "showGrid": false,
           "controls": [
             {
               "id": "button1",
               "type": "button",
               "name": "Botón 1",
               "folderId": null,
+              "iconAssetId": "icon_1770908807948"
+            },
+            {
+              "id": "fader1",
+              "type": "fader",
+              "name": "Fader 1",
+              "folderId": null,
+              "iconAssetId": null,
+              "faderIconAssetIds": [
+                "icon_1770908828188",
+                "icon_1770908832533",
+                "icon_1770908836372",
+                "icon_1770908838335"
+              ]
+            },
+            {
+              "id": "fader2",
+              "type": "fader",
+              "name": "Fader 2",
+              "folderId": "folder1",
+              "iconAssetId": null,
+              "faderIconAssetIds": [
+                null,
+                null,
+                null,
+                null
+              ]
+            },
+            {
+              "id": "folderButton1",
+              "type": "folderButton",
+              "name": "Carpeta 1",
+              "folderId": "folder1",
               "iconAssetId": null
             }
           ],
-          "folders": [],
-          "placements": []
+          "folders": [
+            {
+              "id": "folder1",
+              "name": "Carpeta 1",
+              "items": [],
+              "iconAssetId": "icon_1770908848983"
+            }
+          ],
+          "placements": [
+            {
+              "id": "placement1",
+              "elementId": "button1",
+              "row": 2,
+              "col": 2,
+              "rowSpan": 1,
+              "colSpan": 1
+            }
+          ],
+          "iconAssetId": null
         }
-      ]
+      ],
+      "iconAssetId": null
     }
   ],
   "assets": {
@@ -106,6 +157,42 @@
         "type": "icon",
         "path": "assets/icons/1770889058844-ESC.png",
         "createdAt": "2026-02-12T09:37:38.845Z"
+      },
+      "icon_1770908807948": {
+        "id": "icon_1770908807948",
+        "type": "icon",
+        "path": "assets/icons/1770908807947-tumba.png",
+        "createdAt": "2026-02-12T15:06:47.948Z"
+      },
+      "icon_1770908828188": {
+        "id": "icon_1770908828188",
+        "type": "icon",
+        "path": "assets/icons/1770908828188-tumba.png",
+        "createdAt": "2026-02-12T15:07:08.188Z"
+      },
+      "icon_1770908832533": {
+        "id": "icon_1770908832533",
+        "type": "icon",
+        "path": "assets/icons/1770908832532-tumba.png",
+        "createdAt": "2026-02-12T15:07:12.533Z"
+      },
+      "icon_1770908836372": {
+        "id": "icon_1770908836372",
+        "type": "icon",
+        "path": "assets/icons/1770908836371-tumba.png",
+        "createdAt": "2026-02-12T15:07:16.372Z"
+      },
+      "icon_1770908838335": {
+        "id": "icon_1770908838335",
+        "type": "icon",
+        "path": "assets/icons/1770908838334-tumba.png",
+        "createdAt": "2026-02-12T15:07:18.335Z"
+      },
+      "icon_1770908848983": {
+        "id": "icon_1770908848983",
+        "type": "icon",
+        "path": "assets/icons/1770908848983-tumba.png",
+        "createdAt": "2026-02-12T15:07:28.983Z"
       }
     }
   }
