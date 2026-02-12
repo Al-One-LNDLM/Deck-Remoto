@@ -272,12 +272,22 @@
       }
 
       .actions-inspector-row input,
-      .actions-inspector-row select {
+      .actions-inspector-row select,
+      .actions-inspector-row textarea {
         border: 1px solid #3b3b3b;
         border-radius: 6px;
         background: #111;
         color: #f5f5f5;
         padding: 8px;
+      }
+
+      .inspector-inline-row {
+        display: flex;
+        gap: 8px;
+      }
+
+      .inspector-inline-row input {
+        flex: 1;
       }
 
       .actions-validation {
