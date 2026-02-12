@@ -91,12 +91,19 @@
               "name": "Fader 1",
               "folderId": null,
               "iconAssetId": null,
-              "actionBinding": null,
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "midiCc",
+                  "channel": 1,
+                  "cc": 0
+                }
+              },
               "faderIconAssetIds": [
-                "icon_1770932223448",
-                "icon_1770932225638",
-                "icon_1770932227487",
-                "icon_1770932229457"
+                "icon_1770934372956",
+                "icon_1770934375078",
+                "icon_1770934377170",
+                "icon_1770934379980"
               ],
               "style": {
                 "backgroundEnabled": true,
@@ -106,6 +113,12 @@
                 "borderColor": "#FFFFFF",
                 "borderOpacity": 1,
                 "showLabel": false
+              },
+              "faderSkin": {
+                "topAssetId": "icon_1770934372956",
+                "middleAssetId": "icon_1770934375078",
+                "bottomAssetId": "icon_1770934377170",
+                "grabAssetId": "icon_1770934379980"
               }
             }
           ],
@@ -316,6 +329,30 @@
         "type": "icon",
         "path": "assets/icons/1770932405932-LOGO-SIMPLIFICADO-BLANCO-TRANSPARENTE.png",
         "createdAt": "2026-02-12T21:40:05.933Z"
+      },
+      "icon_1770934372956": {
+        "id": "icon_1770934372956",
+        "type": "icon",
+        "path": "assets/icons/1770934372955-fader_bottom.png",
+        "createdAt": "2026-02-12T22:12:52.956Z"
+      },
+      "icon_1770934375078": {
+        "id": "icon_1770934375078",
+        "type": "icon",
+        "path": "assets/icons/1770934375077-fader_grab.png",
+        "createdAt": "2026-02-12T22:12:55.078Z"
+      },
+      "icon_1770934377170": {
+        "id": "icon_1770934377170",
+        "type": "icon",
+        "path": "assets/icons/1770934377170-fader_middle.png",
+        "createdAt": "2026-02-12T22:12:57.170Z"
+      },
+      "icon_1770934379980": {
+        "id": "icon_1770934379980",
+        "type": "icon",
+        "path": "assets/icons/1770934379979-fader_top.png",
+        "createdAt": "2026-02-12T22:12:59.980Z"
       }
     }
   },
