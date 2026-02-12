@@ -1,9 +1,9 @@
 {
   "activeProfileId": "profile1",
-  "activePageId": "page4",
+  "activePageId": "page1",
   "lastSession": {
     "activeProfileId": "profile1",
-    "activePageId": "page4"
+    "activePageId": "page1"
   },
   "profiles": [
     {
@@ -17,6 +17,19 @@
             "rows": 4,
             "cols": 3
           },
+          "showGrid": true,
+          "style": {
+            "buttonShowBackground": true,
+            "buttonShowLabel": true,
+            "buttonBackgroundColor": "#2b2b2b",
+            "buttonShowBorder": true,
+            "buttonBorderColor": "#444444",
+            "faderShowBackground": true,
+            "faderBackgroundColor": "#2b2b2b",
+            "faderShowBorder": true,
+            "faderBorderColor": "#444444",
+            "faderShowLabel": true
+          },
           "background": {
             "type": "solid",
             "color": "#111111"
@@ -25,199 +38,90 @@
             {
               "id": "button1",
               "type": "button",
-              "name": "hola",
-              "folderId": null
+              "name": "ESC",
+              "folderId": null,
+              "iconAssetId": null
             },
             {
               "id": "fader1",
               "type": "fader",
-              "name": "adios",
-              "folderId": null
-            },
-            {
-              "id": "button2",
-              "type": "button",
-              "name": "Botón 2",
-              "folderId": null
-            },
-            {
-              "id": "item1",
-              "type": "button",
-              "name": "Botón 1",
-              "folderId": "folder1"
-            },
-            {
-              "id": "button4",
-              "type": "button",
-              "name": "Botón 4",
-              "folderId": null
-            },
-            {
-              "id": "fader2",
-              "type": "fader",
-              "name": "Fader 2",
-              "folderId": "folder1"
+              "name": "Fader 1",
+              "folderId": null,
+              "iconAssetId": null,
+              "faderIconAssetIds": [
+                null,
+                null,
+                null,
+                null
+              ]
             }
           ],
           "folders": [
             {
               "id": "folder1",
-              "name": "Carpeta 1",
+              "name": "Apps",
               "items": [],
-              "iconAssetId": null
+              "iconAssetId": "icon_1770888214107"
             }
           ],
           "placements": [
             {
               "id": "placement1",
-              "elementId": "fader1",
-              "row": 1,
-              "col": 1,
-              "rowSpan": 2,
-              "colSpan": 1
-            },
-            {
-              "id": "placement2",
-              "elementId": "button2",
-              "row": 1,
-              "col": 2,
-              "rowSpan": 1,
-              "colSpan": 1
-            },
-            {
-              "id": "placement3",
               "elementId": "button1",
               "row": 2,
               "col": 2,
               "rowSpan": 1,
               "colSpan": 1
             }
-          ],
-          "showGrid": false,
-          "style": {
-            "buttonShowBackground": true,
-            "buttonShowLabel": true,
-            "buttonBackgroundColor": "#ff0000",
-            "buttonShowBorder": false,
-            "buttonBorderColor": "#444444",
-            "faderShowBackground": true,
-            "faderBackgroundColor": "#2b2b2b",
-            "faderShowBorder": true,
-            "faderBorderColor": "#444444",
-            "faderShowLabel": true
-          }
-        },
-        {
-          "id": "page3",
-          "name": "Página 3",
-          "grid": {
-            "rows": 4,
-            "cols": 3
-          },
-          "background": {
-            "type": "solid",
-            "color": "#000000"
-          },
-          "controls": [
-            {
-              "id": "button3",
-              "type": "button",
-              "name": "Botón 3",
-              "folderId": null
-            }
-          ],
-          "folders": [],
-          "placements": [
-            {
-              "id": "placement4",
-              "elementId": "button3",
-              "row": 2,
-              "col": 2,
-              "rowSpan": 1,
-              "colSpan": 1
-            }
-          ],
-          "showGrid": true,
-          "style": {
-            "buttonShowBackground": true,
-            "buttonShowLabel": true,
-            "buttonBackgroundColor": "#ff0000",
-            "buttonShowBorder": true,
-            "buttonBorderColor": "#ffffff",
-            "faderShowBackground": true,
-            "faderBackgroundColor": "#2b2b2b",
-            "faderShowBorder": true,
-            "faderBorderColor": "#444444",
-            "faderShowLabel": true
-          }
-        },
-        {
-          "id": "page4",
-          "name": "Página 4",
-          "grid": {
-            "rows": 4,
-            "cols": 3
-          },
-          "showGrid": true,
-          "style": {
-            "buttonShowBackground": true,
-            "buttonShowLabel": true,
-            "buttonBackgroundColor": "#2b2b2b",
-            "buttonShowBorder": true,
-            "buttonBorderColor": "#444444",
-            "faderShowBackground": true,
-            "faderBackgroundColor": "#2b2b2b",
-            "faderShowBorder": true,
-            "faderBorderColor": "#444444",
-            "faderShowLabel": true
-          },
-          "background": {
-            "type": "solid",
-            "color": "#111111"
-          },
-          "controls": [],
-          "folders": [],
-          "placements": []
-        }
-      ],
-      "iconPath": "assets/icons/1770827837729-LOGO-SIMPLIFICADO-BLANCO-TRANSPARENTE.png"
-    },
-    {
-      "id": "profile2",
-      "name": "Perfil 2",
-      "pages": [
-        {
-          "id": "page2",
-          "name": "Página 2",
-          "grid": {
-            "rows": 3,
-            "cols": 3
-          },
-          "background": {
-            "type": "solid",
-            "color": "#111111"
-          },
-          "controls": [],
-          "folders": [],
-          "placements": [],
-          "showGrid": true,
-          "style": {
-            "buttonShowBackground": true,
-            "buttonShowLabel": true,
-            "buttonBackgroundColor": "#2b2b2b",
-            "buttonShowBorder": true,
-            "buttonBorderColor": "#444444",
-            "faderShowBackground": true,
-            "faderBackgroundColor": "#2b2b2b",
-            "faderShowBorder": true,
-            "faderBorderColor": "#444444",
-            "faderShowLabel": true
-          }
+          ]
         }
       ]
     }
   ],
   "assets": {
-    "icons": {}
+    "icons": {
+      "icon_1770888136515": {
+        "id": "icon_1770888136515",
+        "type": "icon",
+        "path": "assets/icons/1770888136514-ESC.png",
+        "createdAt": "2026-02-12T09:22:16.515Z"
+      },
+      "icon_1770888156927": {
+        "id": "icon_1770888156927",
+        "type": "icon",
+        "path": "assets/icons/1770888156926-ESC.png",
+        "createdAt": "2026-02-12T09:22:36.927Z"
+      },
+      "icon_1770888185490": {
+        "id": "icon_1770888185490",
+        "type": "icon",
+        "path": "assets/icons/1770888185489-ESC.png",
+        "createdAt": "2026-02-12T09:23:05.490Z"
+      },
+      "icon_1770888214107": {
+        "id": "icon_1770888214107",
+        "type": "icon",
+        "path": "assets/icons/1770888214107-ESC.png",
+        "createdAt": "2026-02-12T09:23:34.107Z"
+      },
+      "icon_1770888335131": {
+        "id": "icon_1770888335131",
+        "type": "icon",
+        "path": "assets/icons/1770888335130-LEFT.png",
+        "createdAt": "2026-02-12T09:25:35.131Z"
+      },
+      "icon_1770888340216": {
+        "id": "icon_1770888340216",
+        "type": "icon",
+        "path": "assets/icons/1770888340215-METR.png",
+        "createdAt": "2026-02-12T09:25:40.216Z"
+      },
+      "icon_1770888350522": {
+        "id": "icon_1770888350522",
+        "type": "icon",
+        "path": "assets/icons/1770888350522-LEFT.png",
+        "createdAt": "2026-02-12T09:25:50.522Z"
+      }
+    }
   }
 }
