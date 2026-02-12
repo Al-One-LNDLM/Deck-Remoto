@@ -4,16 +4,106 @@ if A_Args.Length < 1 {
   ExitApp 1
 }
 
-hk := A_Args.Length >= 1 ? A_Args[1] : ""
+hk := Trim(A_Args[1])
 if hk = "" {
   ExitApp 1
 }
 
-ahkHotkey := hk
-ahkHotkey := StrReplace(ahkHotkey, "Ctrl", "^")
-ahkHotkey := StrReplace(ahkHotkey, "Alt", "!")
-ahkHotkey := StrReplace(ahkHotkey, "Shift", "+")
-ahkHotkey := StrReplace(ahkHotkey, "Win", "#")
+ConvertHotkeyToAhk(hotkey) {
+  parts := StrSplit(hotkey, "+")
+  if parts.Length = 0 {
+    return ""
+  }
 
-Send ahkHotkey
+  mods := ""
+  loop parts.Length - 1 {
+    token := StrLower(Trim(parts[A_Index]))
+    switch token {
+      case "ctrl", "control":
+        mods .= "^"
+      case "alt":
+        mods .= "!"
+      case "shift":
+        mods .= "+"
+      case "win", "windows":
+        mods .= "#"
+    }
+  }
+
+  finalKey := ConvertFinalKey(Trim(parts[parts.Length]))
+  return mods . finalKey
+}
+
+ConvertFinalKey(key) {
+  lowerKey := StrLower(key)
+
+  if RegExMatch(lowerKey, "^[a-z]$") {
+    return lowerKey
+  }
+
+  switch lowerKey {
+    case "enter", "return":
+      return "{Enter}"
+    case "tab":
+      return "{Tab}"
+    case "space", "spacebar":
+      return "{Space}"
+    case "up", "arrowup":
+      return "{Up}"
+    case "down", "arrowdown":
+      return "{Down}"
+    case "left", "arrowleft":
+      return "{Left}"
+    case "right", "arrowright":
+      return "{Right}"
+    case "esc", "escape":
+      return "{Esc}"
+    case "backspace":
+      return "{Backspace}"
+    case "delete", "del":
+      return "{Delete}"
+    case "insert", "ins":
+      return "{Insert}"
+    case "home":
+      return "{Home}"
+    case "end":
+      return "{End}"
+    case "pgup", "pageup":
+      return "{PgUp}"
+    case "pgdn", "pagedown":
+      return "{PgDn}"
+  }
+
+  if RegExMatch(lowerKey, "^f([1-9]|1[0-2])$") {
+    return "{" . StrUpper(lowerKey) . "}"
+  }
+
+  if RegExMatch(lowerKey, "^[0-9]$") {
+    return lowerKey
+  }
+
+  return "{" . key . "}"
+}
+
+combo := ConvertHotkeyToAhk(hk)
+if combo = "" {
+  ExitApp 1
+}
+
+savedCaps := GetKeyState("CapsLock", "T")
+savedNum := GetKeyState("NumLock", "T")
+savedScr := GetKeyState("ScrollLock", "T")
+
+SendInput "{Blind}" . combo
+
+if (GetKeyState("CapsLock", "T") != savedCaps) {
+  SetCapsLockState(savedCaps ? "On" : "Off")
+}
+if (GetKeyState("NumLock", "T") != savedNum) {
+  SetNumLockState(savedNum ? "On" : "Off")
+}
+if (GetKeyState("ScrollLock", "T") != savedScr) {
+  SetScrollLockState(savedScr ? "On" : "Off")
+}
+
 ExitApp 0
