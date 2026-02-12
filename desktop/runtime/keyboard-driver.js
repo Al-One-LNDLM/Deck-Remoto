@@ -1,7 +1,10 @@
 const path = require("path");
+const fs = require("fs");
 const { spawn } = require("child_process");
 
-const DEFAULT_AHK_EXE = process.env.AHK_EXE_PATH || "AutoHotkey.exe";
+const AHK_DEFAULT_WINDOWS_PATH =
+  "C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey.exe";
+let cachedAhkPath;
 const runnerPath = path.resolve(__dirname, "../ahk/runner.ahk");
 
 const MODIFIER_ALIAS = {
@@ -16,6 +19,23 @@ const MODIFIER_ALIAS = {
 
 const SIMPLE_KEY_PATTERN = /^[A-Z0-9]$/;
 const FUNCTION_KEY_PATTERN = /^F([1-9]|1[0-9]|2[0-4])$/;
+
+function resolveAhkPath() {
+  if (cachedAhkPath) {
+    return cachedAhkPath;
+  }
+
+  if (process.env.AUTOHOTKEY_PATH) {
+    cachedAhkPath = process.env.AUTOHOTKEY_PATH;
+  } else if (fs.existsSync(AHK_DEFAULT_WINDOWS_PATH)) {
+    cachedAhkPath = AHK_DEFAULT_WINDOWS_PATH;
+  } else {
+    cachedAhkPath = "AutoHotkey.exe";
+  }
+
+  console.log(`[HOTKEY] Using AHK at: ${cachedAhkPath}`);
+  return cachedAhkPath;
+}
 
 function normalizeToken(token) {
   const raw = typeof token === "string" ? token.trim() : "";
@@ -75,7 +95,8 @@ function sendHotkey(keys) {
   }
 
   return new Promise((resolve, reject) => {
-    const child = spawn(DEFAULT_AHK_EXE, [runnerPath, sanitized], {
+    const exePath = resolveAhkPath();
+    const child = spawn(exePath, [runnerPath, sanitized], {
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
     });
