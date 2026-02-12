@@ -66,16 +66,8 @@
               "elementId": "button1",
               "row": 1,
               "col": 1,
-              "rowSpan": 4,
+              "rowSpan": 1,
               "colSpan": 1
-            },
-            {
-              "id": "placement2",
-              "elementId": "folderButton1",
-              "row": 1,
-              "col": 2,
-              "rowSpan": 4,
-              "colSpan": 2
             }
           ],
           "iconAssetId": null
