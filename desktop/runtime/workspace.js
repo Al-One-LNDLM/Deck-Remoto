@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { normalizePageStyle, normalizeControlOverride } = require("../../shared/style");
 
 const workspaceFilePath = path.resolve(__dirname, "../data/workspace.json");
 
@@ -27,21 +28,10 @@ function createDefaultWorkspace() {
               cols: 3,
             },
             showGrid: true,
-            style: {
-              buttonShowBackground: true,
-              buttonShowLabel: true,
-              buttonBackgroundColor: "#2b2b2b",
-              buttonShowBorder: true,
-              buttonBorderColor: "#444444",
-              faderShowBackground: true,
-              faderBackgroundColor: "#2b2b2b",
-              faderShowBorder: true,
-              faderBorderColor: "#444444",
-              faderShowLabel: true,
-            },
+            style: normalizePageStyle({}),
             background: {
               type: "solid",
-              color: "#111111",
+              value: "#111111",
             },
             controls: [],
             folders: [],
@@ -57,6 +47,7 @@ function sanitizeHexColor(value, fallback) {
   return /^#[0-9a-fA-F]{6}$/.test(value || "") ? value : fallback;
 }
 
+
 function sanitizeName(name) {
   return typeof name === "string" ? name.trim() : "";
 }
@@ -70,41 +61,29 @@ function requireName(name, entityLabel = "Nombre") {
   return safeName;
 }
 
-function normalizePageStyle(style) {
-  return {
-    buttonShowBackground: style?.buttonShowBackground !== false,
-    buttonShowLabel: style?.buttonShowLabel !== false,
-    buttonBackgroundColor: sanitizeHexColor(style?.buttonBackgroundColor, "#2b2b2b"),
-    buttonShowBorder: style?.buttonShowBorder !== false,
-    buttonBorderColor: sanitizeHexColor(style?.buttonBorderColor, "#444444"),
-    faderShowBackground: style?.faderShowBackground !== false,
-    faderBackgroundColor: sanitizeHexColor(style?.faderBackgroundColor, "#2b2b2b"),
-    faderShowBorder: style?.faderShowBorder !== false,
-    faderBorderColor: sanitizeHexColor(style?.faderBorderColor, "#444444"),
-    faderShowLabel: style?.faderShowLabel !== false,
-  };
-}
-
 function normalizeBackground(background) {
   if (background?.type === "image") {
-    const safePath = typeof background.imagePath === "string" ? background.imagePath.trim() : "";
+    const safeAssetId = typeof background.assetId === "string" ? background.assetId.trim() : "";
+    const legacyImagePath = typeof background.imagePath === "string" ? background.imagePath.trim() : "";
     const fit = background.fit === "contain" || background.fit === "stretch" ? background.fit : "cover";
 
-    if (safePath) {
+    if (safeAssetId || legacyImagePath) {
       return {
         type: "image",
-        imagePath: safePath,
+        assetId: safeAssetId || legacyImagePath,
         fit,
       };
     }
   }
 
-  const safeColor = /^#[0-9a-fA-F]{6}$/.test(background?.color || "") ? background.color : "#111111";
+  const rawColor = typeof background?.value === "string" ? background.value : background?.color;
+  const safeColor = /^#[0-9a-fA-F]{6}$/.test(rawColor || "") ? rawColor : "#111111";
   return {
     type: "solid",
-    color: safeColor,
+    value: safeColor,
   };
 }
+
 
 function normalizeWorkspace(workspace) {
   const normalized = workspace || createDefaultWorkspace();
@@ -133,6 +112,13 @@ function normalizeWorkspace(workspace) {
         const folderId = typeof control.folderId === "string" ? control.folderId : null;
         control.folderId = folderId && folderIds.has(folderId) ? folderId : null;
         control.iconAssetId = typeof control.iconAssetId === "string" ? control.iconAssetId : null;
+
+        const normalizedStyleOverride = normalizeControlOverride(control.styleOverride);
+        if (normalizedStyleOverride) {
+          control.styleOverride = normalizedStyleOverride;
+        } else {
+          delete control.styleOverride;
+        }
 
         if (control.type === "fader") {
           const sourceSlots = Array.isArray(control.faderIconAssetIds) ? control.faderIconAssetIds : [];
@@ -393,19 +379,8 @@ function createDefaultPage(pageId, name = null) {
     name: sanitizeName(name) || `Página ${pageId.replace("page", "")}`,
     grid: { rows: 4, cols: 3 },
     showGrid: true,
-    style: {
-      buttonShowBackground: true,
-      buttonShowLabel: true,
-      buttonBackgroundColor: "#2b2b2b",
-      buttonShowBorder: true,
-      buttonBorderColor: "#444444",
-      faderShowBackground: true,
-      faderBackgroundColor: "#2b2b2b",
-      faderShowBorder: true,
-      faderBorderColor: "#444444",
-      faderShowLabel: true,
-    },
-    background: { type: "solid", color: "#111111" },
+    style: normalizePageStyle({}),
+    background: { type: "solid", value: "#111111" },
     controls: [],
     folders: [],
     placements: [],
@@ -1115,44 +1090,16 @@ function setPageStyle(profileId, pageId, partialStyle) {
     ...current,
   };
 
-  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "buttonShowBackground")) {
-    next.buttonShowBackground = Boolean(partialStyle.buttonShowBackground);
+  if (partialStyle?.button && typeof partialStyle.button === "object") {
+    next.button = normalizePageStyle({ ...current, button: { ...current.button, ...partialStyle.button } }).button;
   }
 
-  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "buttonShowLabel")) {
-    next.buttonShowLabel = Boolean(partialStyle.buttonShowLabel);
+  if (partialStyle?.fader && typeof partialStyle.fader === "object") {
+    next.fader = normalizePageStyle({ ...current, fader: { ...current.fader, ...partialStyle.fader } }).fader;
   }
 
-  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "buttonBackgroundColor")) {
-    next.buttonBackgroundColor = sanitizeHexColor(partialStyle.buttonBackgroundColor, current.buttonBackgroundColor);
-  }
-
-  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "buttonShowBorder")) {
-    next.buttonShowBorder = Boolean(partialStyle.buttonShowBorder);
-  }
-
-  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "buttonBorderColor")) {
-    next.buttonBorderColor = sanitizeHexColor(partialStyle.buttonBorderColor, current.buttonBorderColor);
-  }
-
-  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "faderShowBackground")) {
-    next.faderShowBackground = Boolean(partialStyle.faderShowBackground);
-  }
-
-  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "faderBackgroundColor")) {
-    next.faderBackgroundColor = sanitizeHexColor(partialStyle.faderBackgroundColor, current.faderBackgroundColor);
-  }
-
-  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "faderShowBorder")) {
-    next.faderShowBorder = Boolean(partialStyle.faderShowBorder);
-  }
-
-  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "faderBorderColor")) {
-    next.faderBorderColor = sanitizeHexColor(partialStyle.faderBorderColor, current.faderBorderColor);
-  }
-
-  if (Object.prototype.hasOwnProperty.call(partialStyle || {}, "faderShowLabel")) {
-    next.faderShowLabel = Boolean(partialStyle.faderShowLabel);
+  if (partialStyle?.folderButton && typeof partialStyle.folderButton === "object") {
+    next.folderButton = normalizePageStyle({ ...current, folderButton: { ...current.folderButton, ...partialStyle.folderButton } }).folderButton;
   }
 
   page.style = next;
@@ -1166,24 +1113,24 @@ function setPageBackgroundSolid(profileId, pageId, color) {
 
   page.background = {
     type: "solid",
-    color: safeColor,
+    value: safeColor,
   };
 
   scheduleSave();
   return workspace;
 }
 
-function setPageBackgroundImage(profileId, pageId, imagePath, fit) {
+function setPageBackgroundImage(profileId, pageId, assetId, fit) {
   const { workspace, page } = getPage(profileId, pageId);
-  const safePath = typeof imagePath === "string" ? imagePath.trim() : "";
+  const safeAssetId = typeof assetId === "string" ? assetId.trim() : "";
 
-  if (!safePath) {
-    throw new Error("imagePath inválido");
+  if (!safeAssetId) {
+    throw new Error("assetId inválido");
   }
 
   page.background = {
     type: "image",
-    imagePath: safePath,
+    assetId: safeAssetId,
     fit: fit === "contain" || fit === "stretch" ? fit : "cover",
   };
 
@@ -1193,13 +1140,47 @@ function setPageBackgroundImage(profileId, pageId, imagePath, fit) {
 
 function clearPageBackgroundImage(profileId, pageId) {
   const { workspace, page } = getPage(profileId, pageId);
-  const safeColor = /^#[0-9a-fA-F]{6}$/.test(page.background?.color || "") ? page.background.color : "#111111";
+  const safeColor = /^#[0-9a-fA-F]{6}$/.test(page.background?.value || "") ? page.background.value : "#111111";
 
   page.background = {
     type: "solid",
-    color: safeColor,
+    value: safeColor,
   };
 
+  scheduleSave();
+  return workspace;
+}
+
+function setControlStyleOverride(profileId, pageId, controlId, patch) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const control = page.controls.find((item) => item.id === controlId);
+
+  if (!control) {
+    throw new Error("Elemento no encontrado");
+  }
+
+  const current = normalizeControlOverride(control.styleOverride) || {};
+  const next = normalizeControlOverride({ ...current, ...(patch || {}) });
+
+  if (!next) {
+    delete control.styleOverride;
+  } else {
+    control.styleOverride = next;
+  }
+
+  scheduleSave();
+  return workspace;
+}
+
+function clearControlStyleOverride(profileId, pageId, controlId) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const control = page.controls.find((item) => item.id === controlId);
+
+  if (!control) {
+    throw new Error("Elemento no encontrado");
+  }
+
+  delete control.styleOverride;
   scheduleSave();
   return workspace;
 }
@@ -1261,4 +1242,6 @@ module.exports = {
   setPageBackgroundSolid,
   setPageBackgroundImage,
   clearPageBackgroundImage,
+  setControlStyleOverride,
+  clearControlStyleOverride,
 };

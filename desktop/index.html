@@ -539,7 +539,11 @@
 
         <div class="grid-column">
           <div class="grid-controls">
-            <h3>Grid</h3>
+            <h3>Ajustes globales</h3>
+            <div class="grid-controls-row">
+              <label for="gridShowCheckbox">Mostrar rejilla</label>
+              <input id="gridShowCheckbox" type="checkbox" checked />
+            </div>
             <div class="grid-controls-row">
               <label for="gridRowsInput">Rows</label>
               <input id="gridRowsInput" type="number" min="1" max="24" step="1" />
@@ -548,57 +552,11 @@
               <label for="gridColsInput">Cols</label>
               <input id="gridColsInput" type="number" min="1" max="24" step="1" />
             </div>
-            <div class="grid-controls-row">
-              <label for="gridShowCheckbox">Mostrar rejilla</label>
-              <input id="gridShowCheckbox" type="checkbox" checked />
-            </div>
-            <button id="applyGridBtn" type="button">Aplicar</button>
+            <button id="applyGridBtn" type="button">Aplicar tamaño</button>
 
-            <h3>Estilo</h3>
+            <h4>Fondo</h4>
             <div class="grid-controls-row">
-              <label for="styleButtonShowBackgroundCheckbox">Botones: fondo</label>
-              <input id="styleButtonShowBackgroundCheckbox" type="checkbox" checked />
-            </div>
-            <div class="grid-controls-row">
-              <label for="styleButtonBackgroundColorInput">Botones: color fondo</label>
-              <input id="styleButtonBackgroundColorInput" type="color" value="#2b2b2b" />
-            </div>
-            <div class="grid-controls-row">
-              <label for="styleButtonShowBorderCheckbox">Botones: borde</label>
-              <input id="styleButtonShowBorderCheckbox" type="checkbox" checked />
-            </div>
-            <div class="grid-controls-row" id="styleButtonBorderColorRow">
-              <label for="styleButtonBorderColorInput">Botones: color borde</label>
-              <input id="styleButtonBorderColorInput" type="color" value="#444444" />
-            </div>
-            <div class="grid-controls-row">
-              <label for="styleButtonShowLabelCheckbox">Botones: etiqueta</label>
-              <input id="styleButtonShowLabelCheckbox" type="checkbox" checked />
-            </div>
-            <div class="grid-controls-row">
-              <label for="styleFaderShowBackgroundCheckbox">Faders: fondo</label>
-              <input id="styleFaderShowBackgroundCheckbox" type="checkbox" checked />
-            </div>
-            <div class="grid-controls-row" id="styleFaderBackgroundColorRow">
-              <label for="styleFaderBackgroundColorInput">Faders: color fondo</label>
-              <input id="styleFaderBackgroundColorInput" type="color" value="#2b2b2b" />
-            </div>
-            <div class="grid-controls-row">
-              <label for="styleFaderShowBorderCheckbox">Faders: borde</label>
-              <input id="styleFaderShowBorderCheckbox" type="checkbox" checked />
-            </div>
-            <div class="grid-controls-row" id="styleFaderBorderColorRow">
-              <label for="styleFaderBorderColorInput">Faders: color borde</label>
-              <input id="styleFaderBorderColorInput" type="color" value="#444444" />
-            </div>
-            <div class="grid-controls-row">
-              <label for="styleFaderShowLabelCheckbox">Faders: etiqueta</label>
-              <input id="styleFaderShowLabelCheckbox" type="checkbox" checked />
-            </div>
-
-            <h3>Fondo</h3>
-            <div class="grid-controls-row">
-              <label for="gridBgColorInput">Color</label>
+              <label for="gridBgColorInput">Color sólido</label>
               <input id="gridBgColorInput" type="color" value="#111111" />
             </div>
             <div class="grid-controls-row">
@@ -615,6 +573,39 @@
             </div>
             <div class="grid-controls-row">
               <button id="clearBackgroundImageBtn" type="button" class="danger" disabled>Quitar imagen</button>
+            </div>
+
+            <h4>Estilo global: Botones</h4>
+            <div class="grid-controls-row"><label for="styleButtonBackgroundEnabled">Fondo</label><input id="styleButtonBackgroundEnabled" type="checkbox" checked /></div>
+            <div class="grid-controls-row"><label for="styleButtonBackgroundColor">Color fondo</label><input id="styleButtonBackgroundColor" type="color" value="#2b2b2b" /></div>
+            <div class="grid-controls-row"><label for="styleButtonBackgroundOpacity">Opacidad fondo</label><input id="styleButtonBackgroundOpacity" type="number" min="0" max="1" step="0.05" value="1" /></div>
+            <div class="grid-controls-row"><label for="styleButtonBorderEnabled">Borde</label><input id="styleButtonBorderEnabled" type="checkbox" checked /></div>
+            <div class="grid-controls-row"><label for="styleButtonBorderColor">Color borde</label><input id="styleButtonBorderColor" type="color" value="#444444" /></div>
+            <div class="grid-controls-row"><label for="styleButtonBorderOpacity">Opacidad borde</label><input id="styleButtonBorderOpacity" type="number" min="0" max="1" step="0.05" value="1" /></div>
+            <div class="grid-controls-row"><label for="styleButtonShowLabel">Mostrar etiqueta</label><input id="styleButtonShowLabel" type="checkbox" checked /></div>
+
+            <h4>Estilo global: Faders</h4>
+            <div class="grid-controls-row"><label for="styleFaderBackgroundEnabled">Fondo</label><input id="styleFaderBackgroundEnabled" type="checkbox" checked /></div>
+            <div class="grid-controls-row"><label for="styleFaderBackgroundColor">Color fondo</label><input id="styleFaderBackgroundColor" type="color" value="#2b2b2b" /></div>
+            <div class="grid-controls-row"><label for="styleFaderBackgroundOpacity">Opacidad fondo</label><input id="styleFaderBackgroundOpacity" type="number" min="0" max="1" step="0.05" value="1" /></div>
+            <div class="grid-controls-row"><label for="styleFaderBorderEnabled">Borde</label><input id="styleFaderBorderEnabled" type="checkbox" checked /></div>
+            <div class="grid-controls-row"><label for="styleFaderBorderColor">Color borde</label><input id="styleFaderBorderColor" type="color" value="#444444" /></div>
+            <div class="grid-controls-row"><label for="styleFaderBorderOpacity">Opacidad borde</label><input id="styleFaderBorderOpacity" type="number" min="0" max="1" step="0.05" value="1" /></div>
+            <div class="grid-controls-row"><label for="styleFaderShowLabel">Mostrar etiqueta</label><input id="styleFaderShowLabel" type="checkbox" checked /></div>
+
+            <div id="selectedControlPanel" class="panel" hidden>
+              <h3 id="selectedControlTitle">Elemento seleccionado</h3>
+              <h4>Estilo</h4>
+              <div class="grid-controls-row"><label for="selectedUseGlobalStyle">Usar estilo global</label><input id="selectedUseGlobalStyle" type="checkbox" checked /></div>
+              <div id="selectedOverrideFields">
+                <div class="grid-controls-row"><label for="selectedBackgroundEnabled">Fondo</label><input id="selectedBackgroundEnabled" type="checkbox" checked /></div>
+                <div class="grid-controls-row"><label for="selectedBackgroundColor">Color fondo</label><input id="selectedBackgroundColor" type="color" value="#2b2b2b" /></div>
+                <div class="grid-controls-row"><label for="selectedBackgroundOpacity">Opacidad fondo</label><input id="selectedBackgroundOpacity" type="number" min="0" max="1" step="0.05" value="1" /></div>
+                <div class="grid-controls-row"><label for="selectedBorderEnabled">Borde</label><input id="selectedBorderEnabled" type="checkbox" checked /></div>
+                <div class="grid-controls-row"><label for="selectedBorderColor">Color borde</label><input id="selectedBorderColor" type="color" value="#444444" /></div>
+                <div class="grid-controls-row"><label for="selectedBorderOpacity">Opacidad borde</label><input id="selectedBorderOpacity" type="number" min="0" max="1" step="0.05" value="1" /></div>
+                <div class="grid-controls-row"><label for="selectedShowLabel">Mostrar etiqueta</label><input id="selectedShowLabel" type="checkbox" checked /></div>
+              </div>
             </div>
           </div>
 
@@ -644,6 +635,7 @@
     <div id="contextMenu" class="context-menu" style="display: none;"></div>
     <div id="moveModalHost"></div>
 
+    <script src="../shared/style.js"></script>
     <script src="./renderer.js"></script>
   </body>
 </html>

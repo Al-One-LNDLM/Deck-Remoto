@@ -19,20 +19,37 @@
           },
           "showGrid": true,
           "style": {
-            "buttonShowBackground": true,
-            "buttonShowLabel": true,
-            "buttonBackgroundColor": "#2b2b2b",
-            "buttonShowBorder": true,
-            "buttonBorderColor": "#444444",
-            "faderShowBackground": true,
-            "faderBackgroundColor": "#2b2b2b",
-            "faderShowBorder": true,
-            "faderBorderColor": "#444444",
-            "faderShowLabel": true
+            "button": {
+              "backgroundEnabled": true,
+              "backgroundColor": "#2b2b2b",
+              "backgroundOpacity": 1,
+              "borderEnabled": true,
+              "borderColor": "#444444",
+              "borderOpacity": 1,
+              "showLabel": true
+            },
+            "fader": {
+              "backgroundEnabled": true,
+              "backgroundColor": "#2b2b2b",
+              "backgroundOpacity": 1,
+              "borderEnabled": true,
+              "borderColor": "#444444",
+              "borderOpacity": 1,
+              "showLabel": true
+            },
+            "folderButton": {
+              "backgroundEnabled": true,
+              "backgroundColor": "#2b2b2b",
+              "backgroundOpacity": 1,
+              "borderEnabled": true,
+              "borderColor": "#444444",
+              "borderOpacity": 1,
+              "showLabel": true
+            }
           },
           "background": {
             "type": "solid",
-            "color": "#111111"
+            "value": "#111111"
           },
           "controls": [
             {
