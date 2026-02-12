@@ -167,6 +167,16 @@ function normalizePageForRenderer(page) {
       name: control.name,
       iconAssetId: typeof control.iconAssetId === "string" ? control.iconAssetId : null,
       folderId: typeof control.folderId === "string" ? control.folderId : null,
+      ...(control.type === "fader" ? {
+        faderSkin: control.faderSkin && typeof control.faderSkin === "object"
+          ? {
+            topAssetId: typeof control.faderSkin.topAssetId === "string" ? control.faderSkin.topAssetId : null,
+            middleAssetId: typeof control.faderSkin.middleAssetId === "string" ? control.faderSkin.middleAssetId : null,
+            bottomAssetId: typeof control.faderSkin.bottomAssetId === "string" ? control.faderSkin.bottomAssetId : null,
+            grabAssetId: typeof control.faderSkin.grabAssetId === "string" ? control.faderSkin.grabAssetId : null,
+          }
+          : undefined,
+      } : {}),
       style: control.style && typeof control.style === "object" ? {
         backgroundEnabled: control.style.backgroundEnabled === true,
         backgroundColor: control.style.backgroundColor,
