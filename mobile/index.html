@@ -80,61 +80,69 @@
         min-height: 200px;
       }
 
-      .grid-cell {
+
+      .page-renderer-root {
+        width: 100%;
+      }
+
+      .page-renderer-grid {
+        width: 100%;
+        min-height: 200px;
+        display: grid;
+        gap: 8px;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+
+      .page-renderer-cell {
         border: 1px dashed #4f4f4f;
         border-radius: 6px;
         min-height: 48px;
         background: rgba(255, 255, 255, 0.03);
       }
 
-      #grid.hide-grid-lines .grid-cell {
+      .page-renderer-grid.hide-grid-lines .page-renderer-cell {
         border: 0;
         background: transparent;
       }
 
-      .placement-layer {
-        position: absolute;
-        inset: 8px;
-      }
-
-      .placement {
-        position: absolute;
+      .page-renderer-placement {
         border: 1px solid rgba(255, 255, 255, 0.3);
         border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 8px;
-        text-align: center;
         background: rgba(22, 22, 22, 0.9);
         color: #ffffff;
         font-size: 13px;
         user-select: none;
         -webkit-tap-highlight-color: transparent;
+        padding: 8px;
       }
 
-      .placement.fader {
+      .page-renderer-placement.type-fader {
         background: linear-gradient(180deg, rgba(56, 76, 156, 0.92), rgba(36, 36, 52, 0.92));
-        writing-mode: vertical-rl;
-        transform: rotate(180deg);
       }
 
-      .placement.button.no-background {
-        background: transparent;
-        border-color: rgba(255, 255, 255, 0.2);
+      .page-renderer-control {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
       }
 
-      .placement.hide-label {
-        color: transparent;
+      .page-renderer-icon {
+        width: 65%;
+        max-height: 65%;
+        object-fit: contain;
       }
 
-      .placement.pressed {
-        filter: brightness(1.4);
-        transform: scale(0.98);
+      .page-renderer-label {
+        text-align: center;
       }
 
-      .placement.fader.pressed {
-        transform: rotate(180deg) scale(0.98);
+      .page-renderer-placement.is-pressed {
+        filter: brightness(1.25);
       }
     </style>
   </head>
@@ -161,6 +169,7 @@
 
     <section id="grid"></section>
 
+    <script src="/shared/page-renderer.js"></script>
     <script>
       const statusEl = document.getElementById("status");
       const sendEventBtn = document.getElementById("sendEventBtn");
@@ -174,7 +183,6 @@
       const socketUrl = `${protocol}://${window.location.hostname}:3030/ws`;
 
       let socket;
-      let currentState = null;
 
       function setStatus(connected) {
         statusEl.textContent = connected ? "Conectado" : "Desconectado";
@@ -202,57 +210,15 @@
         });
       }
 
-      function renderSelectors(state) {
+      function renderSelectors() {
         profileSelectEl.innerHTML = "";
         pageSelectEl.innerHTML = "";
-
-        state.profiles.forEach((profile) => {
-          const option = document.createElement("option");
-          option.value = profile.id;
-          option.textContent = profile.name;
-          option.selected = profile.id === state.activeProfileId;
-          profileSelectEl.appendChild(option);
-        });
-
-        state.pages.forEach((page) => {
-          const option = document.createElement("option");
-          option.value = page.id;
-          option.textContent = page.name;
-          option.selected = page.id === state.activePageId;
-          pageSelectEl.appendChild(option);
-        });
+        profileSelectEl.disabled = true;
+        pageSelectEl.disabled = true;
       }
 
       function renderSummary(state) {
-        const activeProfile = state.profiles.find(
-          (profile) => profile.id === state.activeProfileId,
-        );
-        const activePage = state.pages.find((page) => page.id === state.activePageId);
-
-        activeSummaryEl.textContent = `Perfil activo: ${activeProfile ? activeProfile.name : "-"} | Página activa: ${activePage ? activePage.name : "-"}`;
-      }
-
-      function getPageStyle(activePage) {
-        return {
-          buttonShowBackground: activePage?.style?.buttonShowBackground !== false,
-          buttonShowLabel: activePage?.style?.buttonShowLabel !== false,
-          buttonBackgroundColor: /^#[0-9a-fA-F]{6}$/.test(activePage?.style?.buttonBackgroundColor || "")
-            ? activePage.style.buttonBackgroundColor
-            : "#2b2b2b",
-          buttonShowBorder: activePage?.style?.buttonShowBorder !== false,
-          buttonBorderColor: /^#[0-9a-fA-F]{6}$/.test(activePage?.style?.buttonBorderColor || "")
-            ? activePage.style.buttonBorderColor
-            : "#444444",
-          faderShowBackground: activePage?.style?.faderShowBackground !== false,
-          faderBackgroundColor: /^#[0-9a-fA-F]{6}$/.test(activePage?.style?.faderBackgroundColor || "")
-            ? activePage.style.faderBackgroundColor
-            : "#2b2b2b",
-          faderShowBorder: activePage?.style?.faderShowBorder !== false,
-          faderBorderColor: /^#[0-9a-fA-F]{6}$/.test(activePage?.style?.faderBorderColor || "")
-            ? activePage.style.faderBorderColor
-            : "#444444",
-          faderShowLabel: activePage?.style?.faderShowLabel !== false,
-        };
+        activeSummaryEl.textContent = `Perfil activo: ${state.activeProfileId || "-"} | Página activa: ${state.activePageId || "-"}`;
       }
 
       function sendControlPress(elementId, placementId) {
@@ -272,130 +238,13 @@
         );
       }
 
-      function createPlacementElement(placement, element, metrics, pageStyle) {
-        const isFader = element?.type === "fader";
-        const itemEl = document.createElement("button");
-        itemEl.className = `placement ${isFader ? "fader" : "button"}`;
-        itemEl.type = "button";
-
-        const showBackground = isFader ? pageStyle.faderShowBackground : pageStyle.buttonShowBackground;
-        const backgroundColor = isFader ? pageStyle.faderBackgroundColor : pageStyle.buttonBackgroundColor;
-        const showBorder = isFader ? pageStyle.faderShowBorder : pageStyle.buttonShowBorder;
-        const borderColor = isFader ? pageStyle.faderBorderColor : pageStyle.buttonBorderColor;
-
-        itemEl.style.background = showBackground ? backgroundColor : "transparent";
-        itemEl.style.border = showBorder ? `1px solid ${borderColor}` : "none";
-
-        const showLabel = isFader ? pageStyle.faderShowLabel : pageStyle.buttonShowLabel;
-        if (showLabel) {
-          itemEl.textContent = element?.name || placement.elementId;
-        } else {
-          itemEl.classList.add("hide-label");
-          itemEl.textContent = "";
-          itemEl.setAttribute("aria-label", element?.name || placement.elementId);
-        }
-
-        itemEl.style.left = `${metrics.left}px`;
-        itemEl.style.top = `${metrics.top}px`;
-        itemEl.style.width = `${metrics.width}px`;
-        itemEl.style.height = `${metrics.height}px`;
-
-        itemEl.addEventListener("pointerdown", () => {
-          itemEl.classList.add("pressed");
-          window.setTimeout(() => itemEl.classList.remove("pressed"), 150);
-          sendControlPress(placement.elementId, placement.id);
+      function renderGrid(page, assets) {
+        window.PageRenderer.render(gridEl, {
+          page,
+          assets,
+          interactive: true,
+          onControlPress: ({ placement }) => sendControlPress(placement.elementId, placement.id),
         });
-
-        return itemEl;
-      }
-
-      function renderGrid(activePage) {
-        gridEl.innerHTML = "";
-
-        if (!activePage || !activePage.grid) {
-          return;
-        }
-
-        const rows = Math.max(1, Number(activePage.grid.rows) || 1);
-        const cols = Math.max(1, Number(activePage.grid.cols) || 1);
-        const totalCells = rows * cols;
-
-        gridEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
-
-        const background = activePage.background || {};
-        const isImageBackground = background.type === "image" && Boolean(background.imagePath);
-
-        if (isImageBackground) {
-          const fit = background.fit === "contain" || background.fit === "stretch" ? background.fit : "cover";
-          gridEl.style.backgroundColor = "#111111";
-          gridEl.style.backgroundImage = `url("/${background.imagePath}")`;
-          gridEl.style.backgroundRepeat = "no-repeat";
-          gridEl.style.backgroundPosition = "center";
-          gridEl.style.backgroundSize = fit === "stretch" ? "100% 100%" : fit;
-        } else {
-          gridEl.style.background = background.color || "#111111";
-          gridEl.style.backgroundImage = "none";
-        }
-
-        const showGrid = activePage.showGrid !== false;
-        gridEl.classList.toggle("hide-grid-lines", !showGrid);
-
-        for (let index = 0; index < totalCells; index += 1) {
-          const cell = document.createElement("div");
-          cell.className = "grid-cell";
-          gridEl.appendChild(cell);
-        }
-
-        const pageStyle = getPageStyle(activePage);
-        const placements = Array.isArray(activePage.placements) ? activePage.placements : [];
-        const elementList = Array.isArray(activePage.elements)
-          ? activePage.elements
-          : Array.isArray(activePage.controls)
-            ? activePage.controls
-            : [];
-
-        if (placements.length === 0 || elementList.length === 0) {
-          return;
-        }
-
-        const elementById = new Map(elementList.map((element) => [element.id, element]));
-        const layer = document.createElement("div");
-        layer.className = "placement-layer";
-
-        const gap = 8;
-        const layerRect = gridEl.getBoundingClientRect();
-        const innerWidth = Math.max(0, layerRect.width - 16);
-        const innerHeight = Math.max(0, layerRect.height - 16);
-        const cellWidth = cols > 0 ? (innerWidth - gap * (cols - 1)) / cols : 0;
-        const cellHeight = rows > 0 ? (innerHeight - gap * (rows - 1)) / rows : 0;
-
-        placements.forEach((placement) => {
-          const row = Math.max(1, Number(placement.row) || 1);
-          const col = Math.max(1, Number(placement.col) || 1);
-          const rowSpan = Math.max(1, Number(placement.rowSpan) || 1);
-          const colSpan = Math.max(1, Number(placement.colSpan) || 1);
-          const element = elementById.get(placement.elementId);
-
-          if (!element) {
-            return;
-          }
-
-          const left = (col - 1) * (cellWidth + gap);
-          const top = (row - 1) * (cellHeight + gap);
-          const width = cellWidth * colSpan + gap * (colSpan - 1);
-          const height = cellHeight * rowSpan + gap * (rowSpan - 1);
-
-          layer.appendChild(
-            createPlacementElement(placement, element, {
-              left,
-              top,
-              width,
-              height,
-            }, pageStyle),
-          );
-        });
-
-        gridEl.appendChild(layer);
       }
 
       async function fetchState() {
@@ -407,54 +256,17 @@
         return response.json();
       }
 
-      async function postSetActive(payload) {
-        const response = await fetch("/api/setActive", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-
-        const body = await response.json();
-        if (!response.ok || !body.ok) {
-          throw new Error(body.message || `HTTP ${response.status}`);
-        }
-      }
-
       async function loadState() {
         try {
           const state = await fetchState();
-          currentState = state;
-          renderSelectors(state);
+          renderSelectors();
           renderSummary(state);
-          renderGrid(state.activePage);
+          renderGrid(state.page, state.assets);
         } catch (error) {
           lastAckEl.textContent = `No se pudo cargar /api/state: ${error.message}`;
         }
       }
 
-      profileSelectEl.addEventListener("change", async () => {
-        try {
-          await postSetActive({ profileId: profileSelectEl.value });
-          await loadState();
-        } catch (error) {
-          lastAckEl.textContent = `No se pudo cambiar de perfil: ${error.message}`;
-        }
-      });
-
-      pageSelectEl.addEventListener("change", async () => {
-        try {
-          const profileId = currentState?.activeProfileId || profileSelectEl.value;
-          await postSetActive({
-            profileId,
-            pageId: pageSelectEl.value,
-          });
-          await loadState();
-        } catch (error) {
-          lastAckEl.textContent = `No se pudo cambiar de página: ${error.message}`;
-        }
-      });
 
       sendEventBtn.addEventListener("click", () => {
         if (!socket || socket.readyState !== WebSocket.OPEN) {
