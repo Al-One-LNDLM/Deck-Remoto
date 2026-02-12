@@ -201,6 +201,9 @@
       .page-renderer-placement.type-fader {
         background: linear-gradient(180deg, rgba(56, 76, 156, 0.92), rgba(36, 36, 52, 0.92));
         touch-action: none;
+        pointer-events: auto;
+        position: relative;
+        z-index: 3;
       }
 
       .page-renderer-control {
@@ -376,7 +379,7 @@
       let isSyncingSelects = false;
       const lastFaderSentAtMs = new Map();
       const localFaderValues7 = {};
-      const FADER_THROTTLE_MS = 45;
+      const FADER_THROTTLE_MS = 33;
 
       function setStatus(connected) {
         statusEl.textContent = connected ? "Conectado" : "Desconectado";
@@ -548,6 +551,18 @@
           return;
         }
 
+        const numeric = Number(value7);
+        const safeValue7 = Number.isFinite(numeric) ? Math.max(0, Math.min(127, Math.round(numeric))) : 0;
+
+        localFaderValues7[controlId] = safeValue7;
+        if (currentState && !currentState.activeFolderId) {
+          currentState.faderValues7 = {
+            ...(currentState.faderValues7 || {}),
+            [controlId]: safeValue7,
+          };
+          renderGrid(currentState);
+        }
+
         if (!socket || socket.readyState !== WebSocket.OPEN) {
           return;
         }
@@ -558,8 +573,6 @@
           return;
         }
 
-        const numeric = Number(value7);
-        const safeValue7 = Number.isFinite(numeric) ? Math.max(0, Math.min(127, Math.round(numeric))) : 0;
         lastFaderSentAtMs.set(controlId, now);
         console.log("[MOBILE] faderChange", controlId, safeValue7);
         socket.send(JSON.stringify({
