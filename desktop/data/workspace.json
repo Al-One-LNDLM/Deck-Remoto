@@ -100,16 +100,16 @@
                 }
               },
               "faderSkin": {
-                "topAssetId": "icon_1770937633113",
-                "middleAssetId": "icon_1770937639490",
-                "bottomAssetId": "icon_1770937645754",
-                "grabAssetId": "icon_1770937563199"
+                "topAssetId": null,
+                "middleAssetId": "icon_1770939103852",
+                "bottomAssetId": "icon_1770939117884",
+                "grabAssetId": "icon_1770939131882"
               },
               "faderIconAssetIds": [
-                "icon_1770937633113",
-                "icon_1770937639490",
-                "icon_1770937645754",
-                "icon_1770937563199"
+                null,
+                "icon_1770939103852",
+                "icon_1770939117884",
+                "icon_1770939131882"
               ],
               "style": {
                 "backgroundEnabled": true,
@@ -435,6 +435,30 @@
         "type": "icon",
         "path": "assets/icons/1770937645753-fader_top.png",
         "createdAt": "2026-02-12T23:07:25.754Z"
+      },
+      "icon_1770939099708": {
+        "id": "icon_1770939099708",
+        "type": "icon",
+        "path": "assets/icons/1770939099708-fader_top.png",
+        "createdAt": "2026-02-12T23:31:39.708Z"
+      },
+      "icon_1770939103852": {
+        "id": "icon_1770939103852",
+        "type": "icon",
+        "path": "assets/icons/1770939103851-fader_middle.png",
+        "createdAt": "2026-02-12T23:31:43.852Z"
+      },
+      "icon_1770939117884": {
+        "id": "icon_1770939117884",
+        "type": "icon",
+        "path": "assets/icons/1770939117884-fader_bottom.png",
+        "createdAt": "2026-02-12T23:31:57.884Z"
+      },
+      "icon_1770939131882": {
+        "id": "icon_1770939131882",
+        "type": "icon",
+        "path": "assets/icons/1770939131881-fader_grab.png",
+        "createdAt": "2026-02-12T23:32:11.882Z"
       }
     }
   },
