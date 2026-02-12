@@ -375,6 +375,7 @@
       let currentState = null;
       let isSyncingSelects = false;
       const lastFaderSentAtMs = new Map();
+      const localFaderValues7 = {};
       const FADER_THROTTLE_MS = 45;
 
       function setStatus(connected) {
@@ -411,6 +412,21 @@
         socket.addEventListener("message", (event) => {
           try {
             const message = JSON.parse(event.data);
+            if (message?.type === "faderUpdated" && typeof message.controlId === "string") {
+              const value7 = Number(message.value7);
+              localFaderValues7[message.controlId] = Number.isFinite(value7)
+                ? Math.max(0, Math.min(127, Math.round(value7)))
+                : 0;
+              if (currentState && !currentState.activeFolderId) {
+                currentState.faderValues7 = {
+                  ...(currentState.faderValues7 || {}),
+                  ...localFaderValues7,
+                };
+                renderGrid(currentState);
+              }
+              return;
+            }
+
             if (message?.type === "state" || message?.type === "stateUpdated" || message?.type === "actionExecuted") {
               loadState();
             }
@@ -528,6 +544,10 @@
 
 
       function sendFaderChange(controlId, value7) {
+        if (typeof controlId !== "string" || !controlId) {
+          return;
+        }
+
         if (!socket || socket.readyState !== WebSocket.OPEN) {
           return;
         }
@@ -541,6 +561,7 @@
         const numeric = Number(value7);
         const safeValue7 = Number.isFinite(numeric) ? Math.max(0, Math.min(127, Math.round(numeric))) : 0;
         lastFaderSentAtMs.set(controlId, now);
+        console.log("[MOBILE] faderChange", controlId, safeValue7);
         socket.send(JSON.stringify({
           type: "faderChange",
           controlId,
@@ -597,6 +618,10 @@
       async function loadState() {
         try {
           const state = await fetchState();
+          state.faderValues7 = {
+            ...(state.faderValues7 || {}),
+            ...localFaderValues7,
+          };
           currentState = state;
           stateHintEl.textContent = "";
           renderSelectors(state);
