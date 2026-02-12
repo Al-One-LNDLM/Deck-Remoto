@@ -40,6 +40,7 @@ const {
   setPlacementPosition,
   setPlacementSpan,
   setControlStyle,
+  setControlActionBinding,
 } = require("./runtime/workspace");
 
 let mainWindow;
@@ -167,6 +168,9 @@ app.whenReady().then(() => {
   );
   ipcMain.handle("workspace:setControlStyle", (_event, profileId, pageId, elementId, patchStyle) =>
     setControlStyle(profileId, pageId, elementId, patchStyle),
+  );
+  ipcMain.handle("workspace:setControlActionBinding", (_event, profileId, pageId, elementId, actionBindingOrNull) =>
+    setControlActionBinding(profileId, pageId, elementId, actionBindingOrNull),
   );
   ipcMain.handle("workspace:deleteProfile", (_event, profileId) => deleteProfile(profileId));
   ipcMain.handle("workspace:deletePage", (_event, profileId, pageId) => deletePage(profileId, pageId));

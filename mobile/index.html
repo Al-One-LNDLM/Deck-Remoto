@@ -329,7 +329,7 @@
           page,
           assets,
           interactive: true,
-          onControlPress: ({ placement }) => sendControlPress(placement.elementId, placement.id),
+          onControlPress: ({ placement }) => sendControlPress(placement.elementId),
         });
       }
 
@@ -358,19 +358,15 @@
         isSyncingSelects = false;
       }
 
-      function sendControlPress(elementId, placementId) {
+      function sendControlPress(controlId) {
         if (!socket || socket.readyState !== WebSocket.OPEN) {
           return;
         }
 
         socket.send(
           JSON.stringify({
-            type: "event",
-            payload: {
-              kind: "controlPress",
-              elementId,
-              placementId,
-            },
+            type: "buttonPress",
+            controlId,
           }),
         );
       }

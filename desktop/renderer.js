@@ -1704,13 +1704,81 @@ function renderInspector(workspace, selection) {
 
     const actionSection = document.createElement("div");
     actionSection.className = "inspector-elements";
+
     const actionTitle = document.createElement("h4");
     actionTitle.textContent = "Acción";
-    const actionHint = document.createElement("p");
-    actionHint.className = "muted";
-    actionHint.textContent = "(Pendiente) — aquí se configurará la acción/binding del elemento.";
     actionSection.appendChild(actionTitle);
-    actionSection.appendChild(actionHint);
+
+    const actionRow = document.createElement("div");
+    actionRow.className = "inspector-row";
+
+    const actionTypeLabel = document.createElement("label");
+    actionTypeLabel.textContent = "Tipo";
+    actionRow.appendChild(actionTypeLabel);
+
+    const actionTypeSelect = document.createElement("select");
+    const noneOption = document.createElement("option");
+    noneOption.value = "none";
+    noneOption.textContent = "Ninguna";
+    const hotkeyOption = document.createElement("option");
+    hotkeyOption.value = "hotkey";
+    hotkeyOption.textContent = "Hotkey";
+    actionTypeSelect.appendChild(noneOption);
+    actionTypeSelect.appendChild(hotkeyOption);
+
+    const currentBinding = context.element.actionBinding;
+    const hasHotkeyBinding = currentBinding?.kind === "single" && currentBinding.action?.type === "hotkey";
+    actionTypeSelect.value = hasHotkeyBinding ? "hotkey" : "none";
+    actionRow.appendChild(actionTypeSelect);
+    actionSection.appendChild(actionRow);
+
+    const keysRow = document.createElement("div");
+    keysRow.className = "inspector-row";
+    const keysLabel = document.createElement("label");
+    keysLabel.textContent = "Keys";
+    const keysInput = document.createElement("input");
+    keysInput.placeholder = "Ctrl+Alt+K";
+    keysInput.value = hasHotkeyBinding ? (currentBinding.action.keys || "") : "";
+    keysRow.appendChild(keysLabel);
+    keysRow.appendChild(keysInput);
+    actionSection.appendChild(keysRow);
+
+    function syncActionRows() {
+      keysRow.style.display = actionTypeSelect.value === "hotkey" ? "grid" : "none";
+    }
+
+    actionTypeSelect.addEventListener("change", syncActionRows);
+    syncActionRows();
+
+    const saveRow = document.createElement("div");
+    saveRow.className = "grid-controls-row";
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.textContent = "Guardar acción";
+    saveBtn.addEventListener("click", async () => {
+      let nextBinding = null;
+      if (actionTypeSelect.value === "hotkey") {
+        nextBinding = {
+          kind: "single",
+          action: {
+            type: "hotkey",
+            keys: keysInput.value.trim(),
+          },
+        };
+      }
+
+      state.workspace = await window.runtime.setControlActionBinding(
+        context.profile.id,
+        context.page.id,
+        context.element.id,
+        nextBinding,
+      );
+      renderNavigation();
+      await renderGridTab();
+    });
+
+    saveRow.appendChild(saveBtn);
+    actionSection.appendChild(saveRow);
     inspector.appendChild(actionSection);
   }
 }
