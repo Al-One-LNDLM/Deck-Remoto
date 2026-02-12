@@ -43,7 +43,7 @@
               "iconAssetId": null,
               "style": {
                 "backgroundEnabled": true,
-                "backgroundColor": "#4C6AE1",
+                "backgroundColor": "#F3F4F7",
                 "backgroundOpacity": 1,
                 "borderEnabled": false,
                 "borderColor": "#FFFFFF",
@@ -65,9 +65,9 @@
               "id": "placement1",
               "elementId": "folderButton1",
               "row": 0,
-              "col": 1,
-              "rowSpan": 2,
-              "colSpan": 2
+              "col": 0,
+              "rowSpan": 1,
+              "colSpan": 1
             }
           ],
           "iconAssetId": null
