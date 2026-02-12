@@ -97,8 +97,9 @@
               "actionBinding": {
                 "kind": "single",
                 "action": {
-                  "type": "openUrl",
-                  "url": "https://www.youtube.com/watch?v=HpUyf5YU1lM&t=8484s"
+                  "type": "openApp",
+                  "target": "C:\\Users\\aleja\\Desktop\\Apps",
+                  "args": []
                 }
               },
               "style": {
