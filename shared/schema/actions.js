@@ -2,6 +2,28 @@ function sanitizeHotkeyKeys(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function sanitizeHttpUrl(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return "";
+    }
+
+    return parsed.toString();
+  } catch (_error) {
+    return "";
+  }
+}
+
 function clampInteger(value, min, max, fallback) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) {
@@ -33,6 +55,18 @@ function normalizeAction(action) {
       type: "midiCc",
       channel: clampInteger(action.channel, 1, 16, 1),
       cc: clampInteger(action.cc, 0, 127, 0),
+    };
+  }
+
+  if (action.type === "openUrl") {
+    const url = sanitizeHttpUrl(action.url);
+    if (!url) {
+      return null;
+    }
+
+    return {
+      type: "openUrl",
+      url,
     };
   }
 
@@ -78,4 +112,5 @@ function normalizeActionBinding(actionBinding) {
 module.exports = {
   normalizeAction,
   normalizeActionBinding,
+  sanitizeHttpUrl,
 };
