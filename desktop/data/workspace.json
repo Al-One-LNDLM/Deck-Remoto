@@ -18,11 +18,70 @@
             "cols": 3
           },
           "showGrid": true,
-          "controls": [],
-          "folders": [],
-          "placements": []
+          "controls": [
+            {
+              "id": "button1",
+              "type": "button",
+              "name": "Botón 1",
+              "folderId": null,
+              "iconAssetId": null,
+              "style": {
+                "backgroundEnabled": true,
+                "backgroundColor": "#000000",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": true
+              }
+            },
+            {
+              "id": "folderButton1",
+              "type": "folderButton",
+              "name": "Carpeta 1",
+              "folderId": "folder1",
+              "iconAssetId": null,
+              "style": {
+                "backgroundEnabled": true,
+                "backgroundColor": "#4C6AE1",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": true
+              }
+            }
+          ],
+          "folders": [
+            {
+              "id": "folder1",
+              "name": "Carpeta 1",
+              "items": [],
+              "iconAssetId": null
+            }
+          ],
+          "placements": [
+            {
+              "id": "placement1",
+              "elementId": "button1",
+              "row": 1,
+              "col": 1,
+              "rowSpan": 4,
+              "colSpan": 1
+            },
+            {
+              "id": "placement2",
+              "elementId": "folderButton1",
+              "row": 1,
+              "col": 2,
+              "rowSpan": 4,
+              "colSpan": 2
+            }
+          ],
+          "iconAssetId": null
         }
-      ]
+      ],
+      "iconAssetId": null
     }
   ],
   "assets": {
