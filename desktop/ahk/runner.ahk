@@ -4,12 +4,12 @@ if A_Args.Length < 1 {
   ExitApp 1
 }
 
-hotkey := A_Args[1]
-if hotkey = "" {
+hk := A_Args.Length >= 1 ? A_Args[1] : ""
+if hk = "" {
   ExitApp 1
 }
 
-ahkHotkey := hotkey
+ahkHotkey := hk
 ahkHotkey := StrReplace(ahkHotkey, "Ctrl", "^")
 ahkHotkey := StrReplace(ahkHotkey, "Alt", "!")
 ahkHotkey := StrReplace(ahkHotkey, "Shift", "+")
