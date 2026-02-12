@@ -173,69 +173,165 @@ async function renderGridTab() {
   const folderById = new Map(folders.map((folder) => [folder.id, folder]));
   const placements = Array.isArray(ctx.page.placements) ? ctx.page.placements : [];
   const placedIds = new Set(placements.map((placement) => placement.elementId));
-  const controls = (Array.isArray(ctx.page.controls) ? ctx.page.controls : [])
-    .filter((element) => element.type === "folderButton" || !element.folderId);
-  const unplaced = controls.filter((element) => !placedIds.has(element.id));
-  const placed = controls.filter((element) => placedIds.has(element.id));
+  const controls = Array.isArray(ctx.page.controls) ? ctx.page.controls : [];
+
+  const placeableControls = controls
+    .filter((control) => control.type !== "folderButton")
+    .filter((control) => !control.folderId);
+
+  const folderButtonsByFolderId = new Map();
+  controls
+    .filter((control) => control.type === "folderButton")
+    .forEach((control) => {
+      if (!control.folderId || !folderById.has(control.folderId) || folderButtonsByFolderId.has(control.folderId)) {
+        return;
+      }
+
+      folderButtonsByFolderId.set(control.folderId, control);
+    });
 
   gridElementsList.innerHTML = "";
 
-  function appendElementGroup(title, elements, actionLabel, onAction) {
+  function appendElementSectionTitle(title) {
     const heading = document.createElement("li");
     heading.textContent = title;
     heading.className = "muted";
     gridElementsList.appendChild(heading);
+  }
+
+  function appendElementSectionEmpty() {
+    const empty = document.createElement("li");
+    empty.className = "muted";
+    empty.textContent = "(vacío)";
+    gridElementsList.appendChild(empty);
+  }
+
+  function appendPlaceableElementRow(label, iconAssetId, isPlaced, onPlace, onUnplace) {
+    const item = document.createElement("li");
+    item.className = "grid-element-item";
+
+    const rowLeft = document.createElement("span");
+    if (iconAssetId && state.workspace.assets?.icons?.[iconAssetId]?.path) {
+      const icon = document.createElement("img");
+      icon.className = "icon-preview";
+      icon.src = state.workspace.assets.icons[iconAssetId].path;
+      icon.alt = "icon";
+      rowLeft.appendChild(icon);
+    }
+
+    const text = document.createElement("span");
+    text.textContent = label;
+    rowLeft.appendChild(text);
+
+    const action = document.createElement("button");
+    action.type = "button";
+    action.textContent = isPlaced ? "Quitar" : "Colocar";
+    action.addEventListener("click", () => {
+      if (isPlaced) {
+        onUnplace();
+        return;
+      }
+
+      onPlace();
+    });
+
+    item.appendChild(rowLeft);
+    item.appendChild(action);
+    gridElementsList.appendChild(item);
+  }
+
+  function appendElementGroup(title, elements, getElementLabel) {
+    appendElementSectionTitle(title);
 
     if (!elements.length) {
-      const empty = document.createElement("li");
-      empty.className = "muted";
-      empty.textContent = "(vacío)";
-      gridElementsList.appendChild(empty);
+      appendElementSectionEmpty();
       return;
     }
 
     elements.forEach((element) => {
-      const item = document.createElement("li");
-      item.className = "grid-element-item";
-
-      const rowLeft = document.createElement("span");
-      const linkedFolder = element.type === "folderButton" ? folderById.get(element.folderId) : null;
-      const iconAssetId = element.iconAssetId || linkedFolder?.iconAssetId || null;
-      if (iconAssetId && state.workspace.assets?.icons?.[iconAssetId]?.path) {
-        const icon = document.createElement("img");
-        icon.className = "icon-preview";
-        icon.src = state.workspace.assets.icons[iconAssetId].path;
-        icon.alt = "icon";
-        rowLeft.appendChild(icon);
-      }
-
-      const text = document.createElement("span");
-      text.textContent = `${element.name} (${element.type})`;
-      rowLeft.appendChild(text);
-
-      const action = document.createElement("button");
-      action.type = "button";
-      action.textContent = actionLabel;
-      action.addEventListener("click", () => onAction(element));
-
-      item.appendChild(rowLeft);
-      item.appendChild(action);
-      gridElementsList.appendChild(item);
+      const isPlaced = placedIds.has(element.id);
+      appendPlaceableElementRow(
+        getElementLabel(element),
+        element.iconAssetId,
+        isPlaced,
+        () => {
+          state.placingElementId = element.id;
+          renderGridTab();
+        },
+        async () => {
+          state.workspace = await window.runtime.unplaceElement(ctx.profile.id, ctx.page.id, element.id);
+          if (state.placingElementId === element.id) {
+            state.placingElementId = null;
+          }
+          renderNavigation();
+          await renderGridTab();
+        },
+      );
     });
   }
 
-  appendElementGroup("No colocados", unplaced, "Colocar", (element) => {
-    state.placingElementId = element.id;
-    renderGridTab();
-  });
+  appendElementGroup("Controles", placeableControls, (element) => `${element.name} (${element.type})`);
 
-  appendElementGroup("Colocados", placed, "Quitar", async (element) => {
-    state.workspace = await window.runtime.unplaceElement(ctx.profile.id, ctx.page.id, element.id);
-    if (state.placingElementId === element.id) {
-      state.placingElementId = null;
-    }
-    renderNavigation();
-    await renderGridTab();
+  appendElementSectionTitle("Carpetas");
+  if (!folders.length) {
+    appendElementSectionEmpty();
+  } else {
+    folders.forEach((folder) => {
+      const folderButton = folderButtonsByFolderId.get(folder.id);
+
+      if (!folderButton) {
+        const item = document.createElement("li");
+        item.className = "grid-element-item";
+
+        const rowLeft = document.createElement("span");
+        const text = document.createElement("span");
+        text.textContent = `${folder.name} (sin acceso)`;
+        rowLeft.appendChild(text);
+
+        const createAction = document.createElement("button");
+        createAction.type = "button";
+        createAction.textContent = "Crear acceso";
+        createAction.addEventListener("click", async () => {
+          const result = await window.runtime.addFolderButton(ctx.profile.id, ctx.page.id, folder.id, {
+            name: `Acceso a ${folder.name}`,
+          });
+          state.workspace = result.workspace;
+          await renderGridTab();
+          renderNavigation();
+        });
+
+        item.appendChild(rowLeft);
+        item.appendChild(createAction);
+        gridElementsList.appendChild(item);
+        return;
+      }
+
+      appendPlaceableElementRow(
+        `Acceso a: ${folder.name}`,
+        folderButton.iconAssetId || folder.iconAssetId || null,
+        placedIds.has(folderButton.id),
+        () => {
+          state.placingElementId = folderButton.id;
+          renderGridTab();
+        },
+        async () => {
+          state.workspace = await window.runtime.unplaceElement(ctx.profile.id, ctx.page.id, folderButton.id);
+          if (state.placingElementId === folderButton.id) {
+            state.placingElementId = null;
+          }
+          renderNavigation();
+          await renderGridTab();
+        },
+      );
+    });
+  }
+
+  const folderButtons = controls
+    .filter((control) => control.type === "folderButton")
+    .filter((control) => control.folderId && folderById.has(control.folderId));
+  appendElementGroup("Accesos a carpetas", folderButtons, (element) => {
+    const linkedFolder = folderById.get(element.folderId);
+    return `${element.name || "Acceso"} → ${linkedFolder?.name || "Carpeta"}`;
   });
 
   const page = normalizePageForRenderer(ctx.page);
