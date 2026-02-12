@@ -62,7 +62,12 @@ async function executeAction(action, { log } = {}) {
 
       const openResult = await shell.openPath(target);
       if (openResult) {
-        throw new Error(openResult);
+        const child = spawn("explorer.exe", [target], {
+          detached: true,
+          windowsHide: true,
+          stdio: "ignore",
+        });
+        child.unref();
       }
     } catch (error) {
       if (typeof log === "function") {
