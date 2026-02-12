@@ -131,6 +131,26 @@ function normalizeWorkspace(workspace) {
         }
       });
 
+      const controlIds = new Set(page.controls.map((control) => control.id));
+      page.placements = page.placements
+        .map((placement) => {
+          const safeElementId = typeof placement?.elementId === "string"
+            ? placement.elementId
+            : typeof placement?.controlId === "string"
+              ? placement.controlId
+              : null;
+
+          if (!safeElementId || !controlIds.has(safeElementId)) {
+            return null;
+          }
+
+          return {
+            ...placement,
+            elementId: safeElementId,
+          };
+        })
+        .filter(Boolean);
+
       page.folders.forEach((folder) => {
         folder.items.forEach((item) => {
           if (page.controls.some((control) => control.id === item.id)) {
