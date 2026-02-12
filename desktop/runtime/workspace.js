@@ -149,6 +149,12 @@ function normalizeWorkspace(workspace) {
       });
 
       const controlIds = new Set(page.controls.map((control) => control.id));
+      const usesLegacyOneBasedPlacement = page.placements.every((placement) => {
+        const row = Math.floor(Number(placement?.row));
+        const col = Math.floor(Number(placement?.col));
+        return Number.isFinite(row) && Number.isFinite(col) && row >= 1 && col >= 1;
+      });
+
       page.placements = page.placements
         .map((placement) => {
           const safeElementId = typeof placement?.elementId === "string"
@@ -161,9 +167,18 @@ function normalizeWorkspace(workspace) {
             return null;
           }
 
+          const sourceRow = Math.floor(Number(placement?.row));
+          const sourceCol = Math.floor(Number(placement?.col));
+          const safeRow = Number.isFinite(sourceRow) ? sourceRow : 0;
+          const safeCol = Number.isFinite(sourceCol) ? sourceCol : 0;
+
           return {
             ...placement,
             elementId: safeElementId,
+            row: Math.max(0, usesLegacyOneBasedPlacement ? safeRow - 1 : safeRow),
+            col: Math.max(0, usesLegacyOneBasedPlacement ? safeCol - 1 : safeCol),
+            rowSpan: Math.max(1, Math.floor(Number(placement?.rowSpan) || 1)),
+            colSpan: Math.max(1, Math.floor(Number(placement?.colSpan) || 1)),
           };
         })
         .filter(Boolean);
@@ -353,11 +368,11 @@ function canPlacePlacement(page, placement, options = {}) {
     return false;
   }
 
-  if (row < 1 || col < 1) {
+  if (row < 0 || col < 0) {
     return false;
   }
 
-  if (row + rowSpan - 1 > rows || col + colSpan - 1 > cols) {
+  if (row + rowSpan > rows || col + colSpan > cols) {
     return false;
   }
 
@@ -543,13 +558,17 @@ function placeElement(profileId, pageId, elementId, row, col, rowSpan = 1, colSp
   }
 
   const existingPlacement = page.placements.find((placement) => placement.elementId === elementId);
+  const rows = Math.max(1, Number(page.grid?.rows) || 1);
+  const cols = Math.max(1, Number(page.grid?.cols) || 1);
+  const safeRowSpan = Math.max(1, Number(rowSpan) || 1);
+  const safeColSpan = Math.max(1, Number(colSpan) || 1);
   const candidate = {
     id: existingPlacement?.id || nextPlacementId(),
     elementId,
-    row: Number(row),
-    col: Number(col),
-    rowSpan: Math.max(1, Number(rowSpan) || 1),
-    colSpan: Math.max(1, Number(colSpan) || 1),
+    row: Math.max(0, Math.min(rows - safeRowSpan, Math.floor(Number(row) || 0))),
+    col: Math.max(0, Math.min(cols - safeColSpan, Math.floor(Number(col) || 0))),
+    rowSpan: safeRowSpan,
+    colSpan: safeColSpan,
   };
 
   if (!canPlacePlacement(page, candidate, { excludePlacementId: existingPlacement?.id || null })) {
@@ -633,8 +652,12 @@ function updatePlacementSpan(profileId, pageId, placementId, rowSpan, colSpan) {
     throw new Error("Elemento no encontrado");
   }
 
-  const safeRowSpan = Math.max(1, Number(rowSpan) || 1);
-  const safeColSpan = element.type === "fader" ? 1 : Math.max(1, Number(colSpan) || 1);
+  const rows = Math.max(1, Number(page.grid?.rows) || 1);
+  const cols = Math.max(1, Number(page.grid?.cols) || 1);
+  const safeRowSpan = Math.max(1, Math.min(rows - placement.row, Number(rowSpan) || 1));
+  const safeColSpan = element.type === "fader"
+    ? 1
+    : Math.max(1, Math.min(cols - placement.col, Number(colSpan) || 1));
   const candidate = {
     ...placement,
     rowSpan: safeRowSpan,
@@ -982,10 +1005,12 @@ function setPlacementPosition(profileId, pageId, elementId, row, col) {
   const { workspace, page } = getPage(profileId, pageId);
   const { placement } = getControlAndPlacement(page, elementId);
 
+  const rows = Math.max(1, Number(page.grid?.rows) || 1);
+  const cols = Math.max(1, Number(page.grid?.cols) || 1);
   const candidate = {
     ...placement,
-    row: Math.max(1, Math.floor(Number(row) || 1)),
-    col: Math.max(1, Math.floor(Number(col) || 1)),
+    row: Math.max(0, Math.min(rows - placement.rowSpan, Math.floor(Number(row) || 0))),
+    col: Math.max(0, Math.min(cols - placement.colSpan, Math.floor(Number(col) || 0))),
   };
 
   if (!canPlacePlacement(page, candidate, { excludePlacementId: placement.id })) {
@@ -1002,10 +1027,12 @@ function setPlacementSpan(profileId, pageId, elementId, rowSpan, colSpan) {
   const { workspace, page } = getPage(profileId, pageId);
   const { control, placement } = getControlAndPlacement(page, elementId);
 
-  const safeRowSpan = Math.max(1, Math.floor(Number(rowSpan) || 1));
+  const rows = Math.max(1, Number(page.grid?.rows) || 1);
+  const cols = Math.max(1, Number(page.grid?.cols) || 1);
+  const safeRowSpan = Math.max(1, Math.min(rows - placement.row, Math.floor(Number(rowSpan) || 1)));
   const safeColSpan = control.type === "fader"
     ? 1
-    : Math.max(1, Math.floor(Number(colSpan) || 1));
+    : Math.max(1, Math.min(cols - placement.col, Math.floor(Number(colSpan) || 1)));
 
   const candidate = {
     ...placement,
