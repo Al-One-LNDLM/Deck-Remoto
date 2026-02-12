@@ -1,9 +1,9 @@
 {
   "activeProfileId": "profile1",
-  "activePageId": "page1",
+  "activePageId": "page2",
   "lastSession": {
     "activeProfileId": "profile1",
-    "activePageId": "page1"
+    "activePageId": "page2"
   },
   "profiles": [
     {
@@ -103,6 +103,83 @@
               "row": 1,
               "col": 4,
               "rowSpan": 4,
+              "colSpan": 1
+            }
+          ]
+        },
+        {
+          "id": "page2",
+          "name": "Página 2",
+          "grid": {
+            "rows": 4,
+            "cols": 3
+          },
+          "showGrid": true,
+          "style": {
+            "button": {
+              "backgroundEnabled": true,
+              "backgroundColor": "#2b2b2b",
+              "backgroundOpacity": 1,
+              "borderEnabled": true,
+              "borderColor": "#444444",
+              "borderOpacity": 1,
+              "showLabel": true
+            },
+            "fader": {
+              "backgroundEnabled": true,
+              "backgroundColor": "#2b2b2b",
+              "backgroundOpacity": 1,
+              "borderEnabled": true,
+              "borderColor": "#444444",
+              "borderOpacity": 1,
+              "showLabel": true
+            },
+            "folderButton": {
+              "backgroundEnabled": true,
+              "backgroundColor": "#2b2b2b",
+              "backgroundOpacity": 1,
+              "borderEnabled": true,
+              "borderColor": "#444444",
+              "borderOpacity": 1,
+              "showLabel": true
+            }
+          },
+          "background": {
+            "type": "solid",
+            "value": "#111111"
+          },
+          "controls": [
+            {
+              "id": "button3",
+              "type": "button",
+              "name": "Botón 3",
+              "folderId": null,
+              "iconAssetId": null
+            },
+            {
+              "id": "button4",
+              "type": "button",
+              "name": "Botón 4",
+              "folderId": null,
+              "iconAssetId": null
+            }
+          ],
+          "folders": [],
+          "placements": [
+            {
+              "id": "placement3",
+              "elementId": "button3",
+              "row": 1,
+              "col": 1,
+              "rowSpan": 3,
+              "colSpan": 3
+            },
+            {
+              "id": "placement4",
+              "elementId": "button4",
+              "row": 4,
+              "col": 2,
+              "rowSpan": 1,
               "colSpan": 1
             }
           ]
