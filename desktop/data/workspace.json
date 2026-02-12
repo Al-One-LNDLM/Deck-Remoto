@@ -25,23 +25,9 @@
               "name": "Botón 1",
               "folderId": null,
               "iconAssetId": null
-            },
-            {
-              "id": "folderButton1",
-              "type": "folderButton",
-              "name": "Carpeta 1",
-              "folderId": "folder1",
-              "iconAssetId": null
             }
           ],
-          "folders": [
-            {
-              "id": "folder1",
-              "name": "Carpeta 1",
-              "items": [],
-              "iconAssetId": null
-            }
-          ],
+          "folders": [],
           "placements": []
         }
       ]
