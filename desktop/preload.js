@@ -16,10 +16,6 @@ contextBridge.exposeInMainWorld("runtime", {
     ipcRenderer.invoke("workspace:addPlacement", profileId, pageId, elementId, row, col),
   updatePlacementSpan: (profileId, pageId, placementId, rowSpan, colSpan) =>
     ipcRenderer.invoke("workspace:updatePlacementSpan", profileId, pageId, placementId, rowSpan, colSpan),
-  setPlacementSpan: (profileId, pageId, elementId, rowSpan, colSpan) =>
-    ipcRenderer.invoke("workspace:setPlacementSpan", profileId, pageId, elementId, rowSpan, colSpan),
-  setPlacementPosition: (profileId, pageId, elementId, row, col) =>
-    ipcRenderer.invoke("workspace:setPlacementPosition", profileId, pageId, elementId, row, col),
   deletePlacement: (profileId, pageId, placementId) =>
     ipcRenderer.invoke("workspace:deletePlacement", profileId, pageId, placementId),
   deleteElement: (profileId, pageId, elementId) =>
@@ -36,12 +32,6 @@ contextBridge.exposeInMainWorld("runtime", {
     ipcRenderer.invoke("workspace:setPageGrid", profileId, pageId, rows, cols),
   setPageShowGrid: (profileId, pageId, showGrid) =>
     ipcRenderer.invoke("workspace:setPageShowGrid", profileId, pageId, showGrid),
-  setPageBackgroundSolid: (profileId, pageId, color) =>
-    ipcRenderer.invoke("workspace:setPageBackgroundSolid", profileId, pageId, color),
-  setPageBackgroundImage: (profileId, pageId, assetId, fit) =>
-    ipcRenderer.invoke("workspace:setPageBackgroundImage", profileId, pageId, assetId, fit),
-  clearPageBackgroundImage: (profileId, pageId) =>
-    ipcRenderer.invoke("workspace:clearPageBackgroundImage", profileId, pageId),
   deleteProfile: (profileId) => ipcRenderer.invoke("workspace:deleteProfile", profileId),
   deletePage: (profileId, pageId) => ipcRenderer.invoke("workspace:deletePage", profileId, pageId),
   deleteFolder: (profileId, pageId, folderId) => ipcRenderer.invoke("workspace:deleteFolder", profileId, pageId, folderId),
@@ -68,7 +58,6 @@ contextBridge.exposeInMainWorld("runtime", {
     ipcRenderer.invoke("workspace:importFaderIconSlot", profileId, pageId, elementId, slotIndex),
   setFaderIconSlot: (profileId, pageId, elementId, slotIndex, assetId) =>
     ipcRenderer.invoke("workspace:setFaderIconSlot", profileId, pageId, elementId, slotIndex, assetId),
-  importBackgroundImage: () => ipcRenderer.invoke("workspace:importBackgroundImage"),
   onLog: (listener) => {
     const handler = (_, message) => listener(message);
     ipcRenderer.on("server:log", handler);
