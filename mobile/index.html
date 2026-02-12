@@ -225,6 +225,49 @@
       .page-renderer-placement.is-pressed {
         filter: brightness(1.25);
       }
+
+      .folder-view {
+        width: 100%;
+        border: 1px solid #2b2b2b;
+        border-radius: 8px;
+        padding: 10px;
+        background: #141414;
+        display: grid;
+        gap: 10px;
+      }
+
+      .folder-view[hidden] {
+        display: none;
+      }
+
+      .folder-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      #folderItems {
+        display: grid;
+        gap: 8px;
+      }
+
+      .folder-item-btn {
+        width: 100%;
+        border: 1px solid #303030;
+        border-radius: 8px;
+        background: #1c1c1c;
+        color: #f5f5f5;
+        padding: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .folder-item-btn img {
+        width: 26px;
+        height: 26px;
+        object-fit: contain;
+      }
     </style>
   </head>
   <body>
@@ -255,6 +298,13 @@
 
     <main class="grid-layout">
       <section id="grid"></section>
+      <section id="folderView" class="folder-view" hidden>
+        <div class="folder-header">
+          <button id="folderBackBtn" type="button">← Back</button>
+          <strong id="folderTitle">Folder</strong>
+        </div>
+        <div id="folderItems"></div>
+      </section>
     </main>
 
     <script src="/shared/page-renderer.js"></script>
@@ -265,6 +315,10 @@
       const activeSummaryEl = document.getElementById("activeSummary");
       const stateHintEl = document.getElementById("stateHint");
       const gridEl = document.getElementById("grid");
+      const folderViewEl = document.getElementById("folderView");
+      const folderBackBtnEl = document.getElementById("folderBackBtn");
+      const folderTitleEl = document.getElementById("folderTitle");
+      const folderItemsEl = document.getElementById("folderItems");
       const mobileHeaderEl = document.getElementById("mobileHeader");
       const headerToggleEl = document.getElementById("headerToggle");
 
@@ -330,6 +384,65 @@
           assets,
           interactive: true,
           onControlPress: ({ placement }) => sendControlPress(placement.elementId),
+        });
+      }
+
+      function sendFolderItemPress(itemId) {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          return;
+        }
+
+        socket.send(JSON.stringify({ type: "folderItemPress", itemId }));
+      }
+
+      async function closeFolderView() {
+        const response = await fetch("/api/closeFolder", { method: "POST" });
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.message || `HTTP ${response.status}`);
+        }
+      }
+
+      function renderFolderView(state) {
+        const isFolderOpen = Boolean(state.activeFolderId);
+        gridEl.hidden = isFolderOpen;
+        folderViewEl.hidden = !isFolderOpen;
+
+        if (!isFolderOpen) {
+          return;
+        }
+
+        folderTitleEl.textContent = state.activeFolder?.name || state.activeFolderId;
+        folderItemsEl.innerHTML = "";
+
+        const items = Array.isArray(state.activeFolderItems) ? state.activeFolderItems : [];
+        if (!items.length) {
+          const empty = document.createElement("p");
+          empty.textContent = "Esta carpeta no tiene items.";
+          folderItemsEl.appendChild(empty);
+          return;
+        }
+
+        const icons = state.assets?.icons || {};
+        items.forEach((item) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "folder-item-btn";
+
+          const iconUrl = item.iconAssetId && icons[item.iconAssetId]?.url ? icons[item.iconAssetId].url : null;
+          if (iconUrl) {
+            const icon = document.createElement("img");
+            icon.src = iconUrl;
+            icon.alt = "";
+            btn.appendChild(icon);
+          }
+
+          const label = document.createElement("span");
+          label.textContent = item.name || item.id;
+          btn.appendChild(label);
+
+          btn.addEventListener("click", () => sendFolderItemPress(item.id));
+          folderItemsEl.appendChild(btn);
         });
       }
 
@@ -411,7 +524,10 @@
           stateHintEl.textContent = "";
           renderSelectors(state);
           updateSummary(state);
-          renderGrid(state.page, state.assets);
+          renderFolderView(state);
+          if (!state.activeFolderId) {
+            renderGrid(state.page, state.assets);
+          }
         } catch (error) {
           stateHintEl.textContent = `No se pudo cargar /api/state: ${error.message}`;
         }
@@ -457,6 +573,15 @@
           if (currentState) {
             renderSelectors(currentState);
           }
+        }
+      });
+
+      folderBackBtnEl.addEventListener("click", async () => {
+        try {
+          await closeFolderView();
+          await loadState();
+        } catch (error) {
+          stateHintEl.textContent = `No se pudo volver atrás: ${error.message}`;
         }
       });
 

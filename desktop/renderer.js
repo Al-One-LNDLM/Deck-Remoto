@@ -793,6 +793,14 @@ function getActionTypeForControl(control) {
     return "switchProfile";
   }
 
+  if (binding.action?.type === "openFolder") {
+    return "openFolder";
+  }
+
+  if (binding.action?.type === "back") {
+    return "back";
+  }
+
   return "none";
 }
 
@@ -969,6 +977,16 @@ async function renderActionsTab() {
     switchProfileOption.value = "switchProfile";
     switchProfileOption.textContent = "Switch Profile";
     actionTypeSelect.appendChild(switchProfileOption);
+
+    const openFolderOption = document.createElement("option");
+    openFolderOption.value = "openFolder";
+    openFolderOption.textContent = "Open Folder";
+    actionTypeSelect.appendChild(openFolderOption);
+
+    const backOption = document.createElement("option");
+    backOption.value = "back";
+    backOption.textContent = "Back";
+    actionTypeSelect.appendChild(backOption);
   }
 
   if (supportsMidiCc) {
@@ -1010,6 +1028,9 @@ async function renderActionsTab() {
     : "";
   const switchProfileValue = currentBinding?.kind === "single" && currentBinding.action?.type === "switchProfile"
     ? String(currentBinding.action.profileId || "")
+    : "";
+  const openFolderValue = currentBinding?.kind === "single" && currentBinding.action?.type === "openFolder"
+    ? String(currentBinding.action.folderId || "")
     : "";
 
   const hotkeyRow = document.createElement("div");
@@ -1134,6 +1155,24 @@ async function renderActionsTab() {
   switchProfileSelect.value = switchProfileValue;
   switchProfileRow.append(switchProfileLabel, switchProfileSelect);
 
+  const openFolderRow = document.createElement("div");
+  openFolderRow.className = "actions-inspector-row";
+  const openFolderLabel = document.createElement("label");
+  openFolderLabel.textContent = "Carpeta";
+  const openFolderSelect = document.createElement("select");
+  const openFolderEmptyOption = document.createElement("option");
+  openFolderEmptyOption.value = "";
+  openFolderEmptyOption.textContent = "Selecciona carpeta";
+  openFolderSelect.appendChild(openFolderEmptyOption);
+  (ctx.page.folders || []).forEach((folder) => {
+    const option = document.createElement("option");
+    option.value = folder.id;
+    option.textContent = folder.name || folder.id;
+    openFolderSelect.appendChild(option);
+  });
+  openFolderSelect.value = openFolderValue;
+  openFolderRow.append(openFolderLabel, openFolderSelect);
+
   const validation = document.createElement("p");
   validation.className = "actions-validation";
 
@@ -1148,6 +1187,7 @@ async function renderActionsTab() {
     const isMidiCc = actionTypeSelect.value === "midiCc";
     const isSwitchPage = actionTypeSelect.value === "switchPage";
     const isSwitchProfile = actionTypeSelect.value === "switchProfile";
+    const isOpenFolder = actionTypeSelect.value === "openFolder";
     hotkeyRow.style.display = isHotkey ? "grid" : "none";
     openUrlRow.style.display = isOpenUrl ? "grid" : "none";
     openAppTargetRow.style.display = isOpenApp ? "grid" : "none";
@@ -1156,12 +1196,14 @@ async function renderActionsTab() {
     midiCcRow.style.display = isMidiCc ? "grid" : "none";
     switchPageRow.style.display = isSwitchPage ? "grid" : "none";
     switchProfileRow.style.display = isSwitchProfile ? "grid" : "none";
+    openFolderRow.style.display = isOpenFolder ? "grid" : "none";
     validation.textContent = "";
     saveButton.disabled = (isHotkey && !hotkeyValueDraft.trim())
       || (isOpenUrl && !openUrlInput.value.trim())
       || (isOpenApp && !openAppTargetInput.value.trim())
       || (isSwitchPage && !switchPageSelect.value)
-      || (isSwitchProfile && !switchProfileSelect.value);
+      || (isSwitchProfile && !switchProfileSelect.value)
+      || (isOpenFolder && !openFolderSelect.value);
   }
 
   hotkeyInput.addEventListener("input", syncRows);
@@ -1170,6 +1212,7 @@ async function renderActionsTab() {
   openAppArgsInput.addEventListener("input", syncRows);
   switchPageSelect.addEventListener("change", syncRows);
   switchProfileSelect.addEventListener("change", syncRows);
+  openFolderSelect.addEventListener("change", syncRows);
   actionTypeSelect.addEventListener("change", syncRows);
 
   saveButton.addEventListener("click", async () => {
@@ -1249,6 +1292,21 @@ async function renderActionsTab() {
           profileId: switchProfileSelect.value,
         },
       };
+    } else if (actionTypeSelect.value === "openFolder") {
+      nextBinding = {
+        kind: "single",
+        action: {
+          type: "openFolder",
+          folderId: openFolderSelect.value,
+        },
+      };
+    } else if (actionTypeSelect.value === "back") {
+      nextBinding = {
+        kind: "single",
+        action: {
+          type: "back",
+        },
+      };
     }
 
     state.workspace = await window.runtime.setControlActionBinding(
@@ -1261,7 +1319,7 @@ async function renderActionsTab() {
     renderNavigation();
   });
 
-  actionsInspector.append(hotkeyRow, openUrlRow, openAppTargetRow, openAppArgsRow, midiChannelRow, midiCcRow, switchPageRow, switchProfileRow, validation, saveButton);
+  actionsInspector.append(hotkeyRow, openUrlRow, openAppTargetRow, openAppArgsRow, midiChannelRow, midiCcRow, switchPageRow, switchProfileRow, openFolderRow, validation, saveButton);
   syncRows();
 }
 
