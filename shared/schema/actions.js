@@ -2,6 +2,25 @@ function sanitizeHotkeyKeys(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function sanitizeOpenAppTarget(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function sanitizeOpenAppArgs(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter(Boolean);
+}
+
 function sanitizeHttpUrl(value) {
   if (typeof value !== "string") {
     return "";
@@ -70,6 +89,19 @@ function normalizeAction(action) {
     };
   }
 
+  if (action.type === "openApp") {
+    const target = sanitizeOpenAppTarget(action.target);
+    if (!target) {
+      return null;
+    }
+
+    return {
+      type: "openApp",
+      target,
+      args: sanitizeOpenAppArgs(action.args),
+    };
+  }
+
   return null;
 }
 
@@ -112,5 +144,6 @@ function normalizeActionBinding(actionBinding) {
 module.exports = {
   normalizeAction,
   normalizeActionBinding,
+  sanitizeOpenAppTarget,
   sanitizeHttpUrl,
 };
