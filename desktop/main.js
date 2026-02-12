@@ -9,8 +9,6 @@ const {
   addFolder,
   addPlacement,
   updatePlacementSpan,
-  setPlacementSpan,
-  setPlacementPosition,
   deletePlacement,
   addButton,
   addFader,
@@ -25,9 +23,6 @@ const {
   setActivePage,
   setPageGrid,
   setPageShowGrid,
-  setPageBackgroundSolid,
-  setPageBackgroundImage,
-  clearPageBackgroundImage,
   deleteProfile,
   deletePage,
   deleteFolder,
@@ -106,30 +101,6 @@ async function importIconAsset() {
   return `assets/icons/${targetName}`;
 }
 
-async function importBackgroundImage() {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ["openFile"],
-    filters: [{ name: "Imágenes", extensions: ["png", "jpg", "jpeg", "webp"] }],
-  });
-
-  if (result.canceled || result.filePaths.length === 0) {
-    return null;
-  }
-
-  const sourcePath = result.filePaths[0];
-  const backgroundsDir = path.resolve(__dirname, "assets/backgrounds");
-  fs.mkdirSync(backgroundsDir, { recursive: true });
-
-  const parsed = path.parse(sourcePath);
-  const extension = parsed.ext || ".png";
-  const baseName = sanitizeAssetName(parsed.name) || "background";
-  const targetName = `${Date.now()}-${baseName}${extension}`;
-  const targetPath = path.join(backgroundsDir, targetName);
-  fs.copyFileSync(sourcePath, targetPath);
-
-  return `assets/backgrounds/${targetName}`;
-}
-
 app.whenReady().then(() => {
   ipcMain.handle("server:start", async () => runtimeServer.start());
   ipcMain.handle("server:stop", async () => runtimeServer.stop());
@@ -150,12 +121,6 @@ app.whenReady().then(() => {
   );
   ipcMain.handle("workspace:updatePlacementSpan", (_event, profileId, pageId, placementId, rowSpan, colSpan) =>
     updatePlacementSpan(profileId, pageId, placementId, rowSpan, colSpan),
-  );
-  ipcMain.handle("workspace:setPlacementSpan", (_event, profileId, pageId, elementId, rowSpan, colSpan) =>
-    setPlacementSpan(profileId, pageId, elementId, rowSpan, colSpan),
-  );
-  ipcMain.handle("workspace:setPlacementPosition", (_event, profileId, pageId, elementId, row, col) =>
-    setPlacementPosition(profileId, pageId, elementId, row, col),
   );
   ipcMain.handle("workspace:deletePlacement", (_event, profileId, pageId, placementId) =>
     deletePlacement(profileId, pageId, placementId),
@@ -178,15 +143,6 @@ app.whenReady().then(() => {
   );
   ipcMain.handle("workspace:setPageShowGrid", (_event, profileId, pageId, showGrid) =>
     setPageShowGrid(profileId, pageId, showGrid),
-  );
-  ipcMain.handle("workspace:setPageBackgroundSolid", (_event, profileId, pageId, color) =>
-    setPageBackgroundSolid(profileId, pageId, color),
-  );
-  ipcMain.handle("workspace:setPageBackgroundImage", (_event, profileId, pageId, imagePath, fit) =>
-    setPageBackgroundImage(profileId, pageId, imagePath, fit),
-  );
-  ipcMain.handle("workspace:clearPageBackgroundImage", (_event, profileId, pageId) =>
-    clearPageBackgroundImage(profileId, pageId),
   );
   ipcMain.handle("workspace:deleteProfile", (_event, profileId) => deleteProfile(profileId));
   ipcMain.handle("workspace:deletePage", (_event, profileId, pageId) => deletePage(profileId, pageId));
@@ -250,16 +206,6 @@ app.whenReady().then(() => {
   ipcMain.handle("workspace:setFaderIconSlot", (_event, profileId, pageId, elementId, slotIndex, assetId) =>
     setFaderIconSlot(profileId, pageId, elementId, slotIndex, assetId),
   );
-  ipcMain.handle("workspace:importBackgroundImage", async () => {
-    const backgroundPath = await importBackgroundImage();
-    if (!backgroundPath) {
-      return null;
-    }
-
-    const assetId = `bg_${Date.now()}`;
-    return { assetId, path: backgroundPath };
-  });
-
   createWindow();
 
   app.on("activate", () => {
