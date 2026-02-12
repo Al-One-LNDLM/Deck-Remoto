@@ -777,6 +777,10 @@ function getActionTypeForControl(control) {
     return "midiCc";
   }
 
+  if (binding.action?.type === "openUrl") {
+    return "openUrl";
+  }
+
   return "none";
 }
 
@@ -933,6 +937,11 @@ async function renderActionsTab() {
     hotkeyOption.value = "hotkey";
     hotkeyOption.textContent = "Hotkey";
     actionTypeSelect.appendChild(hotkeyOption);
+
+    const openUrlOption = document.createElement("option");
+    openUrlOption.value = "openUrl";
+    openUrlOption.textContent = "Open URL";
+    actionTypeSelect.appendChild(openUrlOption);
   }
 
   if (supportsMidiCc) {
@@ -953,6 +962,9 @@ async function renderActionsTab() {
   const currentBinding = selected.actionBinding;
   const hotkeyValue = currentBinding?.kind === "single" && currentBinding.action?.type === "hotkey"
     ? String(currentBinding.action.keys || "")
+    : "";
+  const openUrlValue = currentBinding?.kind === "single" && currentBinding.action?.type === "openUrl"
+    ? String(currentBinding.action.url || "")
     : "";
   const midiChannelValue = currentBinding?.kind === "single" && currentBinding.action?.type === "midiCc"
     ? clampActionInt(currentBinding.action.channel, 1, 16, 1)
@@ -976,6 +988,16 @@ async function renderActionsTab() {
   });
   const hotkeyInput = hotkeyRecorder.element;
   hotkeyRow.append(hotkeyLabel, hotkeyInput);
+
+  const openUrlRow = document.createElement("div");
+  openUrlRow.className = "actions-inspector-row";
+  const openUrlLabel = document.createElement("label");
+  openUrlLabel.textContent = "URL";
+  const openUrlInput = document.createElement("input");
+  openUrlInput.type = "url";
+  openUrlInput.placeholder = "https://...";
+  openUrlInput.value = openUrlValue;
+  openUrlRow.append(openUrlLabel, openUrlInput);
 
   const midiChannelRow = document.createElement("div");
   midiChannelRow.className = "actions-inspector-row";
@@ -1010,15 +1032,18 @@ async function renderActionsTab() {
 
   function syncRows() {
     const isHotkey = actionTypeSelect.value === "hotkey";
+    const isOpenUrl = actionTypeSelect.value === "openUrl";
     const isMidiCc = actionTypeSelect.value === "midiCc";
     hotkeyRow.style.display = isHotkey ? "grid" : "none";
+    openUrlRow.style.display = isOpenUrl ? "grid" : "none";
     midiChannelRow.style.display = isMidiCc ? "grid" : "none";
     midiCcRow.style.display = isMidiCc ? "grid" : "none";
     validation.textContent = "";
-    saveButton.disabled = isHotkey && !hotkeyValueDraft.trim();
+    saveButton.disabled = (isHotkey && !hotkeyValueDraft.trim()) || (isOpenUrl && !openUrlInput.value.trim());
   }
 
   hotkeyInput.addEventListener("input", syncRows);
+  openUrlInput.addEventListener("input", syncRows);
   actionTypeSelect.addEventListener("change", syncRows);
 
   saveButton.addEventListener("click", async () => {
@@ -1034,6 +1059,19 @@ async function renderActionsTab() {
         action: {
           type: "hotkey",
           keys,
+        },
+      };
+    } else if (actionTypeSelect.value === "openUrl") {
+      const url = openUrlInput.value.trim();
+      if (!url) {
+        validation.textContent = "La URL no puede estar vacía.";
+        return;
+      }
+      nextBinding = {
+        kind: "single",
+        action: {
+          type: "openUrl",
+          url,
         },
       };
     } else if (actionTypeSelect.value === "midiCc") {
@@ -1061,7 +1099,7 @@ async function renderActionsTab() {
     renderNavigation();
   });
 
-  actionsInspector.append(hotkeyRow, midiChannelRow, midiCcRow, validation, saveButton);
+  actionsInspector.append(hotkeyRow, openUrlRow, midiChannelRow, midiCcRow, validation, saveButton);
   syncRows();
 }
 
@@ -2079,12 +2117,17 @@ function renderInspector(workspace, selection) {
     const hotkeyOption = document.createElement("option");
     hotkeyOption.value = "hotkey";
     hotkeyOption.textContent = "Hotkey";
+    const openUrlOption = document.createElement("option");
+    openUrlOption.value = "openUrl";
+    openUrlOption.textContent = "Open URL";
     actionTypeSelect.appendChild(noneOption);
     actionTypeSelect.appendChild(hotkeyOption);
+    actionTypeSelect.appendChild(openUrlOption);
 
     const currentBinding = context.element.actionBinding;
     const hasHotkeyBinding = currentBinding?.kind === "single" && currentBinding.action?.type === "hotkey";
-    actionTypeSelect.value = hasHotkeyBinding ? "hotkey" : "none";
+    const hasOpenUrlBinding = currentBinding?.kind === "single" && currentBinding.action?.type === "openUrl";
+    actionTypeSelect.value = hasHotkeyBinding ? "hotkey" : hasOpenUrlBinding ? "openUrl" : "none";
     actionRow.appendChild(actionTypeSelect);
     actionSection.appendChild(actionRow);
 
@@ -2105,8 +2148,21 @@ function renderInspector(workspace, selection) {
     keysRow.appendChild(keysInput);
     actionSection.appendChild(keysRow);
 
+    const urlRow = document.createElement("div");
+    urlRow.className = "inspector-row";
+    const urlLabel = document.createElement("label");
+    urlLabel.textContent = "URL";
+    const urlInput = document.createElement("input");
+    urlInput.type = "url";
+    urlInput.placeholder = "https://...";
+    urlInput.value = hasOpenUrlBinding ? (currentBinding.action.url || "") : "";
+    urlRow.appendChild(urlLabel);
+    urlRow.appendChild(urlInput);
+    actionSection.appendChild(urlRow);
+
     function syncActionRows() {
       keysRow.style.display = actionTypeSelect.value === "hotkey" ? "grid" : "none";
+      urlRow.style.display = actionTypeSelect.value === "openUrl" ? "grid" : "none";
     }
 
     actionTypeSelect.addEventListener("change", syncActionRows);
@@ -2125,6 +2181,14 @@ function renderInspector(workspace, selection) {
           action: {
             type: "hotkey",
             keys: keysValueDraft.trim(),
+          },
+        };
+      } else if (actionTypeSelect.value === "openUrl") {
+        nextBinding = {
+          kind: "single",
+          action: {
+            type: "openUrl",
+            url: urlInput.value.trim(),
           },
         };
       }
