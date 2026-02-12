@@ -9,6 +9,8 @@ const {
   addFolder,
   addPlacement,
   updatePlacementSpan,
+  setPlacementSpan,
+  setPlacementPosition,
   deletePlacement,
   addButton,
   addFader,
@@ -23,7 +25,6 @@ const {
   setActivePage,
   setPageGrid,
   setPageShowGrid,
-  setPageStyle,
   setPageBackgroundSolid,
   setPageBackgroundImage,
   clearPageBackgroundImage,
@@ -150,6 +151,12 @@ app.whenReady().then(() => {
   ipcMain.handle("workspace:updatePlacementSpan", (_event, profileId, pageId, placementId, rowSpan, colSpan) =>
     updatePlacementSpan(profileId, pageId, placementId, rowSpan, colSpan),
   );
+  ipcMain.handle("workspace:setPlacementSpan", (_event, profileId, pageId, elementId, rowSpan, colSpan) =>
+    setPlacementSpan(profileId, pageId, elementId, rowSpan, colSpan),
+  );
+  ipcMain.handle("workspace:setPlacementPosition", (_event, profileId, pageId, elementId, row, col) =>
+    setPlacementPosition(profileId, pageId, elementId, row, col),
+  );
   ipcMain.handle("workspace:deletePlacement", (_event, profileId, pageId, placementId) =>
     deletePlacement(profileId, pageId, placementId),
   );
@@ -171,9 +178,6 @@ app.whenReady().then(() => {
   );
   ipcMain.handle("workspace:setPageShowGrid", (_event, profileId, pageId, showGrid) =>
     setPageShowGrid(profileId, pageId, showGrid),
-  );
-  ipcMain.handle("workspace:setPageStyle", (_event, profileId, pageId, partialStyle) =>
-    setPageStyle(profileId, pageId, partialStyle),
   );
   ipcMain.handle("workspace:setPageBackgroundSolid", (_event, profileId, pageId, color) =>
     setPageBackgroundSolid(profileId, pageId, color),
