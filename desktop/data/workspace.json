@@ -23,53 +23,58 @@
               "id": "button1",
               "type": "button",
               "name": "Botón 1",
-              "folderId": "folder1",
+              "folderId": null,
               "iconAssetId": null,
               "actionBinding": null
             },
             {
               "id": "button2",
               "type": "button",
-              "name": "Botón 2",
+              "name": "COPIAR",
               "folderId": null,
               "iconAssetId": "icon_1770917839732",
-              "actionBinding": null,
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "hotkey",
+                  "keys": "Ctrl+C"
+                }
+              },
               "style": {
                 "backgroundEnabled": true,
-                "backgroundColor": "#FFFFFF",
+                "backgroundColor": "#888686",
                 "backgroundOpacity": 1,
                 "borderEnabled": false,
                 "borderColor": "#FFFFFF",
                 "borderOpacity": 1,
-                "showLabel": false
+                "showLabel": true
               }
             },
             {
-              "id": "folderButton1",
-              "type": "folderButton",
-              "name": "Carpeta 1",
-              "folderId": "folder1",
-              "iconAssetId": null,
-              "actionBinding": null,
+              "id": "button3",
+              "type": "button",
+              "name": "PEGAR",
+              "folderId": null,
+              "iconAssetId": "icon_1770917839732",
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "hotkey",
+                  "keys": "Ctrl+V"
+                }
+              },
               "style": {
                 "backgroundEnabled": true,
-                "backgroundColor": "#EA1010",
+                "backgroundColor": "#888686",
                 "backgroundOpacity": 1,
                 "borderEnabled": false,
                 "borderColor": "#FFFFFF",
                 "borderOpacity": 1,
-                "showLabel": false
+                "showLabel": true
               }
             }
           ],
-          "folders": [
-            {
-              "id": "folder1",
-              "name": "Carpeta 1",
-              "items": [],
-              "iconAssetId": "icon_1770917845189"
-            }
-          ],
+          "folders": [],
           "placements": [
             {
               "id": "placement1",
@@ -81,7 +86,7 @@
             },
             {
               "id": "placement2",
-              "elementId": "folderButton1",
+              "elementId": "button3",
               "row": 0,
               "col": 0,
               "rowSpan": 1,
