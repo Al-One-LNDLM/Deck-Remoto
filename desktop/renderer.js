@@ -21,19 +21,31 @@ const gridRowsInput = document.getElementById("gridRowsInput");
 const gridColsInput = document.getElementById("gridColsInput");
 const applyGridBtn = document.getElementById("applyGridBtn");
 const gridShowCheckbox = document.getElementById("gridShowCheckbox");
-const styleButtonShowBackgroundCheckbox = document.getElementById("styleButtonShowBackgroundCheckbox");
-const styleButtonShowLabelCheckbox = document.getElementById("styleButtonShowLabelCheckbox");
-const styleButtonBackgroundColorInput = document.getElementById("styleButtonBackgroundColorInput");
-const styleButtonShowBorderCheckbox = document.getElementById("styleButtonShowBorderCheckbox");
-const styleButtonBorderColorInput = document.getElementById("styleButtonBorderColorInput");
-const styleButtonBorderColorRow = document.getElementById("styleButtonBorderColorRow");
-const styleFaderShowBackgroundCheckbox = document.getElementById("styleFaderShowBackgroundCheckbox");
-const styleFaderBackgroundColorInput = document.getElementById("styleFaderBackgroundColorInput");
-const styleFaderBackgroundColorRow = document.getElementById("styleFaderBackgroundColorRow");
-const styleFaderShowBorderCheckbox = document.getElementById("styleFaderShowBorderCheckbox");
-const styleFaderBorderColorInput = document.getElementById("styleFaderBorderColorInput");
-const styleFaderBorderColorRow = document.getElementById("styleFaderBorderColorRow");
-const styleFaderShowLabelCheckbox = document.getElementById("styleFaderShowLabelCheckbox");
+const styleButtonBackgroundEnabled = document.getElementById("styleButtonBackgroundEnabled");
+const styleButtonBackgroundColor = document.getElementById("styleButtonBackgroundColor");
+const styleButtonBackgroundOpacity = document.getElementById("styleButtonBackgroundOpacity");
+const styleButtonBorderEnabled = document.getElementById("styleButtonBorderEnabled");
+const styleButtonBorderColor = document.getElementById("styleButtonBorderColor");
+const styleButtonBorderOpacity = document.getElementById("styleButtonBorderOpacity");
+const styleButtonShowLabel = document.getElementById("styleButtonShowLabel");
+const styleFaderBackgroundEnabled = document.getElementById("styleFaderBackgroundEnabled");
+const styleFaderBackgroundColor = document.getElementById("styleFaderBackgroundColor");
+const styleFaderBackgroundOpacity = document.getElementById("styleFaderBackgroundOpacity");
+const styleFaderBorderEnabled = document.getElementById("styleFaderBorderEnabled");
+const styleFaderBorderColor = document.getElementById("styleFaderBorderColor");
+const styleFaderBorderOpacity = document.getElementById("styleFaderBorderOpacity");
+const styleFaderShowLabel = document.getElementById("styleFaderShowLabel");
+const selectedControlPanel = document.getElementById("selectedControlPanel");
+const selectedControlTitle = document.getElementById("selectedControlTitle");
+const selectedUseGlobalStyle = document.getElementById("selectedUseGlobalStyle");
+const selectedOverrideFields = document.getElementById("selectedOverrideFields");
+const selectedBackgroundEnabled = document.getElementById("selectedBackgroundEnabled");
+const selectedBackgroundColor = document.getElementById("selectedBackgroundColor");
+const selectedBackgroundOpacity = document.getElementById("selectedBackgroundOpacity");
+const selectedBorderEnabled = document.getElementById("selectedBorderEnabled");
+const selectedBorderColor = document.getElementById("selectedBorderColor");
+const selectedBorderOpacity = document.getElementById("selectedBorderOpacity");
+const selectedShowLabel = document.getElementById("selectedShowLabel");
 const gridBgColorInput = document.getElementById("gridBgColorInput");
 const addBackgroundImageBtn = document.getElementById("addBackgroundImageBtn");
 const backgroundImageInfo = document.getElementById("backgroundImageInfo");
@@ -66,26 +78,15 @@ function clampGridValue(value) {
 }
 
 function getPageStyle(page) {
-  return {
-    buttonShowBackground: page?.style?.buttonShowBackground !== false,
-    buttonShowLabel: page?.style?.buttonShowLabel !== false,
-    buttonBackgroundColor: /^#[0-9a-fA-F]{6}$/.test(page?.style?.buttonBackgroundColor || "")
-      ? page.style.buttonBackgroundColor
-      : "#2b2b2b",
-    buttonShowBorder: page?.style?.buttonShowBorder !== false,
-    buttonBorderColor: /^#[0-9a-fA-F]{6}$/.test(page?.style?.buttonBorderColor || "")
-      ? page.style.buttonBorderColor
-      : "#444444",
-    faderShowBackground: page?.style?.faderShowBackground !== false,
-    faderBackgroundColor: /^#[0-9a-fA-F]{6}$/.test(page?.style?.faderBackgroundColor || "")
-      ? page.style.faderBackgroundColor
-      : "#2b2b2b",
-    faderShowBorder: page?.style?.faderShowBorder !== false,
-    faderBorderColor: /^#[0-9a-fA-F]{6}$/.test(page?.style?.faderBorderColor || "")
-      ? page.style.faderBorderColor
-      : "#444444",
-    faderShowLabel: page?.style?.faderShowLabel !== false,
-  };
+  return window.styleResolver.normalizePageStyle(page?.style || {});
+}
+
+function getResolvedControlStyle(page, control) {
+  return window.styleResolver.resolveControlStyle(page?.style || {}, control);
+}
+
+function clampOpacityInput(value) {
+  return window.styleResolver.clampOpacity(value, 1);
 }
 
 function getGridContextWorkspace() {
@@ -248,26 +249,20 @@ function drawPlacement(ctx2d, page, placement, element, metrics, selectedPlaceme
   const width = placement.colSpan * cellW;
   const height = placement.rowSpan * cellH;
   const isSelected = placement.id === selectedPlacementId;
-  const isFader = element?.type === "fader";
-  const pageStyle = getPageStyle(page);
-  const showBackground = isFader ? pageStyle.faderShowBackground : pageStyle.buttonShowBackground;
-  const backgroundColor = isFader ? pageStyle.faderBackgroundColor : pageStyle.buttonBackgroundColor;
-  const showBorder = isFader ? pageStyle.faderShowBorder : pageStyle.buttonShowBorder;
-  const borderColor = isFader ? pageStyle.faderBorderColor : pageStyle.buttonBorderColor;
+  const resolvedStyle = getResolvedControlStyle(page, element);
 
-  if (showBackground) {
-    ctx2d.fillStyle = backgroundColor;
+  if (resolvedStyle.backgroundEnabled) {
+    ctx2d.fillStyle = resolvedStyle.backgroundCssColor;
     ctx2d.fillRect(x + 2, y + 2, width - 4, height - 4);
   }
 
-  if (showBorder || isSelected) {
+  if (resolvedStyle.borderEnabled || isSelected) {
     ctx2d.lineWidth = isSelected ? 3 : 1;
-    ctx2d.strokeStyle = isSelected ? "#ffd166" : borderColor;
+    ctx2d.strokeStyle = isSelected ? "#ffd166" : resolvedStyle.borderCssColor;
     ctx2d.strokeRect(x + 2.5, y + 2.5, width - 5, height - 5);
   }
 
-  const showLabel = isFader ? pageStyle.faderShowLabel : pageStyle.buttonShowLabel;
-  if (!showLabel) {
+  if (!resolvedStyle.showLabel) {
     return;
   }
 
@@ -377,8 +372,8 @@ async function renderGridCanvas(page) {
   const height = gridCanvas.height;
   const rows = clampGridValue(page.grid?.rows || 1);
   const cols = clampGridValue(page.grid?.cols || 1);
-  const bgColor = page.background?.type === "solid" ? page.background.color : "#111111";
-  const isImageBackground = page.background?.type === "image" && page.background.imagePath;
+  const bgColor = page.background?.type === "solid" ? page.background.value : "#111111";
+  const isImageBackground = page.background?.type === "image" && page.background.assetId;
 
   const cellW = width / cols;
   const cellH = height / rows;
@@ -389,7 +384,7 @@ async function renderGridCanvas(page) {
 
   if (isImageBackground) {
     try {
-      const image = await getGridBackgroundImage(page.background.imagePath);
+      const image = await getGridBackgroundImage(page.background.assetId);
       drawImageBackground(ctx2d, image, width, height, page.background.fit);
     } catch (_error) {
       // fallback al color sólido
@@ -474,7 +469,7 @@ async function onGridCanvasClick(event) {
 
   if (placement) {
     state.gridSelection.selectedPlacementId = placement.id;
-    state.gridSelection.selectedElementId = null;
+    state.gridSelection.selectedElementId = placement.elementId;
     await renderGridTab();
     return;
   }
@@ -554,28 +549,31 @@ async function renderGridTab() {
   gridColsInput.value = clampGridValue(ctx.page.grid?.cols || 3);
   gridShowCheckbox.checked = ctx.page.showGrid !== false;
   const pageStyle = getPageStyle(ctx.page);
-  styleButtonShowBackgroundCheckbox.checked = pageStyle.buttonShowBackground;
-  styleButtonBackgroundColorInput.value = pageStyle.buttonBackgroundColor;
-  styleButtonShowBorderCheckbox.checked = pageStyle.buttonShowBorder;
-  styleButtonBorderColorInput.value = pageStyle.buttonBorderColor;
-  styleButtonBorderColorRow.hidden = !pageStyle.buttonShowBorder;
-  styleButtonShowLabelCheckbox.checked = pageStyle.buttonShowLabel;
-  styleFaderShowBackgroundCheckbox.checked = pageStyle.faderShowBackground;
-  styleFaderBackgroundColorInput.value = pageStyle.faderBackgroundColor;
-  styleFaderBackgroundColorRow.hidden = !pageStyle.faderShowBackground;
-  styleFaderShowBorderCheckbox.checked = pageStyle.faderShowBorder;
-  styleFaderBorderColorInput.value = pageStyle.faderBorderColor;
-  styleFaderBorderColorRow.hidden = !pageStyle.faderShowBorder;
-  styleFaderShowLabelCheckbox.checked = pageStyle.faderShowLabel;
-  const background = ctx.page.background || { type: "solid", color: "#111111" };
-  gridBgColorInput.value = background.color || "#111111";
+  styleButtonBackgroundEnabled.checked = pageStyle.button.backgroundEnabled;
+  styleButtonBackgroundColor.value = pageStyle.button.backgroundColor;
+  styleButtonBackgroundOpacity.value = pageStyle.button.backgroundOpacity;
+  styleButtonBorderEnabled.checked = pageStyle.button.borderEnabled;
+  styleButtonBorderColor.value = pageStyle.button.borderColor;
+  styleButtonBorderOpacity.value = pageStyle.button.borderOpacity;
+  styleButtonShowLabel.checked = pageStyle.button.showLabel;
 
-  const hasImageBackground = background.type === "image" && Boolean(background.imagePath);
+  styleFaderBackgroundEnabled.checked = pageStyle.fader.backgroundEnabled;
+  styleFaderBackgroundColor.value = pageStyle.fader.backgroundColor;
+  styleFaderBackgroundOpacity.value = pageStyle.fader.backgroundOpacity;
+  styleFaderBorderEnabled.checked = pageStyle.fader.borderEnabled;
+  styleFaderBorderColor.value = pageStyle.fader.borderColor;
+  styleFaderBorderOpacity.value = pageStyle.fader.borderOpacity;
+  styleFaderShowLabel.checked = pageStyle.fader.showLabel;
+
+  const background = ctx.page.background || { type: "solid", value: "#111111" };
+  gridBgColorInput.value = background.value || "#111111";
+
+  const hasImageBackground = background.type === "image" && Boolean(background.assetId);
   backgroundFitSelect.disabled = !hasImageBackground;
   clearBackgroundImageBtn.disabled = !hasImageBackground;
   backgroundFitSelect.value = hasImageBackground ? (background.fit || "cover") : "cover";
   backgroundImageInfo.textContent = hasImageBackground
-    ? `Imagen: ${background.imagePath.split("/").pop()}`
+    ? `Imagen: ${background.assetId.split("/").pop()}`
     : "Sin imagen de fondo";
 
   gridPreviewModeSelect.value = state.gridSelection.previewMode;
@@ -606,6 +604,26 @@ async function renderGridTab() {
       }
       gridElementsList.appendChild(item);
     });
+  }
+
+
+  const selectedControl = getElementById(ctx.page, state.gridSelection.selectedElementId);
+  if (!selectedControl) {
+    selectedControlPanel.hidden = true;
+  } else {
+    selectedControlPanel.hidden = false;
+    selectedControlTitle.textContent = `Elemento seleccionado: ${selectedControl.name} (${selectedControl.type})`;
+    const override = selectedControl.styleOverride || null;
+    const resolvedStyle = getResolvedControlStyle(ctx.page, selectedControl);
+    selectedUseGlobalStyle.checked = !override;
+    selectedOverrideFields.hidden = !override;
+    selectedBackgroundEnabled.checked = resolvedStyle.backgroundEnabled;
+    selectedBackgroundColor.value = resolvedStyle.backgroundColor;
+    selectedBackgroundOpacity.value = resolvedStyle.backgroundOpacity;
+    selectedBorderEnabled.checked = resolvedStyle.borderEnabled;
+    selectedBorderColor.value = resolvedStyle.borderColor;
+    selectedBorderOpacity.value = resolvedStyle.borderOpacity;
+    selectedShowLabel.checked = resolvedStyle.showLabel;
   }
 
   renderPlacementModeWarning(ctx.page);
@@ -640,13 +658,13 @@ async function applyShowGrid(showGrid) {
   await renderGridTab();
 }
 
-async function applyPageStyle(partialStyle) {
+async function applyPageStyle(styleType, partialStyle) {
   const ctx = getGridContextWorkspace();
   if (!ctx) {
     return;
   }
 
-  state.workspace = await window.runtime.setPageStyle(ctx.profile.id, ctx.page.id, partialStyle);
+  state.workspace = await window.runtime.setPageStyle(ctx.profile.id, ctx.page.id, { [styleType]: partialStyle });
   renderNavigation();
   await renderGridTab();
 }
@@ -670,14 +688,14 @@ async function applyBackgroundImageFit(fit) {
   }
 
   const background = ctx.page.background || {};
-  if (background.type !== "image" || !background.imagePath) {
+  if (background.type !== "image" || !background.assetId) {
     return;
   }
 
   state.workspace = await window.runtime.setPageBackgroundImage(
     ctx.profile.id,
     ctx.page.id,
-    background.imagePath,
+    background.assetId,
     fit,
   );
   renderNavigation();
@@ -690,12 +708,12 @@ async function importAndSetBackgroundImage() {
     return;
   }
 
-  const imagePath = await window.runtime.importBackgroundImage();
-  if (!imagePath) {
+  const imported = await window.runtime.importBackgroundImage();
+  if (!imported?.path) {
     return;
   }
 
-  state.workspace = await window.runtime.setPageBackgroundImage(ctx.profile.id, ctx.page.id, imagePath, "cover");
+  state.workspace = await window.runtime.setPageBackgroundImage(ctx.profile.id, ctx.page.id, imported.path, "cover");
   renderNavigation();
   await renderGridTab();
 }
@@ -707,6 +725,37 @@ async function clearBackgroundImage() {
   }
 
   state.workspace = await window.runtime.clearPageBackgroundImage(ctx.profile.id, ctx.page.id);
+  renderNavigation();
+  await renderGridTab();
+}
+
+async function applySelectedOverride(patch) {
+  const ctx = getGridContextWorkspace();
+  if (!ctx || !state.gridSelection.selectedElementId) {
+    return;
+  }
+
+  state.workspace = await window.runtime.setControlStyleOverride(
+    ctx.profile.id,
+    ctx.page.id,
+    state.gridSelection.selectedElementId,
+    patch,
+  );
+  renderNavigation();
+  await renderGridTab();
+}
+
+async function clearSelectedOverride() {
+  const ctx = getGridContextWorkspace();
+  if (!ctx || !state.gridSelection.selectedElementId) {
+    return;
+  }
+
+  state.workspace = await window.runtime.clearControlStyleOverride(
+    ctx.profile.id,
+    ctx.page.id,
+    state.gridSelection.selectedElementId,
+  );
   renderNavigation();
   await renderGridTab();
 }
@@ -1787,45 +1836,74 @@ gridShowCheckbox.addEventListener("change", async (event) => {
   await applyShowGrid(event.target.checked);
 });
 
-styleButtonShowBackgroundCheckbox.addEventListener("change", async (event) => {
-  await applyPageStyle({ buttonShowBackground: event.target.checked });
+styleButtonBackgroundEnabled.addEventListener("change", async (event) => {
+  await applyPageStyle("button", { backgroundEnabled: event.target.checked });
+});
+styleButtonBackgroundColor.addEventListener("input", async (event) => {
+  await applyPageStyle("button", { backgroundColor: event.target.value });
+});
+styleButtonBackgroundOpacity.addEventListener("change", async (event) => {
+  await applyPageStyle("button", { backgroundOpacity: clampOpacityInput(event.target.value) });
+});
+styleButtonBorderEnabled.addEventListener("change", async (event) => {
+  await applyPageStyle("button", { borderEnabled: event.target.checked });
+});
+styleButtonBorderColor.addEventListener("input", async (event) => {
+  await applyPageStyle("button", { borderColor: event.target.value });
+});
+styleButtonBorderOpacity.addEventListener("change", async (event) => {
+  await applyPageStyle("button", { borderOpacity: clampOpacityInput(event.target.value) });
+});
+styleButtonShowLabel.addEventListener("change", async (event) => {
+  await applyPageStyle("button", { showLabel: event.target.checked });
 });
 
-styleButtonBackgroundColorInput.addEventListener("input", async (event) => {
-  await applyPageStyle({ buttonBackgroundColor: event.target.value });
+styleFaderBackgroundEnabled.addEventListener("change", async (event) => {
+  await applyPageStyle("fader", { backgroundEnabled: event.target.checked });
+});
+styleFaderBackgroundColor.addEventListener("input", async (event) => {
+  await applyPageStyle("fader", { backgroundColor: event.target.value });
+});
+styleFaderBackgroundOpacity.addEventListener("change", async (event) => {
+  await applyPageStyle("fader", { backgroundOpacity: clampOpacityInput(event.target.value) });
+});
+styleFaderBorderEnabled.addEventListener("change", async (event) => {
+  await applyPageStyle("fader", { borderEnabled: event.target.checked });
+});
+styleFaderBorderColor.addEventListener("input", async (event) => {
+  await applyPageStyle("fader", { borderColor: event.target.value });
+});
+styleFaderBorderOpacity.addEventListener("change", async (event) => {
+  await applyPageStyle("fader", { borderOpacity: clampOpacityInput(event.target.value) });
+});
+styleFaderShowLabel.addEventListener("change", async (event) => {
+  await applyPageStyle("fader", { showLabel: event.target.checked });
 });
 
-styleButtonShowBorderCheckbox.addEventListener("change", async (event) => {
-  await applyPageStyle({ buttonShowBorder: event.target.checked });
+selectedUseGlobalStyle.addEventListener("change", async (event) => {
+  if (event.target.checked) {
+    await clearSelectedOverride();
+    return;
+  }
+
+  await applySelectedOverride({
+    backgroundEnabled: selectedBackgroundEnabled.checked,
+    backgroundColor: selectedBackgroundColor.value,
+    backgroundOpacity: clampOpacityInput(selectedBackgroundOpacity.value),
+    borderEnabled: selectedBorderEnabled.checked,
+    borderColor: selectedBorderColor.value,
+    borderOpacity: clampOpacityInput(selectedBorderOpacity.value),
+    showLabel: selectedShowLabel.checked,
+  });
 });
 
-styleButtonBorderColorInput.addEventListener("input", async (event) => {
-  await applyPageStyle({ buttonBorderColor: event.target.value });
-});
-
-styleButtonShowLabelCheckbox.addEventListener("change", async (event) => {
-  await applyPageStyle({ buttonShowLabel: event.target.checked });
-});
-
-styleFaderShowBackgroundCheckbox.addEventListener("change", async (event) => {
-  await applyPageStyle({ faderShowBackground: event.target.checked });
-});
-
-styleFaderBackgroundColorInput.addEventListener("input", async (event) => {
-  await applyPageStyle({ faderBackgroundColor: event.target.value });
-});
-
-styleFaderShowBorderCheckbox.addEventListener("change", async (event) => {
-  await applyPageStyle({ faderShowBorder: event.target.checked });
-});
-
-styleFaderBorderColorInput.addEventListener("input", async (event) => {
-  await applyPageStyle({ faderBorderColor: event.target.value });
-});
-
-styleFaderShowLabelCheckbox.addEventListener("change", async (event) => {
-  await applyPageStyle({ faderShowLabel: event.target.checked });
-});
+selectedBackgroundEnabled.addEventListener("change", async (event) => applySelectedOverride({ backgroundEnabled: event.target.checked }));
+selectedBackgroundColor.addEventListener("input", async (event) => applySelectedOverride({ backgroundColor: event.target.value }));
+selectedBackgroundOpacity.addEventListener("change", async (event) => applySelectedOverride({ backgroundOpacity: clampOpacityInput(event.target.value) }));
+selectedBorderEnabled.addEventListener("change", async (event) => applySelectedOverride({ borderEnabled: event.target.checked }));
+selectedBorderColor.addEventListener("input", async (event) => applySelectedOverride({ borderColor: event.target.value }));
+selectedBorderOpacity.addEventListener("change", async (event) => applySelectedOverride({ borderOpacity: clampOpacityInput(event.target.value) }));
+selectedShowLabel.addEventListener("change", async (event) => applySelectedOverride({ showLabel: event.target.checked }));
 
 gridPreviewModeSelect.addEventListener("change", () => {
   state.gridSelection.previewMode = gridPreviewModeSelect.value;

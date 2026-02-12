@@ -36,8 +36,8 @@ contextBridge.exposeInMainWorld("runtime", {
     ipcRenderer.invoke("workspace:setPageStyle", profileId, pageId, partialStyle),
   setPageBackgroundSolid: (profileId, pageId, color) =>
     ipcRenderer.invoke("workspace:setPageBackgroundSolid", profileId, pageId, color),
-  setPageBackgroundImage: (profileId, pageId, imagePath, fit) =>
-    ipcRenderer.invoke("workspace:setPageBackgroundImage", profileId, pageId, imagePath, fit),
+  setPageBackgroundImage: (profileId, pageId, assetId, fit) =>
+    ipcRenderer.invoke("workspace:setPageBackgroundImage", profileId, pageId, assetId, fit),
   clearPageBackgroundImage: (profileId, pageId) =>
     ipcRenderer.invoke("workspace:clearPageBackgroundImage", profileId, pageId),
   deleteProfile: (profileId) => ipcRenderer.invoke("workspace:deleteProfile", profileId),
@@ -67,6 +67,10 @@ contextBridge.exposeInMainWorld("runtime", {
   setFaderIconSlot: (profileId, pageId, elementId, slotIndex, assetId) =>
     ipcRenderer.invoke("workspace:setFaderIconSlot", profileId, pageId, elementId, slotIndex, assetId),
   importBackgroundImage: () => ipcRenderer.invoke("workspace:importBackgroundImage"),
+  setControlStyleOverride: (profileId, pageId, controlId, patch) =>
+    ipcRenderer.invoke("workspace:setControlStyleOverride", profileId, pageId, controlId, patch),
+  clearControlStyleOverride: (profileId, pageId, controlId) =>
+    ipcRenderer.invoke("workspace:clearControlStyleOverride", profileId, pageId, controlId),
   onLog: (listener) => {
     const handler = (_, message) => listener(message);
     ipcRenderer.on("server:log", handler);

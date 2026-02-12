@@ -27,6 +27,8 @@ const {
   setPageBackgroundSolid,
   setPageBackgroundImage,
   clearPageBackgroundImage,
+  setControlStyleOverride,
+  clearControlStyleOverride,
   deleteProfile,
   deletePage,
   deleteFolder,
@@ -246,7 +248,21 @@ app.whenReady().then(() => {
   ipcMain.handle("workspace:setFaderIconSlot", (_event, profileId, pageId, elementId, slotIndex, assetId) =>
     setFaderIconSlot(profileId, pageId, elementId, slotIndex, assetId),
   );
-  ipcMain.handle("workspace:importBackgroundImage", () => importBackgroundImage());
+  ipcMain.handle("workspace:importBackgroundImage", async () => {
+    const backgroundPath = await importBackgroundImage();
+    if (!backgroundPath) {
+      return null;
+    }
+
+    const assetId = `bg_${Date.now()}`;
+    return { assetId, path: backgroundPath };
+  });
+  ipcMain.handle("workspace:setControlStyleOverride", (_event, profileId, pageId, controlId, patch) =>
+    setControlStyleOverride(profileId, pageId, controlId, patch),
+  );
+  ipcMain.handle("workspace:clearControlStyleOverride", (_event, profileId, pageId, controlId) =>
+    clearControlStyleOverride(profileId, pageId, controlId),
+  );
 
   createWindow();
 
