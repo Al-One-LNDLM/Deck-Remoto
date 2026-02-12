@@ -83,13 +83,18 @@ function isPngFile(filePath) {
 
 
 async function pickOpenAppTarget() {
-  const result = await dialog.showOpenDialog(mainWindow, {
+  const openDialogOptions = {
     properties: ["openFile", "openDirectory"],
-    filters: [
-      { name: "Shortcuts / Ejecutables", extensions: ["lnk", "exe"] },
-      { name: "Todos los archivos", extensions: ["*"] },
-    ],
-  });
+  };
+
+  if (process.platform === "win32") {
+    openDialogOptions.filters = [
+      { name: "Shortcuts/Apps", extensions: ["lnk", "exe"] },
+      { name: "All files", extensions: ["*"] },
+    ];
+  }
+
+  const result = await dialog.showOpenDialog(mainWindow, openDialogOptions);
 
   if (result.canceled || result.filePaths.length === 0) {
     return null;
