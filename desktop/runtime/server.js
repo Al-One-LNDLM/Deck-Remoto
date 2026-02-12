@@ -3,7 +3,15 @@ const http = require("http");
 const path = require("path");
 const os = require("os");
 const { WebSocketServer } = require("ws");
-const { getWorkspace, getActiveState, setActive, setActiveProfile, setActivePage } = require("./workspace");
+const {
+  getWorkspace,
+  getActiveState,
+  setActive,
+  setActiveProfile,
+  setActivePage,
+  openFolder,
+  closeFolder,
+} = require("./workspace");
 const dispatcher = require("./dispatcher");
 
 const PORT = 3030;
@@ -165,7 +173,26 @@ function createRuntimeServer({ onLog }) {
     app.use(express.json());
     app.get("/api/state", (request, response) => {
       const workspace = getWorkspace();
-      const { activeProfileId, activePageId, activeProfile, activePage } = getActiveState(workspace);
+      const {
+        activeProfileId,
+        activePageId,
+        activeFolderId,
+        activeProfile,
+        activePage,
+        activeFolder,
+      } = getActiveState(workspace);
+      const activeFolderItems = activeFolder
+        ? (Array.isArray(activePage?.controls)
+          ? activePage.controls
+            .filter((control) => control.folderId === activeFolder.id)
+            .map((control) => ({
+              id: control.id,
+              name: control.name,
+              iconAssetId: typeof control.iconAssetId === "string" ? control.iconAssetId : null,
+              actionBinding: control.actionBinding || null,
+            }))
+          : [])
+        : [];
       const profiles = Array.isArray(workspace?.profiles)
         ? workspace.profiles.map((profile) => ({
           id: profile.id,
@@ -184,6 +211,15 @@ function createRuntimeServer({ onLog }) {
       response.json({
         activeProfileId,
         activePageId,
+        activeFolderId,
+        activeFolder: activeFolder
+          ? {
+            id: activeFolder.id,
+            name: activeFolder.name,
+            iconAssetId: typeof activeFolder.iconAssetId === "string" ? activeFolder.iconAssetId : null,
+          }
+          : null,
+        activeFolderItems,
         activeProfile: activeProfile
           ? {
             id: activeProfile.id,
@@ -232,6 +268,25 @@ function createRuntimeServer({ onLog }) {
         });
       }
     });
+
+    app.post("/api/closeFolder", (_request, response) => {
+      try {
+        closeFolder();
+        const after = getActiveState(getWorkspace());
+        broadcastWsMessage({
+          type: "stateUpdated",
+          activeProfileId: after.activeProfileId,
+          activePageId: after.activePageId,
+          activeFolderId: after.activeFolderId,
+        });
+        response.json({ ok: true });
+      } catch (error) {
+        response.status(400).json({
+          ok: false,
+          message: error instanceof Error ? error.message : "No se pudo cerrar carpeta",
+        });
+      }
+    });
     const assetsPath = path.resolve(__dirname, "../assets");
     app.use("/assets/icons", express.static(path.join(assetsPath, "icons")));
     app.use("/assets", express.static(assetsPath));
@@ -269,12 +324,66 @@ function createRuntimeServer({ onLog }) {
           return;
         }
 
+        if (parsed?.type === "folderItemPress" && typeof parsed.itemId === "string") {
+          const workspace = getWorkspace();
+          const { activeFolderId, activeFolder, activePage } = getActiveState(workspace);
+          const item = activeFolder
+            ? activePage?.controls?.find((entry) => entry.folderId === activeFolder.id && entry.id === parsed.itemId) || null
+            : null;
+
+          if (!activeFolderId || !item) {
+            log(`[WS] folderItemPress ignorado: item no encontrado (${parsed.itemId})`);
+            return;
+          }
+
+          const actionBinding = item.actionBinding;
+          if (!actionBinding || actionBinding.kind !== "single") {
+            log(`[WS] folderItemPress ignorado: sin actionBinding single (${parsed.itemId})`);
+            return;
+          }
+
+          const before = getActiveState(getWorkspace());
+
+          try {
+            await dispatcher.executeAction(actionBinding.action, {
+              log,
+              runtime: {
+                setActiveProfile,
+                setActivePage,
+                openFolder,
+                closeFolder,
+              },
+            });
+            const after = getActiveState(getWorkspace());
+            const changed = before.activeProfileId !== after.activeProfileId
+              || before.activePageId !== after.activePageId
+              || before.activeFolderId !== after.activeFolderId;
+            if (changed) {
+              broadcastWsMessage({
+                type: "stateUpdated",
+                activeProfileId: after.activeProfileId,
+                activePageId: after.activePageId,
+                activeFolderId: after.activeFolderId,
+              });
+            }
+
+            broadcastWsMessage({
+              type: "actionExecuted",
+              itemId: parsed.itemId,
+            });
+          } catch (error) {
+            log(`[DISPATCH] Error ejecutando acción: ${error instanceof Error ? error.message : String(error)}`);
+          }
+
+          return;
+        }
+
         if (parsed?.type !== "buttonPress" || typeof parsed.controlId !== "string") {
           return;
         }
 
         const workspace = getWorkspace();
-        const { activeProfile, activePage } = getActiveState(workspace);
+        const { activePage } = getActiveState(workspace);
         const control = activePage?.controls?.find((item) => item.id === parsed.controlId) || null;
 
         if (!control) {
@@ -282,29 +391,70 @@ function createRuntimeServer({ onLog }) {
           return;
         }
 
-        const actionBinding = control.actionBinding;
-        if (!actionBinding || actionBinding.kind !== "single") {
-          log(`[WS] buttonPress ignorado: sin actionBinding single (${parsed.controlId})`);
-          return;
-        }
-
         const before = getActiveState(getWorkspace());
 
         try {
-          await dispatcher.executeAction(actionBinding.action, {
-            log,
-            runtime: {
-              setActiveProfile,
-              setActivePage,
-            },
-          });
+          if (control.type === "folderButton") {
+            const actionBinding = control.actionBinding;
+            if (actionBinding && actionBinding.kind === "single" && actionBinding.action?.type === "openFolder") {
+              await dispatcher.executeAction(actionBinding.action, {
+                log,
+                runtime: {
+                  setActiveProfile,
+                  setActivePage,
+                  openFolder,
+                  closeFolder,
+                },
+              });
+            } else if (!actionBinding) {
+              const folderId = typeof control.folderId === "string" ? control.folderId : null;
+              if (!folderId) {
+                log(`[WS] folderButton sin folderId (${parsed.controlId})`);
+                return;
+              }
+              openFolder(folderId);
+            } else if (actionBinding.kind === "single") {
+              await dispatcher.executeAction(actionBinding.action, {
+                log,
+                runtime: {
+                  setActiveProfile,
+                  setActivePage,
+                  openFolder,
+                  closeFolder,
+                },
+              });
+            } else {
+              log(`[WS] buttonPress ignorado: actionBinding no compatible (${parsed.controlId})`);
+              return;
+            }
+          } else {
+            const actionBinding = control.actionBinding;
+            if (!actionBinding || actionBinding.kind !== "single") {
+              log(`[WS] buttonPress ignorado: sin actionBinding single (${parsed.controlId})`);
+              return;
+            }
+
+            await dispatcher.executeAction(actionBinding.action, {
+              log,
+              runtime: {
+                setActiveProfile,
+                setActivePage,
+                openFolder,
+                closeFolder,
+              },
+            });
+          }
+
           const after = getActiveState(getWorkspace());
-          const changed = before.activeProfileId !== after.activeProfileId || before.activePageId !== after.activePageId;
+          const changed = before.activeProfileId !== after.activeProfileId
+            || before.activePageId !== after.activePageId
+            || before.activeFolderId !== after.activeFolderId;
           if (changed) {
             broadcastWsMessage({
               type: "stateUpdated",
               activeProfileId: after.activeProfileId,
               activePageId: after.activePageId,
+              activeFolderId: after.activeFolderId,
             });
           }
 

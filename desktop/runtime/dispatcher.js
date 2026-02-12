@@ -123,6 +123,44 @@ async function executeAction(action, { log, runtime } = {}) {
   }
 
 
+  if (action.type === "openFolder") {
+    const folderId = typeof action.folderId === "string" ? action.folderId.trim() : "";
+    if (!folderId) {
+      if (typeof log === "function") {
+        log("[DISPATCH] openFolder (null)");
+      }
+      return;
+    }
+
+    if (!runtime || typeof runtime.openFolder !== "function") {
+      if (typeof log === "function") {
+        log("[DISPATCH] openFolder runtime no disponible");
+      }
+      return;
+    }
+
+    if (typeof log === "function") {
+      log(`[DISPATCH] openFolder ${folderId}`);
+    }
+    runtime.openFolder(folderId);
+    return;
+  }
+
+  if (action.type === "back") {
+    if (!runtime || typeof runtime.closeFolder !== "function") {
+      if (typeof log === "function") {
+        log("[DISPATCH] back runtime no disponible");
+      }
+      return;
+    }
+
+    if (typeof log === "function") {
+      log("[DISPATCH] back");
+    }
+    runtime.closeFolder();
+    return;
+  }
+
   if (action.type === "openUrl") {
     const sanitizedUrl = sanitizeHttpUrl(action.url);
     if (!sanitizedUrl) {
