@@ -438,7 +438,7 @@
             }
             sendControlPress(placement.elementId);
           },
-          onFaderChange: ({ controlId, value01 }) => sendFaderChange(controlId, value01),
+          onFaderChange: ({ controlId, value7 }) => sendFaderChange(controlId, value7),
         });
       }
 
@@ -527,7 +527,7 @@
       }
 
 
-      function sendFaderChange(controlId, value01) {
+      function sendFaderChange(controlId, value7) {
         if (!socket || socket.readyState !== WebSocket.OPEN) {
           return;
         }
@@ -538,12 +538,13 @@
           return;
         }
 
-        const safeValue = Math.max(0, Math.min(1, Number(value01) || 0));
+        const numeric = Number(value7);
+        const safeValue7 = Number.isFinite(numeric) ? Math.max(0, Math.min(127, Math.round(numeric))) : 0;
         lastFaderSentAtMs.set(controlId, now);
         socket.send(JSON.stringify({
           type: "faderChange",
           controlId,
-          value01: safeValue,
+          value7: safeValue7,
         }));
       }
 

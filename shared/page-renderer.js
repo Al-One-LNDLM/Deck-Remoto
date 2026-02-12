@@ -103,6 +103,15 @@
     return Math.max(0, Math.min(1, numeric));
   }
 
+  function clampValue7(value, fallback = 0) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      return fallback;
+    }
+
+    return Math.max(0, Math.min(127, Math.round(numeric)));
+  }
+
   function resolveFaderSkin(control) {
     if (!control || control.type !== "fader") {
       return null;
@@ -203,7 +212,8 @@
       faderTrack.appendChild(grab);
       node.appendChild(faderTrack);
 
-      const value01 = clamp01(context.value01, 0);
+      const value7 = clampValue7(context.value7, 0);
+      const value01 = value7 / 127;
       const updateGrabPosition = () => {
         const trackHeight = faderTrack.clientHeight;
         const grabHeight = grab.clientHeight || Math.max(1, trackHeight / subgridRows);
@@ -379,11 +389,11 @@
       slot.style.gridColumnEnd = `span ${clamp(placement.colSpan, 1)}`;
       slot.style.gridRowStart = String(Math.max(0, Math.floor(Number(placement.row) || 0)) + 1);
       slot.style.gridRowEnd = `span ${clamp(placement.rowSpan, 1)}`;
-      const hasRuntimeFaderValue = Object.prototype.hasOwnProperty.call(params?.state?.faderValues || {}, control.id);
-      const value01 = hasRuntimeFaderValue ? clamp01(params?.state?.faderValues?.[control.id], 0) : 0;
+      const hasRuntimeFaderValue = Object.prototype.hasOwnProperty.call(params?.state?.faderValues7 || {}, control.id);
+      const value7 = hasRuntimeFaderValue ? clampValue7(params?.state?.faderValues7?.[control.id], 0) : 0;
       slot.appendChild(createControlNode(control, resolveIconUrl(control, assets), resolvedStyle, {
         assets,
-        value01,
+        value7,
         rowSpan: clamp(placement.rowSpan, 1),
       }));
 
@@ -397,8 +407,8 @@
           }
 
           const offsetY = event.clientY - rect.top;
-          const nextValue = 1 - Math.max(0, Math.min(1, offsetY / rect.height));
-          onFaderChange({ controlId: control.id, value01: clamp01(nextValue, 0) });
+          const nextValue01 = 1 - Math.max(0, Math.min(1, offsetY / rect.height));
+          onFaderChange({ controlId: control.id, value7: clampValue7(nextValue01 * 127, 0) });
         };
 
         slot.addEventListener("pointerdown", (event) => {
