@@ -4,6 +4,7 @@ const path = require("path");
 const os = require("os");
 const { WebSocketServer } = require("ws");
 const { getWorkspace, getActiveState, setActive } = require("./workspace");
+const { normalizePageStyle } = require("../../shared/style");
 
 const PORT = 3030;
 
@@ -63,18 +64,7 @@ function createRuntimeServer({ onLog }) {
               name: activePage.name,
               grid: activePage.grid,
               showGrid: activePage.showGrid !== false,
-              style: activePage.style || {
-                buttonShowBackground: true,
-                buttonShowLabel: true,
-                buttonBackgroundColor: "#2b2b2b",
-                buttonShowBorder: true,
-                buttonBorderColor: "#444444",
-                faderShowBackground: true,
-                faderBackgroundColor: "#2b2b2b",
-                faderShowBorder: true,
-                faderBorderColor: "#444444",
-                faderShowLabel: true,
-              },
+              style: normalizePageStyle(activePage.style || {}),
               background: activePage.background,
               placements: activePage.placements || [],
               elements: activePage.elements || activePage.controls || [],

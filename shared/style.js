@@ -48,37 +48,6 @@
     return { button, fader, folderButton };
   }
 
-  function normalizeControlOverride(styleOverride) {
-    if (!styleOverride || typeof styleOverride !== "object") {
-      return null;
-    }
-
-    const normalized = {};
-    if (Object.prototype.hasOwnProperty.call(styleOverride, "backgroundEnabled")) {
-      normalized.backgroundEnabled = Boolean(styleOverride.backgroundEnabled);
-    }
-    if (Object.prototype.hasOwnProperty.call(styleOverride, "backgroundColor")) {
-      normalized.backgroundColor = sanitizeHexColor(styleOverride.backgroundColor, "#2b2b2b");
-    }
-    if (Object.prototype.hasOwnProperty.call(styleOverride, "backgroundOpacity")) {
-      normalized.backgroundOpacity = clampOpacity(styleOverride.backgroundOpacity, 1);
-    }
-    if (Object.prototype.hasOwnProperty.call(styleOverride, "borderEnabled")) {
-      normalized.borderEnabled = Boolean(styleOverride.borderEnabled);
-    }
-    if (Object.prototype.hasOwnProperty.call(styleOverride, "borderColor")) {
-      normalized.borderColor = sanitizeHexColor(styleOverride.borderColor, "#444444");
-    }
-    if (Object.prototype.hasOwnProperty.call(styleOverride, "borderOpacity")) {
-      normalized.borderOpacity = clampOpacity(styleOverride.borderOpacity, 1);
-    }
-    if (Object.prototype.hasOwnProperty.call(styleOverride, "showLabel")) {
-      normalized.showLabel = Boolean(styleOverride.showLabel);
-    }
-
-    return Object.keys(normalized).length ? normalized : null;
-  }
-
   function hexToRgba(hexColor, opacity) {
     const safeHex = sanitizeHexColor(hexColor, "#000000");
     const safeOpacity = clampOpacity(opacity, 1);
@@ -100,29 +69,24 @@
     return pageStyle.button;
   }
 
-  function resolveControlStyle(pageStyleInput, control) {
+  function resolveGlobalStyle(pageStyleInput, controlType) {
     const pageStyle = normalizePageStyle(pageStyleInput || {});
-    const base = getStyleBucket(pageStyle, control?.type);
-    const override = normalizeControlOverride(control?.styleOverride) || {};
-    const merged = {
-      ...base,
-      ...override,
-    };
+    const normalizedControlType = controlType === "toggle" ? "button" : controlType;
+    const resolved = getStyleBucket(pageStyle, normalizedControlType);
 
     return {
-      ...merged,
-      backgroundCssColor: hexToRgba(merged.backgroundColor, merged.backgroundOpacity),
-      borderCssColor: hexToRgba(merged.borderColor, merged.borderOpacity),
+      ...resolved,
+      backgroundCssColor: hexToRgba(resolved.backgroundColor, resolved.backgroundOpacity),
+      borderCssColor: hexToRgba(resolved.borderColor, resolved.borderOpacity),
     };
   }
 
   const api = {
     clampOpacity,
     hexToRgba,
-    normalizeControlOverride,
     normalizePageStyle,
     normalizeTypeStyle,
-    resolveControlStyle,
+    resolveGlobalStyle,
     sanitizeHexColor,
   };
 
