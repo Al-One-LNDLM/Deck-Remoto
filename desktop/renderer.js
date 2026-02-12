@@ -785,6 +785,14 @@ function getActionTypeForControl(control) {
     return "openApp";
   }
 
+  if (binding.action?.type === "switchPage") {
+    return "switchPage";
+  }
+
+  if (binding.action?.type === "switchProfile") {
+    return "switchProfile";
+  }
+
   return "none";
 }
 
@@ -951,6 +959,16 @@ async function renderActionsTab() {
     openAppOption.value = "openApp";
     openAppOption.textContent = "Open App";
     actionTypeSelect.appendChild(openAppOption);
+
+    const switchPageOption = document.createElement("option");
+    switchPageOption.value = "switchPage";
+    switchPageOption.textContent = "Switch Page";
+    actionTypeSelect.appendChild(switchPageOption);
+
+    const switchProfileOption = document.createElement("option");
+    switchProfileOption.value = "switchProfile";
+    switchProfileOption.textContent = "Switch Profile";
+    actionTypeSelect.appendChild(switchProfileOption);
   }
 
   if (supportsMidiCc) {
@@ -987,6 +1005,12 @@ async function renderActionsTab() {
   const midiCcValue = currentBinding?.kind === "single" && currentBinding.action?.type === "midiCc"
     ? clampActionInt(currentBinding.action.cc, 0, 127, 0)
     : 0;
+  const switchPageValue = currentBinding?.kind === "single" && currentBinding.action?.type === "switchPage"
+    ? String(currentBinding.action.pageId || "")
+    : "";
+  const switchProfileValue = currentBinding?.kind === "single" && currentBinding.action?.type === "switchProfile"
+    ? String(currentBinding.action.profileId || "")
+    : "";
 
   const hotkeyRow = document.createElement("div");
   hotkeyRow.className = "actions-inspector-row";
@@ -1074,6 +1098,42 @@ async function renderActionsTab() {
   midiCcInput.value = String(midiCcValue);
   midiCcRow.append(midiCcLabel, midiCcInput);
 
+  const switchPageRow = document.createElement("div");
+  switchPageRow.className = "actions-inspector-row";
+  const switchPageLabel = document.createElement("label");
+  switchPageLabel.textContent = "Página";
+  const switchPageSelect = document.createElement("select");
+  const switchPageEmptyOption = document.createElement("option");
+  switchPageEmptyOption.value = "";
+  switchPageEmptyOption.textContent = "Selecciona página";
+  switchPageSelect.appendChild(switchPageEmptyOption);
+  (ctx.profile.pages || []).forEach((page) => {
+    const option = document.createElement("option");
+    option.value = page.id;
+    option.textContent = page.name || page.id;
+    switchPageSelect.appendChild(option);
+  });
+  switchPageSelect.value = switchPageValue;
+  switchPageRow.append(switchPageLabel, switchPageSelect);
+
+  const switchProfileRow = document.createElement("div");
+  switchProfileRow.className = "actions-inspector-row";
+  const switchProfileLabel = document.createElement("label");
+  switchProfileLabel.textContent = "Perfil";
+  const switchProfileSelect = document.createElement("select");
+  const switchProfileEmptyOption = document.createElement("option");
+  switchProfileEmptyOption.value = "";
+  switchProfileEmptyOption.textContent = "Selecciona perfil";
+  switchProfileSelect.appendChild(switchProfileEmptyOption);
+  (state.workspace?.profiles || []).forEach((profile) => {
+    const option = document.createElement("option");
+    option.value = profile.id;
+    option.textContent = profile.name || profile.id;
+    switchProfileSelect.appendChild(option);
+  });
+  switchProfileSelect.value = switchProfileValue;
+  switchProfileRow.append(switchProfileLabel, switchProfileSelect);
+
   const validation = document.createElement("p");
   validation.className = "actions-validation";
 
@@ -1086,20 +1146,30 @@ async function renderActionsTab() {
     const isOpenUrl = actionTypeSelect.value === "openUrl";
     const isOpenApp = actionTypeSelect.value === "openApp";
     const isMidiCc = actionTypeSelect.value === "midiCc";
+    const isSwitchPage = actionTypeSelect.value === "switchPage";
+    const isSwitchProfile = actionTypeSelect.value === "switchProfile";
     hotkeyRow.style.display = isHotkey ? "grid" : "none";
     openUrlRow.style.display = isOpenUrl ? "grid" : "none";
     openAppTargetRow.style.display = isOpenApp ? "grid" : "none";
     openAppArgsRow.style.display = isOpenApp ? "grid" : "none";
     midiChannelRow.style.display = isMidiCc ? "grid" : "none";
     midiCcRow.style.display = isMidiCc ? "grid" : "none";
+    switchPageRow.style.display = isSwitchPage ? "grid" : "none";
+    switchProfileRow.style.display = isSwitchProfile ? "grid" : "none";
     validation.textContent = "";
-    saveButton.disabled = (isHotkey && !hotkeyValueDraft.trim()) || (isOpenUrl && !openUrlInput.value.trim()) || (isOpenApp && !openAppTargetInput.value.trim());
+    saveButton.disabled = (isHotkey && !hotkeyValueDraft.trim())
+      || (isOpenUrl && !openUrlInput.value.trim())
+      || (isOpenApp && !openAppTargetInput.value.trim())
+      || (isSwitchPage && !switchPageSelect.value)
+      || (isSwitchProfile && !switchProfileSelect.value);
   }
 
   hotkeyInput.addEventListener("input", syncRows);
   openUrlInput.addEventListener("input", syncRows);
   openAppTargetInput.addEventListener("input", syncRows);
   openAppArgsInput.addEventListener("input", syncRows);
+  switchPageSelect.addEventListener("change", syncRows);
+  switchProfileSelect.addEventListener("change", syncRows);
   actionTypeSelect.addEventListener("change", syncRows);
 
   saveButton.addEventListener("click", async () => {
@@ -1163,6 +1233,22 @@ async function renderActionsTab() {
           cc,
         },
       };
+    } else if (actionTypeSelect.value === "switchPage") {
+      nextBinding = {
+        kind: "single",
+        action: {
+          type: "switchPage",
+          pageId: switchPageSelect.value,
+        },
+      };
+    } else if (actionTypeSelect.value === "switchProfile") {
+      nextBinding = {
+        kind: "single",
+        action: {
+          type: "switchProfile",
+          profileId: switchProfileSelect.value,
+        },
+      };
     }
 
     state.workspace = await window.runtime.setControlActionBinding(
@@ -1175,7 +1261,7 @@ async function renderActionsTab() {
     renderNavigation();
   });
 
-  actionsInspector.append(hotkeyRow, openUrlRow, openAppTargetRow, openAppArgsRow, midiChannelRow, midiCcRow, validation, saveButton);
+  actionsInspector.append(hotkeyRow, openUrlRow, openAppTargetRow, openAppArgsRow, midiChannelRow, midiCcRow, switchPageRow, switchProfileRow, validation, saveButton);
   syncRows();
 }
 

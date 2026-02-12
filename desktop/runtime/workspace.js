@@ -1224,8 +1224,10 @@ function setActiveProfile(profileId) {
     throw new Error("Perfil no encontrado");
   }
 
+  const activePageBelongsToProfile = profile.pages.some((item) => item.id === workspace.activePageId);
   workspace.activeProfileId = profile.id;
-  workspace.activePageId = profile.pages[0]?.id || null;
+  workspace.activePageId = activePageBelongsToProfile ? workspace.activePageId : profile.pages[0]?.id || null;
+  ensureValidActiveSelection();
   workspace.lastSession.activeProfileId = workspace.activeProfileId;
   workspace.lastSession.activePageId = workspace.activePageId;
 
@@ -1234,9 +1236,14 @@ function setActiveProfile(profileId) {
   return workspace;
 }
 
-function setActivePage(profileId, pageId) {
+function setActivePage(profileIdOrPageId, maybePageId) {
   const workspace = getWorkspace();
-  const profile = workspace.profiles.find((item) => item.id === profileId);
+  const profileId = typeof maybePageId === "string" ? profileIdOrPageId : null;
+  const pageId = typeof maybePageId === "string" ? maybePageId : profileIdOrPageId;
+
+  const profile = profileId
+    ? workspace.profiles.find((item) => item.id === profileId)
+    : workspace.profiles.find((item) => item.pages.some((page) => page.id === pageId));
   const page = profile?.pages.find((item) => item.id === pageId);
 
   if (!profile || !page) {
@@ -1245,6 +1252,7 @@ function setActivePage(profileId, pageId) {
 
   workspace.activeProfileId = profile.id;
   workspace.activePageId = page.id;
+  ensureValidActiveSelection();
   workspace.lastSession.activeProfileId = workspace.activeProfileId;
   workspace.lastSession.activePageId = workspace.activePageId;
 

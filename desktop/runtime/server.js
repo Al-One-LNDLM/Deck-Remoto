@@ -3,7 +3,7 @@ const http = require("http");
 const path = require("path");
 const os = require("os");
 const { WebSocketServer } = require("ws");
-const { getWorkspace, getActiveState, setActive } = require("./workspace");
+const { getWorkspace, getActiveState, setActive, setActiveProfile, setActivePage } = require("./workspace");
 const dispatcher = require("./dispatcher");
 
 const PORT = 3030;
@@ -136,6 +136,19 @@ function createRuntimeServer({ onLog }) {
     if (typeof onLog === "function") {
       onLog(message);
     }
+  }
+
+  function broadcastWsMessage(payload) {
+    if (!wsServer || wsServer.clients.size === 0) {
+      return;
+    }
+
+    const message = JSON.stringify(payload);
+    wsServer.clients.forEach((client) => {
+      if (client.readyState === 1) {
+        client.send(message);
+      }
+    });
   }
 
   async function start() {
@@ -275,8 +288,30 @@ function createRuntimeServer({ onLog }) {
           return;
         }
 
+        const before = getActiveState(getWorkspace());
+
         try {
-          await dispatcher.executeAction(actionBinding.action, { log });
+          await dispatcher.executeAction(actionBinding.action, {
+            log,
+            runtime: {
+              setActiveProfile,
+              setActivePage,
+            },
+          });
+          const after = getActiveState(getWorkspace());
+          const changed = before.activeProfileId !== after.activeProfileId || before.activePageId !== after.activePageId;
+          if (changed) {
+            broadcastWsMessage({
+              type: "stateUpdated",
+              activeProfileId: after.activeProfileId,
+              activePageId: after.activePageId,
+            });
+          }
+
+          broadcastWsMessage({
+            type: "actionExecuted",
+            controlId: parsed.controlId,
+          });
         } catch (error) {
           log(`[DISPATCH] Error ejecutando acción: ${error instanceof Error ? error.message : String(error)}`);
         }
