@@ -22,6 +22,7 @@ const gridColsInput = document.getElementById("gridColsInput");
 const applyGridBtn = document.getElementById("applyGridBtn");
 const gridShowCheckbox = document.getElementById("gridShowCheckbox");
 const gridCanvas = document.getElementById("gridCanvas");
+const gridPlacingHint = document.getElementById("gridPlacingHint");
 
 const state = {
   workspace: null,
@@ -33,6 +34,7 @@ const state = {
   },
   clipboard: null,
   contextMenuNode: null,
+  placingElementId: null,
 };
 
 function clampGridValue(value) {
@@ -86,11 +88,17 @@ function normalizePageForRenderer(page) {
       cols: clampGridValue(page.grid?.cols || 1),
     },
     showGrid: page.showGrid !== false,
+    folders: (Array.isArray(page.folders) ? page.folders : []).map((folder) => ({
+      id: folder.id,
+      name: folder.name,
+      iconAssetId: typeof folder.iconAssetId === "string" ? folder.iconAssetId : null,
+    })),
     controls: controls.map((control) => ({
       id: control.id,
       type: control.type,
       name: control.name,
       iconAssetId: typeof control.iconAssetId === "string" ? control.iconAssetId : null,
+      folderId: typeof control.folderId === "string" ? control.folderId : null,
     })),
     placements: placements.map((placement) => ({
       elementId: placement.elementId || placement.controlId,
@@ -161,26 +169,96 @@ async function renderGridTab() {
   gridRowsInput.value = clampGridValue(ctx.page.grid?.rows || 4);
   gridColsInput.value = clampGridValue(ctx.page.grid?.cols || 3);
   gridShowCheckbox.checked = ctx.page.showGrid !== false;
+  const folders = Array.isArray(ctx.page.folders) ? ctx.page.folders : [];
+  const folderById = new Map(folders.map((folder) => [folder.id, folder]));
+  const placements = Array.isArray(ctx.page.placements) ? ctx.page.placements : [];
+  const placedIds = new Set(placements.map((placement) => placement.elementId));
+  const controls = Array.isArray(ctx.page.controls) ? ctx.page.controls : [];
+  const unplaced = controls.filter((element) => !placedIds.has(element.id));
+  const placed = controls.filter((element) => placedIds.has(element.id));
+
   gridElementsList.innerHTML = "";
-  const elements = ctx.page.controls || [];
-  if (!elements.length) {
-    const empty = document.createElement("li");
-    empty.textContent = "Sin elementos";
-    empty.className = "muted";
-    gridElementsList.appendChild(empty);
-  } else {
+
+  function appendElementGroup(title, elements, actionLabel, onAction) {
+    const heading = document.createElement("li");
+    heading.textContent = title;
+    heading.className = "muted";
+    gridElementsList.appendChild(heading);
+
+    if (!elements.length) {
+      const empty = document.createElement("li");
+      empty.className = "muted";
+      empty.textContent = "(vacío)";
+      gridElementsList.appendChild(empty);
+      return;
+    }
+
     elements.forEach((element) => {
       const item = document.createElement("li");
-      const used = (ctx.page.placements || []).some((placement) => placement.elementId === element.id);
-      item.textContent = `${element.name} (${element.type})${used ? " · colocado" : ""}`;
+      item.className = "grid-element-item";
+
+      const rowLeft = document.createElement("span");
+      const linkedFolder = element.type === "folderButton" ? folderById.get(element.folderId) : null;
+      const iconAssetId = element.iconAssetId || linkedFolder?.iconAssetId || null;
+      if (iconAssetId && state.workspace.assets?.icons?.[iconAssetId]?.path) {
+        const icon = document.createElement("img");
+        icon.className = "icon-preview";
+        icon.src = state.workspace.assets.icons[iconAssetId].path;
+        icon.alt = "icon";
+        rowLeft.appendChild(icon);
+      }
+
+      const text = document.createElement("span");
+      text.textContent = `${element.name} (${element.type})`;
+      rowLeft.appendChild(text);
+
+      const action = document.createElement("button");
+      action.type = "button";
+      action.textContent = actionLabel;
+      action.addEventListener("click", () => onAction(element));
+
+      item.appendChild(rowLeft);
+      item.appendChild(action);
       gridElementsList.appendChild(item);
     });
   }
 
+  appendElementGroup("No colocados", unplaced, "Colocar", (element) => {
+    state.placingElementId = element.id;
+    renderGridTab();
+  });
+
+  appendElementGroup("Colocados", placed, "Quitar", async (element) => {
+    state.workspace = await window.runtime.unplaceElement(ctx.profile.id, ctx.page.id, element.id);
+    if (state.placingElementId === element.id) {
+      state.placingElementId = null;
+    }
+    renderNavigation();
+    await renderGridTab();
+  });
 
   const page = normalizePageForRenderer(ctx.page);
   const assets = normalizeAssetsForRenderer(state.workspace);
-  window.PageRenderer.render(gridCanvas, { page, assets, interactive: false });
+  const hint = state.placingElementId
+    ? "Haz click en una celda para colocar"
+    : "";
+  gridPlacingHint.textContent = hint;
+
+  window.PageRenderer.render(gridCanvas, {
+    page,
+    assets,
+    interactive: Boolean(state.placingElementId),
+    onEmptyCellPress: async ({ row, col }) => {
+      if (!state.placingElementId) {
+        return;
+      }
+
+      state.workspace = await window.runtime.placeElement(ctx.profile.id, ctx.page.id, state.placingElementId, row, col);
+      state.placingElementId = null;
+      renderNavigation();
+      await renderGridTab();
+    },
+  });
 }
 
 async function applyGridValues() {
@@ -277,7 +355,15 @@ function getSelectedNodeContext(workspace, selection) {
 }
 
 function getElementTypeLabel(type) {
-  return type === "fader" ? "Fader" : "Botón";
+  if (type === "fader") {
+    return "Fader";
+  }
+
+  if (type === "folderButton") {
+    return "Acceso carpeta";
+  }
+
+  return "Botón";
 }
 
 function buildTreeNodes(workspace) {
@@ -1030,6 +1116,23 @@ function renderInspector(workspace, selection) {
         label: "+ Fader",
         onClick: async () => addElementAndSelect(context.profile.id, context.page.id, "fader", context.folder.id),
       },
+      {
+        label: "+ FolderButton",
+        onClick: async () => {
+          const result = await window.runtime.addFolderButton(context.profile.id, context.page.id, context.folder.id, {
+            name: context.folder.name,
+          });
+          state.workspace = result.workspace;
+          state.selection = {
+            kind: "element",
+            profileId: context.profile.id,
+            pageId: context.page.id,
+            elementId: result.created.id,
+          };
+          renderNavigation();
+          await renderGridTab();
+        },
+      },
     ]));
 
     const folderElements = (context.page.controls || []).filter((element) => element.folderId === context.folder.id);
@@ -1069,7 +1172,7 @@ function renderInspector(workspace, selection) {
     iconTitle.textContent = context.element.type === "fader" ? "Icono de Fader (4 PNG)" : "Icono";
     iconSection.appendChild(iconTitle);
 
-    if (context.element.type === "button") {
+    if (context.element.type !== "fader") {
       const row = document.createElement("div");
       row.className = "grid-controls-row";
 
@@ -1266,11 +1369,13 @@ tabButtons.forEach((button) => {
 gridProfileSelect.addEventListener("change", () => {
   state.gridSelection.profileId = gridProfileSelect.value;
   state.gridSelection.pageId = null;
+  state.placingElementId = null;
   renderGridTab();
 });
 
 gridPageSelect.addEventListener("change", () => {
   state.gridSelection.pageId = gridPageSelect.value;
+  state.placingElementId = null;
   renderGridTab();
 });
 
