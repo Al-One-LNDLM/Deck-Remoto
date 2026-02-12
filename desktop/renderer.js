@@ -70,64 +70,57 @@ function getGridContextWorkspace() {
   };
 }
 
-function getElementById(page, elementId) {
-  return (page.controls || []).find((element) => element.id === elementId) || null;
-}
-
-async function renderGridCanvas(page) {
-  const ctx2d = gridCanvas.getContext("2d");
-  const width = gridCanvas.width;
-  const height = gridCanvas.height;
-  const rows = clampGridValue(page.grid?.rows || 1);
-  const cols = clampGridValue(page.grid?.cols || 1);
-
-  const cellW = width / cols;
-  const cellH = height / rows;
-
-  ctx2d.clearRect(0, 0, width, height);
-  ctx2d.fillStyle = "#111111";
-  ctx2d.fillRect(0, 0, width, height);
-
-  if (page.showGrid !== false) {
-    ctx2d.strokeStyle = "rgba(255,255,255,0.35)";
-    ctx2d.lineWidth = 1;
-
-    for (let col = 0; col <= cols; col += 1) {
-      const x = Math.round(col * cellW) + 0.5;
-      ctx2d.beginPath();
-      ctx2d.moveTo(x, 0);
-      ctx2d.lineTo(x, height);
-      ctx2d.stroke();
-    }
-
-    for (let row = 0; row <= rows; row += 1) {
-      const y = Math.round(row * cellH) + 0.5;
-      ctx2d.beginPath();
-      ctx2d.moveTo(0, y);
-      ctx2d.lineTo(width, y);
-      ctx2d.stroke();
-    }
+function normalizePageForRenderer(page) {
+  if (!page) {
+    return null;
   }
 
-  (page.placements || []).forEach((placement) => {
-    const element = getElementById(page, placement.elementId);
-    const x = (placement.col - 1) * cellW;
-    const y = (placement.row - 1) * cellH;
-    const spanW = placement.colSpan * cellW;
-    const spanH = placement.rowSpan * cellH;
+  const controls = Array.isArray(page.controls) ? page.controls : [];
+  const placements = Array.isArray(page.placements) ? page.placements : [];
 
-    ctx2d.fillStyle = element?.type === "fader" ? "#2f2f2f" : "#252525";
-    ctx2d.fillRect(x + 2, y + 2, spanW - 4, spanH - 4);
-    ctx2d.lineWidth = 1;
-    ctx2d.strokeStyle = "#5d5d5d";
-    ctx2d.strokeRect(x + 2.5, y + 2.5, spanW - 5, spanH - 5);
+  return {
+    id: page.id,
+    name: page.name,
+    grid: {
+      rows: clampGridValue(page.grid?.rows || 1),
+      cols: clampGridValue(page.grid?.cols || 1),
+    },
+    showGrid: page.showGrid !== false,
+    controls: controls.map((control) => ({
+      id: control.id,
+      type: control.type,
+      name: control.name,
+      iconAssetId: typeof control.iconAssetId === "string" ? control.iconAssetId : null,
+    })),
+    placements: placements.map((placement) => ({
+      elementId: placement.elementId || placement.controlId,
+      row: Number(placement.row) || 1,
+      col: Number(placement.col) || 1,
+      rowSpan: Number(placement.rowSpan) || 1,
+      colSpan: Number(placement.colSpan) || 1,
+    })),
+  };
+}
 
-    ctx2d.fillStyle = "#ffffff";
-    ctx2d.font = "12px Arial";
-    ctx2d.textAlign = "center";
-    ctx2d.textBaseline = "middle";
-    ctx2d.fillText(element?.name || placement.elementId, x + spanW / 2, y + spanH / 2);
+function normalizeAssetsForRenderer(workspace) {
+  const icons = workspace?.assets?.icons || {};
+  const normalized = {};
+
+  Object.entries(icons).forEach(([assetId, icon]) => {
+    const assetPath = typeof icon?.path === "string" ? icon.path : "";
+    const filename = assetPath.split("/").pop();
+    if (!filename) {
+      return;
+    }
+
+    normalized[assetId] = {
+      id: assetId,
+      url: `/assets/icons/${encodeURIComponent(filename)}`,
+      mime: "image/png",
+    };
   });
+
+  return { icons: normalized };
 }
 
 async function renderGridTab() {
@@ -185,7 +178,9 @@ async function renderGridTab() {
   }
 
 
-  await renderGridCanvas(ctx.page);
+  const page = normalizePageForRenderer(ctx.page);
+  const assets = normalizeAssetsForRenderer(state.workspace);
+  window.PageRenderer.render(gridCanvas, { page, assets, interactive: false });
 }
 
 async function applyGridValues() {
