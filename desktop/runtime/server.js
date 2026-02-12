@@ -67,6 +67,31 @@ function buildIconAssetsMap(workspace, request) {
   return result;
 }
 
+
+function clamp01(value, fallback = 0) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+
+  return Math.max(0, Math.min(1, numeric));
+}
+
+function resolveFaderSkinContract(control) {
+  if (!control || control.type !== "fader") {
+    return undefined;
+  }
+
+  const skin = control.faderSkin && typeof control.faderSkin === "object" ? control.faderSkin : {};
+  const legacy = Array.isArray(control.faderIconAssetIds) ? control.faderIconAssetIds : [];
+  return {
+    topAssetId: typeof skin.topAssetId === "string" ? skin.topAssetId : (typeof legacy[0] === "string" ? legacy[0] : null),
+    middleAssetId: typeof skin.middleAssetId === "string" ? skin.middleAssetId : (typeof legacy[1] === "string" ? legacy[1] : null),
+    bottomAssetId: typeof skin.bottomAssetId === "string" ? skin.bottomAssetId : (typeof legacy[2] === "string" ? legacy[2] : null),
+    grabAssetId: typeof skin.grabAssetId === "string" ? skin.grabAssetId : (typeof legacy[3] === "string" ? legacy[3] : null),
+  };
+}
+
 function toPageContract(page) {
   if (!page) {
     return null;
@@ -106,6 +131,7 @@ function toPageContract(page) {
         showLabel: control.style.showLabel !== false,
       } : undefined,
       actionBinding: control.actionBinding || null,
+      ...(control.type === "fader" ? { faderSkin: resolveFaderSkinContract(control) } : {}),
     })),
     placements: placements.map((placement) => ({
       elementId: typeof placement.elementId === "string" ? placement.elementId : placement.controlId,
@@ -139,6 +165,9 @@ function createRuntimeServer({ onLog }) {
   let httpServer;
   let wsServer;
   let running = false;
+  const runtimeState = {
+    faderValues: {},
+  };
 
   function log(message) {
     if (typeof onLog === "function") {
@@ -190,6 +219,7 @@ function createRuntimeServer({ onLog }) {
               name: control.name,
               iconAssetId: typeof control.iconAssetId === "string" ? control.iconAssetId : null,
               actionBinding: control.actionBinding || null,
+      ...(control.type === "fader" ? { faderSkin: resolveFaderSkinContract(control) } : {}),
             }))
           : [])
         : [];
@@ -207,6 +237,16 @@ function createRuntimeServer({ onLog }) {
             : [],
         }))
         : [];
+
+      const activePageControls = Array.isArray(activePage?.controls) ? activePage.controls : [];
+      const faderValues = {};
+      activePageControls.forEach((control) => {
+        if (control?.type !== "fader" || typeof control?.id !== "string") {
+          return;
+        }
+
+        faderValues[control.id] = clamp01(runtimeState.faderValues[control.id], 0);
+      });
 
       response.json({
         activeProfileId,
@@ -243,6 +283,7 @@ function createRuntimeServer({ onLog }) {
           : null,
         page: toPageContract(activePage),
         profiles,
+        faderValues,
         assets: {
           icons: buildIconAssetsMap(workspace, request),
         },
@@ -375,6 +416,30 @@ function createRuntimeServer({ onLog }) {
             log(`[DISPATCH] Error ejecutando acción: ${error instanceof Error ? error.message : String(error)}`);
           }
 
+          return;
+        }
+
+        if (parsed?.type === "faderChange" && typeof parsed.controlId === "string") {
+          const workspace = getWorkspace();
+          const { activePage } = getActiveState(workspace);
+          const control = activePage?.controls?.find((item) => item.id === parsed.controlId) || null;
+          if (!control || control.type !== "fader") {
+            log(`[WS] faderChange ignorado: control no encontrado (${parsed.controlId})`);
+            return;
+          }
+
+          const value01 = clamp01(parsed.value01, 0);
+          runtimeState.faderValues[parsed.controlId] = value01;
+          broadcastWsMessage({
+            type: "stateUpdated",
+            activeProfileId: workspace.activeProfileId,
+            activePageId: workspace.activePageId,
+            activeFolderId: workspace.activeFolderId || null,
+            faderUpdated: {
+              controlId: parsed.controlId,
+              value01,
+            },
+          });
           return;
         }
 

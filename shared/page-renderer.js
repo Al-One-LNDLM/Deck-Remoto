@@ -94,10 +94,110 @@
     return icon.url;
   }
 
-  function createControlNode(control, iconUrl, style) {
+  function clamp01(value, fallback = 0) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      return fallback;
+    }
+
+    return Math.max(0, Math.min(1, numeric));
+  }
+
+  function resolveFaderSkin(control) {
+    if (!control || control.type !== "fader") {
+      return null;
+    }
+
+    const skin = control.faderSkin && typeof control.faderSkin === "object" ? control.faderSkin : {};
+    const legacy = Array.isArray(control.faderIconAssetIds) ? control.faderIconAssetIds : [];
+    return {
+      topAssetId: typeof skin.topAssetId === "string" ? skin.topAssetId : (typeof legacy[0] === "string" ? legacy[0] : null),
+      middleAssetId: typeof skin.middleAssetId === "string" ? skin.middleAssetId : (typeof legacy[1] === "string" ? legacy[1] : null),
+      bottomAssetId: typeof skin.bottomAssetId === "string" ? skin.bottomAssetId : (typeof legacy[2] === "string" ? legacy[2] : null),
+      grabAssetId: typeof skin.grabAssetId === "string" ? skin.grabAssetId : (typeof legacy[3] === "string" ? legacy[3] : null),
+    };
+  }
+
+  function resolveAssetUrl(assetId, assets) {
+    if (!assetId || typeof assetId !== "string") {
+      return null;
+    }
+
+    const icon = assets?.icons?.[assetId];
+    if (!icon) {
+      return null;
+    }
+
+    return icon.serverUrl || icon.url || null;
+  }
+
+  function createControlNode(control, iconUrl, style, context = {}) {
     const node = document.createElement("div");
     const isFader = control?.type === "fader";
     node.className = `page-renderer-control ${isFader ? "is-fader" : "is-button"}`;
+
+    if (isFader) {
+      const faderSkin = resolveFaderSkin(control);
+      const faderTrack = document.createElement("div");
+      faderTrack.className = "page-renderer-fader-track";
+
+      const topUrl = resolveAssetUrl(faderSkin?.topAssetId, context.assets);
+      const middleUrl = resolveAssetUrl(faderSkin?.middleAssetId, context.assets);
+      const bottomUrl = resolveAssetUrl(faderSkin?.bottomAssetId, context.assets);
+      const grabUrl = resolveAssetUrl(faderSkin?.grabAssetId, context.assets);
+
+      const top = document.createElement(topUrl ? "img" : "div");
+      top.className = "page-renderer-fader-top";
+      if (topUrl) {
+        top.src = topUrl;
+        top.alt = "";
+        top.loading = "lazy";
+      }
+
+      const middle = document.createElement("div");
+      middle.className = "page-renderer-fader-middle";
+      if (middleUrl) {
+        middle.style.backgroundImage = `url('${middleUrl}')`;
+        middle.style.backgroundRepeat = "repeat-y";
+        middle.style.backgroundPosition = "center";
+        middle.style.backgroundSize = "100% auto";
+      }
+
+      const bottom = document.createElement(bottomUrl ? "img" : "div");
+      bottom.className = "page-renderer-fader-bottom";
+      if (bottomUrl) {
+        bottom.src = bottomUrl;
+        bottom.alt = "";
+        bottom.loading = "lazy";
+      }
+
+      const grab = document.createElement(grabUrl ? "img" : "div");
+      grab.className = "page-renderer-fader-grab";
+      if (grabUrl) {
+        grab.src = grabUrl;
+        grab.alt = "";
+        grab.loading = "lazy";
+      }
+
+      faderTrack.appendChild(top);
+      faderTrack.appendChild(middle);
+      faderTrack.appendChild(bottom);
+      faderTrack.appendChild(grab);
+      node.appendChild(faderTrack);
+
+      const value01 = clamp01(context.value01, 0);
+      const updateGrabPosition = () => {
+        const trackHeight = faderTrack.clientHeight;
+        const grabHeight = grab.clientHeight || Math.max(24, Math.round(trackHeight * 0.18));
+        const range = Math.max(0, trackHeight - grabHeight);
+        grab.style.top = `${(1 - value01) * range}px`;
+      };
+
+      updateGrabPosition();
+      window.requestAnimationFrame(updateGrabPosition);
+
+      return node;
+    }
 
     if (iconUrl) {
       const img = document.createElement("img");
@@ -126,6 +226,7 @@
     const onControlPress = typeof params?.onControlPress === "function" ? params.onControlPress : null;
     const onCellClick = typeof params?.onCellClick === "function" ? params.onCellClick : null;
     const onTileClick = typeof params?.onTileClick === "function" ? params.onTileClick : null;
+    const onFaderChange = typeof params?.onFaderChange === "function" ? params.onFaderChange : null;
     const selectedElementId = typeof params?.selectedElementId === "string" ? params.selectedElementId : null;
 
     container.innerHTML = "";
@@ -223,16 +324,19 @@
       }
 
       const resolvedStyle = resolveControlStyle(control);
+      const isFaderDragEnabled = interactive && control.type === "fader" && Boolean(onFaderChange);
       const slot = document.createElement(interactive ? "button" : "div");
       if (interactive) {
         slot.type = "button";
-        slot.addEventListener("pointerdown", () => {
-          slot.classList.add("is-pressed");
-          window.setTimeout(() => slot.classList.remove("is-pressed"), 150);
-          if (onControlPress) {
-            onControlPress({ control, placement });
-          }
-        });
+        if (!isFaderDragEnabled) {
+          slot.addEventListener("pointerdown", () => {
+            slot.classList.add("is-pressed");
+            window.setTimeout(() => slot.classList.remove("is-pressed"), 150);
+            if (onControlPress) {
+              onControlPress({ control, placement });
+            }
+          });
+        }
       }
 
       if (!isPlacing && onTileClick) {
@@ -254,7 +358,51 @@
       slot.style.gridColumnEnd = `span ${clamp(placement.colSpan, 1)}`;
       slot.style.gridRowStart = String(Math.max(0, Math.floor(Number(placement.row) || 0)) + 1);
       slot.style.gridRowEnd = `span ${clamp(placement.rowSpan, 1)}`;
-      slot.appendChild(createControlNode(control, resolveIconUrl(control, assets), resolvedStyle));
+      const value01 = clamp01(params?.state?.faderValues?.[control.id], 0);
+      slot.appendChild(createControlNode(control, resolveIconUrl(control, assets), resolvedStyle, { assets, value01 }));
+
+      const isMobileFaderDragEnabled = isFaderDragEnabled;
+      if (isMobileFaderDragEnabled) {
+        let dragging = false;
+        const emitFaderValue = (event) => {
+          const rect = slot.getBoundingClientRect();
+          if (!rect.height) {
+            return;
+          }
+
+          const offsetY = event.clientY - rect.top;
+          const nextValue = 1 - Math.max(0, Math.min(1, offsetY / rect.height));
+          onFaderChange({ controlId: control.id, value01: clamp01(nextValue, 0) });
+        };
+
+        slot.addEventListener("pointerdown", (event) => {
+          dragging = true;
+          slot.setPointerCapture?.(event.pointerId);
+          emitFaderValue(event);
+        });
+
+        slot.addEventListener("pointermove", (event) => {
+          if (!dragging) {
+            return;
+          }
+
+          event.preventDefault();
+          emitFaderValue(event);
+        });
+
+        const endDrag = (event) => {
+          if (!dragging) {
+            return;
+          }
+
+          dragging = false;
+          slot.releasePointerCapture?.(event.pointerId);
+        };
+
+        slot.addEventListener("pointerup", endDrag);
+        slot.addEventListener("pointercancel", endDrag);
+      }
+
       controlsLayer.appendChild(slot);
     });
 

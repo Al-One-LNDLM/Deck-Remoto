@@ -200,6 +200,7 @@
 
       .page-renderer-placement.type-fader {
         background: linear-gradient(180deg, rgba(56, 76, 156, 0.92), rgba(36, 36, 52, 0.92));
+        touch-action: none;
       }
 
       .page-renderer-control {
@@ -216,6 +217,44 @@
         width: 65%;
         max-height: 65%;
         object-fit: contain;
+      }
+
+
+      .page-renderer-fader-track {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        overflow: hidden;
+      }
+
+      .page-renderer-fader-top,
+      .page-renderer-fader-bottom,
+      .page-renderer-fader-grab {
+        width: 100%;
+        object-fit: contain;
+        display: block;
+      }
+
+      .page-renderer-fader-top,
+      .page-renderer-fader-bottom {
+        min-height: 18px;
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .page-renderer-fader-middle {
+        width: 100%;
+        min-height: 24px;
+        background: rgba(0, 0, 0, 0.25);
+      }
+
+      .page-renderer-fader-grab {
+        position: absolute;
+        left: 0;
+        z-index: 2;
+        min-height: 20px;
+        background: rgba(255, 255, 255, 0.7);
       }
 
       .page-renderer-label {
@@ -328,6 +367,8 @@
       let socket;
       let currentState = null;
       let isSyncingSelects = false;
+      const lastFaderSentAtMs = new Map();
+      const FADER_THROTTLE_MS = 45;
 
       function setStatus(connected) {
         statusEl.textContent = connected ? "Conectado" : "Desconectado";
@@ -378,12 +419,19 @@
         activeSummaryEl.textContent = `Perfil activo: ${profileName} | Página activa: ${pageName}`;
       }
 
-      function renderGrid(page, assets) {
+      function renderGrid(state) {
         window.PageRenderer.render(gridEl, {
-          page,
-          assets,
+          page: state.page,
+          assets: state.assets,
+          state,
           interactive: true,
-          onControlPress: ({ placement }) => sendControlPress(placement.elementId),
+          onControlPress: ({ control, placement }) => {
+            if (control?.type === "fader") {
+              return;
+            }
+            sendControlPress(placement.elementId);
+          },
+          onFaderChange: ({ controlId, value01 }) => sendFaderChange(controlId, value01),
         });
       }
 
@@ -471,6 +519,27 @@
         isSyncingSelects = false;
       }
 
+
+      function sendFaderChange(controlId, value01) {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          return;
+        }
+
+        const now = Date.now();
+        const lastAt = lastFaderSentAtMs.get(controlId) || 0;
+        if (now - lastAt < FADER_THROTTLE_MS) {
+          return;
+        }
+
+        const safeValue = Math.max(0, Math.min(1, Number(value01) || 0));
+        lastFaderSentAtMs.set(controlId, now);
+        socket.send(JSON.stringify({
+          type: "faderChange",
+          controlId,
+          value01: safeValue,
+        }));
+      }
+
       function sendControlPress(controlId) {
         if (!socket || socket.readyState !== WebSocket.OPEN) {
           return;
@@ -526,7 +595,7 @@
           updateSummary(state);
           renderFolderView(state);
           if (!state.activeFolderId) {
-            renderGrid(state.page, state.assets);
+            renderGrid(state);
           }
         } catch (error) {
           stateHintEl.textContent = `No se pudo cargar /api/state: ${error.message}`;
