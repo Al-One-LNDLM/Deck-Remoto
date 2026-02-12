@@ -6,7 +6,7 @@ contextBridge.exposeInMainWorld("runtime", {
   getStatus: () => ipcRenderer.invoke("server:status"),
   getWorkspace: () => ipcRenderer.invoke("workspace:get"),
   addProfile: () => ipcRenderer.invoke("workspace:addProfile"),
-  addPage: (profileId) => ipcRenderer.invoke("workspace:addPage", profileId),
+  addPage: (profileId, payload) => ipcRenderer.invoke("workspace:addPage", profileId, payload),
   addFolder: (profileId, pageId, payload) => ipcRenderer.invoke("workspace:addFolder", profileId, pageId, payload),
   addButton: (profileId, pageId, payload) =>
     ipcRenderer.invoke("workspace:addButton", profileId, pageId, payload),
@@ -45,8 +45,24 @@ contextBridge.exposeInMainWorld("runtime", {
   deleteFolder: (profileId, pageId, folderId) => ipcRenderer.invoke("workspace:deleteFolder", profileId, pageId, folderId),
   movePage: (pageId, fromProfileId, toProfileId) => ipcRenderer.invoke("workspace:movePage", pageId, fromProfileId, toProfileId),
   moveFolder: (folderId, fromProfileId, fromPageId, toProfileId, toPageId) => ipcRenderer.invoke("workspace:moveFolder", folderId, fromProfileId, fromPageId, toProfileId, toPageId),
+  moveElement: (elementId, fromProfileId, fromPageId, toProfileId, toPageId, options) =>
+    ipcRenderer.invoke("workspace:moveElement", elementId, fromProfileId, fromPageId, toProfileId, toPageId, options),
+  duplicatePage: (sourceProfileId, pageId, targetProfileId) =>
+    ipcRenderer.invoke("workspace:duplicatePage", sourceProfileId, pageId, targetProfileId),
+  duplicateFolder: (sourceProfileId, sourcePageId, folderId, targetProfileId, targetPageId) =>
+    ipcRenderer.invoke("workspace:duplicateFolder", sourceProfileId, sourcePageId, folderId, targetProfileId, targetPageId),
+  duplicateElement: (sourceProfileId, sourcePageId, elementId, targetProfileId, targetPageId, targetFolderId) =>
+    ipcRenderer.invoke("workspace:duplicateElement", sourceProfileId, sourcePageId, elementId, targetProfileId, targetPageId, targetFolderId),
   importFolderIcon: (profileId, pageId, folderId) =>
     ipcRenderer.invoke("workspace:importFolderIcon", profileId, pageId, folderId),
+  importElementIcon: (profileId, pageId, elementId) =>
+    ipcRenderer.invoke("workspace:importElementIcon", profileId, pageId, elementId),
+  setElementIcon: (profileId, pageId, elementId, assetId) =>
+    ipcRenderer.invoke("workspace:setElementIcon", profileId, pageId, elementId, assetId),
+  importFaderIconSlot: (profileId, pageId, elementId, slotIndex) =>
+    ipcRenderer.invoke("workspace:importFaderIconSlot", profileId, pageId, elementId, slotIndex),
+  setFaderIconSlot: (profileId, pageId, elementId, slotIndex, assetId) =>
+    ipcRenderer.invoke("workspace:setFaderIconSlot", profileId, pageId, elementId, slotIndex, assetId),
   importBackgroundImage: () => ipcRenderer.invoke("workspace:importBackgroundImage"),
   onLog: (listener) => {
     const handler = (_, message) => listener(message);

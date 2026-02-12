@@ -132,6 +132,17 @@ function normalizeWorkspace(workspace) {
       page.controls.forEach((control) => {
         const folderId = typeof control.folderId === "string" ? control.folderId : null;
         control.folderId = folderId && folderIds.has(folderId) ? folderId : null;
+        control.iconAssetId = typeof control.iconAssetId === "string" ? control.iconAssetId : null;
+
+        if (control.type === "fader") {
+          const sourceSlots = Array.isArray(control.faderIconAssetIds) ? control.faderIconAssetIds : [];
+          control.faderIconAssetIds = [0, 1, 2, 3].map((slot) => {
+            const value = sourceSlots[slot];
+            return typeof value === "string" ? value : null;
+          });
+        } else {
+          delete control.faderIconAssetIds;
+        }
       });
 
       page.folders.forEach((folder) => {
@@ -366,30 +377,7 @@ function addProfile() {
   const profile = {
     id: profileId,
     name: `Perfil ${profileId.replace("profile", "")}`,
-    pages: [
-      {
-        id: pageId,
-        name: `Página ${pageId.replace("page", "")}`,
-        grid: { rows: 4, cols: 3 },
-        showGrid: true,
-        style: {
-          buttonShowBackground: true,
-          buttonShowLabel: true,
-          buttonBackgroundColor: "#2b2b2b",
-          buttonShowBorder: true,
-          buttonBorderColor: "#444444",
-          faderShowBackground: true,
-          faderBackgroundColor: "#2b2b2b",
-          faderShowBorder: true,
-          faderBorderColor: "#444444",
-          faderShowLabel: true,
-        },
-        background: { type: "solid", color: "#111111" },
-        controls: [],
-        folders: [],
-        placements: [],
-      },
-    ],
+    pages: [createDefaultPage(pageId)],
   };
 
   workspace.profiles.push(profile);
@@ -399,18 +387,10 @@ function addProfile() {
   return { workspace, created: { type: "profile", id: profileId } };
 }
 
-function addPage(profileId) {
-  const workspace = getWorkspace();
-  const profile = workspace.profiles.find((item) => item.id === profileId);
-
-  if (!profile) {
-    throw new Error("Perfil no encontrado");
-  }
-
-  const pageId = nextIdFromWorkspace("page");
-  const page = {
+function createDefaultPage(pageId, name = null) {
+  return {
     id: pageId,
-    name: `Página ${pageId.replace("page", "")}`,
+    name: sanitizeName(name) || `Página ${pageId.replace("page", "")}`,
     grid: { rows: 4, cols: 3 },
     showGrid: true,
     style: {
@@ -430,6 +410,18 @@ function addPage(profileId) {
     folders: [],
     placements: [],
   };
+}
+
+function addPage(profileId, payload = {}) {
+  const workspace = getWorkspace();
+  const profile = workspace.profiles.find((item) => item.id === profileId);
+
+  if (!profile) {
+    throw new Error("Perfil no encontrado");
+  }
+
+  const pageId = nextIdFromWorkspace("page");
+  const page = createDefaultPage(pageId, payload.name);
 
   profile.pages.push(page);
   setActivePage(profileId, pageId);
@@ -480,6 +472,8 @@ function addElement(profileId, pageId, elementType, payload = {}) {
     type: elementType,
     name: sanitizeName(payload.name) || `${typeLabel} ${itemNumber}`,
     folderId,
+    iconAssetId: null,
+    ...(elementType === "fader" ? { faderIconAssetIds: [null, null, null, null] } : {}),
   });
   scheduleSave();
 
@@ -632,28 +626,7 @@ function ensureValidActiveSelection() {
 
   if (activeProfile.pages.length === 0) {
     const pageId = nextIdFromWorkspace("page");
-    activeProfile.pages.push({
-      id: pageId,
-      name: `Página ${pageId.replace("page", "")}`,
-      grid: { rows: 4, cols: 3 },
-      showGrid: true,
-      style: {
-        buttonShowBackground: true,
-        buttonShowLabel: true,
-        buttonBackgroundColor: "#2b2b2b",
-        buttonShowBorder: true,
-        buttonBorderColor: "#444444",
-        faderShowBackground: true,
-        faderBackgroundColor: "#2b2b2b",
-        faderShowBorder: true,
-        faderBorderColor: "#444444",
-        faderShowLabel: true,
-      },
-      background: { type: "solid", color: "#111111" },
-      controls: [],
-      folders: [],
-      placements: [],
-    });
+    activeProfile.pages.push(createDefaultPage(pageId));
     workspace.activePageId = pageId;
   }
 
@@ -775,11 +748,209 @@ function moveFolder(folderId, fromProfileId, fromPageId, toProfileId, toPageId) 
   }
 
   const [folder] = fromPage.folders.splice(folderIndex, 1);
+  const movedElements = fromPage.controls.filter((element) => element.folderId === folder.id);
+  fromPage.controls = fromPage.controls.filter((element) => element.folderId !== folder.id);
+  const movedElementIds = new Set(movedElements.map((element) => element.id));
+  fromPage.placements = (fromPage.placements || []).filter((placement) => !movedElementIds.has(placement.elementId));
+
   toPage.folders.push(folder);
+  movedElements.forEach((element) => {
+    element.folderId = folder.id;
+    toPage.controls.push(element);
+  });
 
   ensureValidActiveSelection();
   scheduleSave();
 
+  return workspace;
+}
+
+function moveElement(elementId, fromProfileId, fromPageId, toProfileId, toPageId, options = {}) {
+  const workspace = getWorkspace();
+  const fromProfile = workspace.profiles.find((item) => item.id === fromProfileId);
+  const toProfile = workspace.profiles.find((item) => item.id === toProfileId);
+  const fromPage = fromProfile?.pages.find((item) => item.id === fromPageId);
+  const toPage = toProfile?.pages.find((item) => item.id === toPageId);
+
+  if (!fromPage || !toPage) {
+    throw new Error("Página no encontrada");
+  }
+
+  const elementIndex = fromPage.controls.findIndex((item) => item.id === elementId);
+  if (elementIndex === -1) {
+    throw new Error("Elemento no encontrado");
+  }
+
+  const requestedFolderId = typeof options.targetFolderId === "string" ? options.targetFolderId : null;
+  if (requestedFolderId && !toPage.folders.some((folder) => folder.id === requestedFolderId)) {
+    throw new Error("Carpeta destino no encontrada");
+  }
+
+  const [element] = fromPage.controls.splice(elementIndex, 1);
+  fromPage.placements = (fromPage.placements || []).filter((placement) => placement.elementId !== elementId);
+  element.folderId = requestedFolderId;
+  toPage.controls.push(element);
+
+  scheduleSave();
+  return workspace;
+}
+
+function cloneElementForPaste(sourceElement, idOverride = null) {
+  const id = idOverride || nextElementId(sourceElement.type === "fader" ? "fader" : "button");
+  return {
+    ...sourceElement,
+    id,
+    folderId: null,
+    iconAssetId: typeof sourceElement.iconAssetId === "string" ? sourceElement.iconAssetId : null,
+    ...(sourceElement.type === "fader"
+      ? {
+        faderIconAssetIds: [0, 1, 2, 3].map((index) =>
+          typeof sourceElement.faderIconAssetIds?.[index] === "string" ? sourceElement.faderIconAssetIds[index] : null),
+      }
+      : {}),
+  };
+}
+
+function duplicatePage(sourceProfileId, pageId, targetProfileId) {
+  const workspace = getWorkspace();
+  const sourceProfile = workspace.profiles.find((item) => item.id === sourceProfileId);
+  const targetProfile = workspace.profiles.find((item) => item.id === targetProfileId);
+  const sourcePage = sourceProfile?.pages.find((item) => item.id === pageId);
+
+  if (!sourcePage || !targetProfile) {
+    throw new Error("Página o perfil no encontrado");
+  }
+
+  const newPageId = nextIdFromWorkspace("page");
+  const folderIdMap = new Map();
+  const elementIdMap = new Map();
+  const clonedPage = {
+    ...sourcePage,
+    id: newPageId,
+    name: `${sourcePage.name} (copia)`,
+    folders: sourcePage.folders.map((folder) => {
+      const nextFolderId = nextIdFromWorkspace("folder");
+      folderIdMap.set(folder.id, nextFolderId);
+      return {
+        ...folder,
+        id: nextFolderId,
+        items: [],
+      };
+    }),
+    controls: sourcePage.controls.map((element) => {
+      const clonedElement = cloneElementForPaste(element);
+      elementIdMap.set(element.id, clonedElement.id);
+      clonedElement.folderId = element.folderId ? folderIdMap.get(element.folderId) || null : null;
+      return clonedElement;
+    }),
+    placements: sourcePage.placements
+      .map((placement) => {
+        const mappedElementId = elementIdMap.get(placement.elementId);
+        if (!mappedElementId) {
+          return null;
+        }
+
+        return {
+          ...placement,
+          id: nextPlacementId(),
+          elementId: mappedElementId,
+        };
+      })
+      .filter(Boolean),
+  };
+
+  targetProfile.pages.push(clonedPage);
+  scheduleSave();
+  return { workspace, created: { type: "page", id: newPageId } };
+}
+
+function duplicateFolder(sourceProfileId, sourcePageId, folderId, targetProfileId, targetPageId) {
+  const workspace = getWorkspace();
+  const sourcePage = workspace.profiles.find((item) => item.id === sourceProfileId)?.pages.find((item) => item.id === sourcePageId);
+  const targetPage = workspace.profiles.find((item) => item.id === targetProfileId)?.pages.find((item) => item.id === targetPageId);
+  const sourceFolder = sourcePage?.folders.find((item) => item.id === folderId);
+
+  if (!sourcePage || !targetPage || !sourceFolder) {
+    throw new Error("Carpeta o página no encontrada");
+  }
+
+  const newFolderId = nextIdFromWorkspace("folder");
+  targetPage.folders.push({ ...sourceFolder, id: newFolderId, items: [] });
+  sourcePage.controls
+    .filter((element) => element.folderId === sourceFolder.id)
+    .forEach((element) => {
+      const cloned = cloneElementForPaste(element);
+      cloned.folderId = newFolderId;
+      targetPage.controls.push(cloned);
+    });
+
+  scheduleSave();
+  return { workspace, created: { type: "folder", id: newFolderId } };
+}
+
+function duplicateElement(sourceProfileId, sourcePageId, elementId, targetProfileId, targetPageId, targetFolderId = null) {
+  const workspace = getWorkspace();
+  const sourcePage = workspace.profiles.find((item) => item.id === sourceProfileId)?.pages.find((item) => item.id === sourcePageId);
+  const targetPage = workspace.profiles.find((item) => item.id === targetProfileId)?.pages.find((item) => item.id === targetPageId);
+
+  if (!sourcePage || !targetPage) {
+    throw new Error("Página no encontrada");
+  }
+
+  if (targetFolderId && !targetPage.folders.some((folder) => folder.id === targetFolderId)) {
+    throw new Error("Carpeta destino no encontrada");
+  }
+
+  const element = sourcePage.controls.find((item) => item.id === elementId);
+  if (!element) {
+    throw new Error("Elemento no encontrado");
+  }
+
+  const cloned = cloneElementForPaste(element);
+  cloned.folderId = targetFolderId;
+  targetPage.controls.push(cloned);
+  scheduleSave();
+  return { workspace, created: { type: "element", id: cloned.id } };
+}
+
+function setElementIcon(profileId, pageId, elementId, assetId) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const element = page.controls.find((item) => item.id === elementId);
+  if (!element) {
+    throw new Error("Elemento no encontrado");
+  }
+
+  if (assetId !== null && !workspace.assets?.icons?.[assetId]) {
+    throw new Error("Icono no encontrado");
+  }
+
+  element.iconAssetId = assetId;
+  scheduleSave();
+  return workspace;
+}
+
+function setFaderIconSlot(profileId, pageId, elementId, slotIndex, assetId) {
+  const { workspace, page } = getPage(profileId, pageId);
+  const element = page.controls.find((item) => item.id === elementId);
+  if (!element || element.type !== "fader") {
+    throw new Error("Fader no encontrado");
+  }
+
+  const index = Number(slotIndex);
+  if (!Number.isInteger(index) || index < 0 || index > 3) {
+    throw new Error("Slot inválido");
+  }
+
+  if (assetId !== null && !workspace.assets?.icons?.[assetId]) {
+    throw new Error("Icono no encontrado");
+  }
+
+  element.faderIconAssetIds = Array.isArray(element.faderIconAssetIds)
+    ? [0, 1, 2, 3].map((slot) => (typeof element.faderIconAssetIds[slot] === "string" ? element.faderIconAssetIds[slot] : null))
+    : [null, null, null, null];
+
+  element.faderIconAssetIds[index] = assetId;
+  scheduleSave();
   return workspace;
 }
 
@@ -1075,6 +1246,12 @@ module.exports = {
   registerIconAsset,
   movePage,
   moveFolder,
+  moveElement,
+  duplicatePage,
+  duplicateFolder,
+  duplicateElement,
+  setElementIcon,
+  setFaderIconSlot,
   ensureValidActiveSelection,
   setActiveProfile,
   setActivePage,
