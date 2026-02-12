@@ -1023,7 +1023,7 @@ async function renderActionsTab() {
   openAppTargetWrap.className = "inspector-inline-row";
   const openAppTargetInput = document.createElement("input");
   openAppTargetInput.type = "text";
-  openAppTargetInput.placeholder = "C:\\App\\tool.exe o archivo/carpeta";
+  openAppTargetInput.placeholder = "Puedes elegir .lnk, .exe, archivo o carpeta";
   openAppTargetInput.value = openAppTargetValue;
   const openAppBrowseButton = document.createElement("button");
   openAppBrowseButton.type = "button";
