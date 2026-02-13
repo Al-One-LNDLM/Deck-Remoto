@@ -170,6 +170,61 @@
     node.className = `page-renderer-control ${isFader ? "is-fader" : "is-button"}`;
 
     if (isFader) {
+      const useMvpMobileFader = context.mobileFaderMvp === true;
+      const initialValue01 = clamp01(context.value01, clampValue7(context.value7, 0) / 127);
+
+      if (useMvpMobileFader) {
+        const faderTrack = document.createElement("div");
+        faderTrack.className = "page-renderer-fader-track page-renderer-fader-track-mvp";
+
+        const faderFill = document.createElement("div");
+        faderFill.className = "page-renderer-fader-fill";
+
+        const knob = document.createElement("div");
+        knob.className = "page-renderer-fader-knob";
+
+        faderTrack.appendChild(faderFill);
+        faderTrack.appendChild(knob);
+        node.appendChild(faderTrack);
+
+        let metricsCache = null;
+        const measureMetrics = () => {
+          const trackRect = faderTrack.getBoundingClientRect();
+          const knobRect = knob.getBoundingClientRect();
+          metricsCache = {
+            trackHeight: trackRect.height,
+            knobHeight: knobRect.height || Math.max(24, trackRect.height * 0.12),
+          };
+        };
+
+        const setFaderValue01 = (value01) => {
+          if (!metricsCache) {
+            measureMetrics();
+          }
+
+          const safeValue01 = clamp01(value01, 0);
+          const trackHeight = metricsCache?.trackHeight || 0;
+          const knobHeight = metricsCache?.knobHeight || 0;
+          const maxY = Math.max(0, trackHeight - knobHeight);
+          const y = (1 - safeValue01) * maxY;
+
+          knob.style.transform = `translate(-50%, ${y}px)`;
+          faderFill.style.height = `${Math.round(safeValue01 * 100)}%`;
+        };
+
+        setFaderValue01(initialValue01);
+        window.requestAnimationFrame(() => setFaderValue01(initialValue01));
+        window.addEventListener("resize", () => {
+          metricsCache = null;
+          setFaderValue01(initialValue01);
+        });
+
+        return {
+          node,
+          setFaderValue01,
+        };
+      }
+
       const faderSkin = resolveFaderSkin(control);
       const faderTrack = document.createElement("div");
       faderTrack.className = "page-renderer-fader-track";
@@ -262,7 +317,7 @@
       node.appendChild(faderTrack);
 
       const value7 = clampValue7(context.value7, 0);
-      const value01 = value7 / 127;
+      const value01 = initialValue01;
       let metricsCache = null;
       const measureMetrics = () => {
         const trackRect = faderTrack.getBoundingClientRect();
@@ -298,7 +353,17 @@
         updateGrabPosition();
       });
 
-      return node;
+      return {
+        node,
+        setFaderValue01: (nextValue01) => {
+          const safeValue01 = clamp01(nextValue01, 0);
+          const trackHeight = metricsCache?.trackHeight || 0;
+          const grabHeight = metricsCache?.grabHeight || 0;
+          const maxY = Math.max(0, trackHeight - grabHeight);
+          const y = (1 - safeValue01) * maxY;
+          grab.style.transform = `translateY(${y}px)`;
+        },
+      };
     }
 
     if (iconUrl) {
@@ -317,7 +382,10 @@
       node.appendChild(label);
     }
 
-    return node;
+    return {
+      node,
+      setFaderValue01: null,
+    };
   }
 
   function render(container, params) {
@@ -465,18 +533,22 @@
       slot.style.gridRowStart = String(Math.max(0, Math.floor(Number(placement.row) || 0)) + 1);
       slot.style.gridRowEnd = `span ${clamp(placement.rowSpan, 1)}`;
       const value7 = clampValue7(params?.state?.faderValues7?.[control.id], 0);
-      slot.appendChild(createControlNode(control, resolveIconUrl(control, assets), resolvedStyle, {
+      const value01 = value7 / 127;
+      const controlNode = createControlNode(control, resolveIconUrl(control, assets), resolvedStyle, {
         assets,
         value7,
+        value01,
         rowSpan: clamp(placement.rowSpan, 1),
         stateBaseUrl: params?.state?.baseUrl,
-      }));
+        mobileFaderMvp: params?.mobileFaderMvp === true,
+      });
+      slot.appendChild(controlNode.node);
 
       const isMobileFaderDragEnabled = isFaderDragEnabled;
       if (isMobileFaderDragEnabled) {
         let dragging = false;
         let lastTickAt = 0;
-        let lastValue7 = null;
+        let lastValue01 = null;
         let pendingTimer = null;
         let pendingEvent = null;
 
@@ -496,12 +568,16 @@
           }
 
           const offsetY = event.clientY - rect.top;
-          const nextValue01 = 1 - Math.max(0, Math.min(1, offsetY / rect.height));
+          const nextValue01 = clamp01(1 - (offsetY / rect.height), 0);
           const nextValue7 = clampValue7(nextValue01 * 127, 0);
 
-          if (control.type === "fader" && nextValue7 !== lastValue7) {
-            lastValue7 = nextValue7;
-            onFaderChange({ controlId: control.id, value7: nextValue7 });
+          if (typeof controlNode.setFaderValue01 === "function") {
+            controlNode.setFaderValue01(nextValue01);
+          }
+
+          if (control.type === "fader" && nextValue01 !== lastValue01) {
+            lastValue01 = nextValue01;
+            onFaderChange({ controlId: control.id, value01: nextValue01, value7: nextValue7 });
           }
         };
 
@@ -534,7 +610,7 @@
           event.preventDefault();
           dragging = true;
           lastTickAt = 0;
-          lastValue7 = null;
+          lastValue01 = null;
           clearPendingTimer();
           pendingEvent = null;
           try {
