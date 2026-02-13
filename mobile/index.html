@@ -419,6 +419,7 @@
       const lastFaderSentAtMs = new Map();
       const localFaderValues7 = {};
       const activeFaderDrags = new Set();
+      let pendingStateReload = false;
       const FADER_THROTTLE_MS = 20;
       const FADER_TUNING = {
         SEND_INTERVAL_MS: 80,
@@ -480,6 +481,10 @@
             }
 
             if (message?.type === "state" || message?.type === "stateUpdated" || message?.type === "actionExecuted") {
+              if (activeFaderDrags.size > 0) {
+                pendingStateReload = true;
+                return;
+              }
               loadState();
             }
           } catch (_error) {
@@ -522,6 +527,10 @@
             activeFaderDrags.delete(controlId);
             if (currentState && !currentState.activeFolderId) {
               renderGrid(currentState);
+            }
+            if (activeFaderDrags.size === 0 && pendingStateReload) {
+              pendingStateReload = false;
+              loadState();
             }
           },
         });
