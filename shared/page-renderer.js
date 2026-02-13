@@ -551,15 +551,16 @@
       if (isMobileFaderDragEnabled) {
         let dragging = false;
         let activePointerId = null;
-        let lastTickAt = 0;
-        let lastValue01 = null;
-        let pendingTimer = null;
-        let pendingEvent = null;
+        let lastSentAt = 0;
+        let lastSentValue01 = null;
+        let latestClientY = null;
+        let latestValue01 = value01;
         let dragOffsetPx = 0;
         let trackRect = null;
         let knobRect = null;
+        let dragRafId = null;
 
-        const THROTTLE_MS = 16;
+        const SEND_INTERVAL_MS = 40;
 
         const getTrackElement = () => slot.querySelector(".page-renderer-fader-track, .page-renderer-fader-track-mvp");
         const getKnobElement = () => slot.querySelector(".page-renderer-fader-knob, .page-renderer-fader-grab");
@@ -571,59 +572,61 @@
           knobRect = knobElement ? knobElement.getBoundingClientRect() : null;
         };
 
-        const clearPendingTimer = () => {
-          if (pendingTimer) {
-            window.clearTimeout(pendingTimer);
-            pendingTimer = null;
+        const resolveValueFromClientY = (clientY) => {
+          if (!Number.isFinite(clientY)) {
+            return latestValue01;
           }
-        };
-
-        const emitFaderValue = (event) => {
           if (!trackRect || !trackRect.height) {
             measureDragElements();
           }
           if (!trackRect || !trackRect.height) {
-            return;
+            return latestValue01;
           }
 
           const knobHeight = knobRect?.height || 0;
-          const desiredCenterY = event.clientY - dragOffsetPx + (knobHeight / 2);
-          const nextValue01 = clamp01(1 - ((desiredCenterY - trackRect.top) / trackRect.height), 0);
-          const nextValue7 = clampValue7(nextValue01 * 127, 0);
+          const desiredCenterY = clientY - dragOffsetPx + (knobHeight / 2);
+          return clamp01(1 - ((desiredCenterY - trackRect.top) / trackRect.height), 0);
+        };
 
+        const applyVisualValue = () => {
           if (typeof controlNode.setFaderValue01 === "function") {
-            controlNode.setFaderValue01(nextValue01);
-          }
-
-          if (control.type === "fader" && nextValue01 !== lastValue01) {
-            lastValue01 = nextValue01;
-            onFaderChange({ controlId: control.id, value01: nextValue01, value7: nextValue7 });
+            controlNode.setFaderValue01(latestValue01);
           }
         };
 
-        const emitThrottled = (event) => {
-          pendingEvent = { clientY: event.clientY };
-          const now = Date.now();
-          const elapsed = now - lastTickAt;
-
-          if (elapsed >= THROTTLE_MS) {
-            lastTickAt = now;
-            clearPendingTimer();
-            emitFaderValue(pendingEvent);
-            pendingEvent = null;
+        const sendFaderValue = (force = false) => {
+          if (control.type !== "fader") {
             return;
           }
 
-          if (!pendingTimer) {
-            pendingTimer = window.setTimeout(() => {
-              pendingTimer = null;
-              lastTickAt = Date.now();
-              if (pendingEvent) {
-                emitFaderValue(pendingEvent);
-                pendingEvent = null;
-              }
-            }, THROTTLE_MS - elapsed);
+          const now = Date.now();
+          if (!force && now - lastSentAt < SEND_INTERVAL_MS) {
+            return;
           }
+
+          const nextValue7 = clampValue7(latestValue01 * 127, 0);
+          if (!force && latestValue01 === lastSentValue01) {
+            return;
+          }
+
+          lastSentAt = now;
+          lastSentValue01 = latestValue01;
+          onFaderChange({ controlId: control.id, value01: latestValue01, value7: nextValue7 });
+        };
+
+        const stepDragFrame = () => {
+          if (!dragging) {
+            dragRafId = null;
+            return;
+          }
+
+          if (typeof latestClientY === "number") {
+            latestValue01 = resolveValueFromClientY(latestClientY);
+          }
+
+          applyVisualValue();
+          sendFaderValue(false);
+          dragRafId = window.requestAnimationFrame(stepDragFrame);
         };
 
         slot.addEventListener("pointerdown", (event) => {
@@ -638,16 +641,19 @@
           if (onFaderDragStateChange) {
             onFaderDragStateChange({ controlId: control.id, dragging: true });
           }
-          lastTickAt = 0;
-          lastValue01 = null;
-          clearPendingTimer();
-          pendingEvent = null;
+          lastSentAt = 0;
+          lastSentValue01 = null;
+          latestClientY = event.clientY;
+          latestValue01 = resolveValueFromClientY(event.clientY);
+          applyVisualValue();
+          if (!dragRafId) {
+            dragRafId = window.requestAnimationFrame(stepDragFrame);
+          }
           try {
             slot.setPointerCapture?.(event.pointerId);
           } catch (_error) {
             // ignore
           }
-          emitThrottled(event);
         });
 
         slot.addEventListener("pointermove", (event) => {
@@ -657,7 +663,8 @@
 
           event.preventDefault();
           measureDragElements();
-          emitThrottled(event);
+          latestClientY = event.clientY;
+          latestValue01 = resolveValueFromClientY(event.clientY);
         });
 
         const endDrag = (event) => {
@@ -665,13 +672,20 @@
             return;
           }
 
+          latestClientY = event.clientY;
+          latestValue01 = resolveValueFromClientY(event.clientY);
+          applyVisualValue();
+          sendFaderValue(true);
+
           dragging = false;
           activePointerId = null;
           if (onFaderDragStateChange) {
             onFaderDragStateChange({ controlId: control.id, dragging: false });
           }
-          clearPendingTimer();
-          pendingEvent = null;
+          if (dragRafId) {
+            window.cancelAnimationFrame(dragRafId);
+            dragRafId = null;
+          }
           try {
             slot.releasePointerCapture?.(event.pointerId);
           } catch (_error) {
