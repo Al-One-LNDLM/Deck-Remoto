@@ -182,6 +182,8 @@
 
         const knob = document.createElement("div");
         knob.className = "page-renderer-fader-knob";
+        knob.style.willChange = "transform";
+        faderFill.style.willChange = "height";
 
         faderTrack.appendChild(faderFill);
         faderTrack.appendChild(knob);
@@ -191,9 +193,15 @@
         const measureMetrics = () => {
           const trackRect = faderTrack.getBoundingClientRect();
           const knobRect = knob.getBoundingClientRect();
+          const trackHeight = trackRect.height;
+          const knobHeightRaw = knobRect.height;
+          const fallbackKnobHeight = Math.max(24, Math.min(44, trackHeight * 0.18));
+          const knobHeight = knobHeightRaw > 0 && knobHeightRaw < trackHeight
+            ? knobHeightRaw
+            : fallbackKnobHeight;
           metricsCache = {
-            trackHeight: trackRect.height,
-            knobHeight: knobRect.height || Math.max(24, trackRect.height * 0.12),
+            trackHeight,
+            knobHeight,
           };
         };
 
@@ -203,7 +211,14 @@
           }
 
           const safeValue01 = clamp01(value01, 0);
-          const trackHeight = metricsCache?.trackHeight || 0;
+          let trackHeight = metricsCache?.trackHeight || 0;
+          if (trackHeight <= 0) {
+            measureMetrics();
+            trackHeight = metricsCache?.trackHeight || 0;
+            if (trackHeight <= 0) {
+              return;
+            }
+          }
           const knobHeight = metricsCache?.knobHeight || 0;
           const maxY = Math.max(0, trackHeight - knobHeight);
           const y = (1 - safeValue01) * maxY;
@@ -570,7 +585,9 @@
         let resizeMeasureListener = null;
 
         const getTrackElement = () => slot.querySelector(".page-renderer-fader-track, .page-renderer-fader-track-mvp");
-        const getKnobElement = () => slot.querySelector(".page-renderer-fader-knob, .page-renderer-fader-grab");
+        const getKnobElement = () => params?.mobileFaderMvp === true
+          ? slot.querySelector(".page-renderer-fader-knob")
+          : slot.querySelector(".page-renderer-fader-grab");
 
         const measureDragElements = () => {
           const trackElement = getTrackElement();
