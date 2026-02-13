@@ -420,6 +420,12 @@
       const localFaderValues7 = {};
       const activeFaderDrags = new Set();
       const FADER_THROTTLE_MS = 20;
+      const FADER_TUNING = {
+        SEND_INTERVAL_MS: 50,
+        VALUE7_DEADBAND: 1,
+        MEASURE_EVERY_MOVE: false,
+        UI_SMOOTHING_ALPHA: 0.35,
+      };
 
       function setStatus(connected) {
         statusEl.textContent = connected ? "Conectado" : "Desconectado";
@@ -495,6 +501,7 @@
           assets: state.assets,
           state,
           interactive: true,
+          faderTuning: FADER_TUNING,
           onControlPress: ({ control, placement }) => {
             if (control?.type === "fader") {
               return;
