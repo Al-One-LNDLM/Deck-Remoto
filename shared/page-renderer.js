@@ -397,6 +397,9 @@
     const onCellClick = typeof params?.onCellClick === "function" ? params.onCellClick : null;
     const onTileClick = typeof params?.onTileClick === "function" ? params.onTileClick : null;
     const onFaderChange = typeof params?.onFaderChange === "function" ? params.onFaderChange : null;
+    const onFaderDragStateChange = typeof params?.onFaderDragStateChange === "function"
+      ? params.onFaderDragStateChange
+      : null;
     const selectedElementId = typeof params?.selectedElementId === "string" ? params.selectedElementId : null;
 
     container.innerHTML = "";
@@ -609,6 +612,9 @@
         slot.addEventListener("pointerdown", (event) => {
           event.preventDefault();
           dragging = true;
+          if (onFaderDragStateChange) {
+            onFaderDragStateChange({ controlId: control.id, dragging: true });
+          }
           lastTickAt = 0;
           lastValue01 = null;
           clearPendingTimer();
@@ -636,6 +642,9 @@
           }
 
           dragging = false;
+          if (onFaderDragStateChange) {
+            onFaderDragStateChange({ controlId: control.id, dragging: false });
+          }
           clearPendingTimer();
           pendingEvent = null;
           try {
