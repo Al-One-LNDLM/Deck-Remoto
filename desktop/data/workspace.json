@@ -138,6 +138,14 @@
               "col": 1,
               "rowSpan": 3,
               "colSpan": 1
+            },
+            {
+              "id": "placement1",
+              "elementId": "folderButton1",
+              "row": 3,
+              "col": 1,
+              "rowSpan": 1,
+              "colSpan": 1
             }
           ],
           "iconAssetId": null
