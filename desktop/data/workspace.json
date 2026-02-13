@@ -100,20 +100,92 @@
                 }
               },
               "faderSkin": {
-                "topAssetId": "icon_1770939593044",
-                "middleAssetId": "icon_1770939794032",
-                "bottomAssetId": "icon_1770939791515",
+                "topAssetId": null,
+                "middleAssetId": null,
+                "bottomAssetId": null,
                 "grabAssetId": null
               },
               "faderIconAssetIds": [
-                "icon_1770939593044",
-                "icon_1770939794032",
-                "icon_1770939791515",
+                null,
+                null,
+                null,
                 null
               ],
               "style": {
-                "backgroundEnabled": true,
-                "backgroundColor": "#FAFAFA",
+                "backgroundEnabled": false,
+                "backgroundColor": "#080808",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": false
+              }
+            },
+            {
+              "id": "fader2",
+              "type": "fader",
+              "name": "Fader 1",
+              "folderId": null,
+              "iconAssetId": null,
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "midiCc",
+                  "channel": 1,
+                  "cc": 0
+                }
+              },
+              "faderSkin": {
+                "topAssetId": null,
+                "middleAssetId": null,
+                "bottomAssetId": null,
+                "grabAssetId": null
+              },
+              "faderIconAssetIds": [
+                null,
+                null,
+                null,
+                null
+              ],
+              "style": {
+                "backgroundEnabled": false,
+                "backgroundColor": "#080808",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": false
+              }
+            },
+            {
+              "id": "fader3",
+              "type": "fader",
+              "name": "Fader 1",
+              "folderId": null,
+              "iconAssetId": null,
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "midiCc",
+                  "channel": 1,
+                  "cc": 0
+                }
+              },
+              "faderSkin": {
+                "topAssetId": null,
+                "middleAssetId": null,
+                "bottomAssetId": null,
+                "grabAssetId": null
+              },
+              "faderIconAssetIds": [
+                null,
+                null,
+                null,
+                null
+              ],
+              "style": {
+                "backgroundEnabled": false,
+                "backgroundColor": "#080808",
                 "backgroundOpacity": 1,
                 "borderEnabled": false,
                 "borderColor": "#FFFFFF",
@@ -134,9 +206,9 @@
             {
               "id": "placement2",
               "elementId": "fader1",
-              "row": 0,
+              "row": 2,
               "col": 0,
-              "rowSpan": 4,
+              "rowSpan": 2,
               "colSpan": 1
             },
             {
@@ -145,6 +217,22 @@
               "row": 0,
               "col": 2,
               "rowSpan": 1,
+              "colSpan": 1
+            },
+            {
+              "id": "placement3",
+              "elementId": "fader2",
+              "row": 2,
+              "col": 1,
+              "rowSpan": 2,
+              "colSpan": 1
+            },
+            {
+              "id": "placement4",
+              "elementId": "fader3",
+              "row": 2,
+              "col": 2,
+              "rowSpan": 2,
               "colSpan": 1
             }
           ],
