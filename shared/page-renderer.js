@@ -188,22 +188,26 @@
         const middleUrl = resolveAssetUrl(faderSkin?.middleAssetId, context.assets);
         const bottomUrl = resolveAssetUrl(faderSkin?.bottomAssetId, context.assets);
         const grabUrl = resolveAssetUrl(faderSkin?.grabAssetId, context.assets);
+        const hasSkinVisual = Boolean(topUrl || middleUrl || bottomUrl || grabUrl);
         const transparentMvpTrack = control?.faderSkin?.transparentMvp === true;
+        const hideMvpVisual = hasSkinVisual || transparentMvpTrack;
 
         node.style.position = "relative";
 
         const faderTrack = document.createElement("div");
         faderTrack.className = "page-renderer-fader-track page-renderer-fader-track-mvp";
-        faderTrack.style.zIndex = "1";
-        if (transparentMvpTrack) {
-          faderTrack.style.opacity = "0";
-        }
+        faderTrack.style.zIndex = "3";
 
         const faderFill = document.createElement("div");
         faderFill.className = "page-renderer-fader-fill";
 
         const knob = document.createElement("div");
         knob.className = "page-renderer-fader-knob";
+        if (hideMvpVisual) {
+          faderTrack.style.opacity = "0";
+          faderFill.style.opacity = "0";
+          knob.style.opacity = "0";
+        }
         knob.style.willChange = "transform";
         faderFill.style.willChange = "height";
 
@@ -286,15 +290,11 @@
         let metricsCache = null;
         const measureMetrics = () => {
           const trackRect = faderTrack.getBoundingClientRect();
-          const knobRect = knob.getBoundingClientRect();
           const trackWidth = trackRect.width;
           const trackHeight = trackRect.height;
-          const knobHeightRaw = knobRect.height;
-          const fallbackKnobHeight = Math.max(24, Math.min(44, trackHeight * 0.18));
-          const grabHeight = knobHeightRaw > 0 && knobHeightRaw < trackHeight
-            ? knobHeightRaw
-            : fallbackKnobHeight;
-          const grabWidth = clampRange(trackWidth * 0.7, 24, 56, 24);
+          const targetGrabHeight = clampRange(trackHeight * 0.12, 28, 64, 28);
+          const grabHeight = targetGrabHeight;
+          const grabWidth = clampRange(trackWidth * 0.8, 36, 88, 36);
 
           knob.style.width = `${grabWidth}px`;
           knob.style.height = `${grabHeight}px`;
