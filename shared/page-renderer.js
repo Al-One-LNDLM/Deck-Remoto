@@ -103,6 +103,15 @@
     return Math.max(0, Math.min(1, numeric));
   }
 
+  function clampRange(value, min, max, fallback = min) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      return fallback;
+    }
+
+    return Math.max(min, Math.min(max, numeric));
+  }
+
   function clampValue7(value, fallback = 0) {
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) {
@@ -217,12 +226,19 @@
         skinColumn.style.height = "100%";
         skinColumn.style.minHeight = "0";
 
-        const createSkinSegment = (url, className, flex) => {
+        const createSkinSegment = (url, className, flex, options = {}) => {
           const segment = document.createElement("div");
           segment.className = className;
           segment.style.flex = flex;
           segment.style.minHeight = "0";
           segment.style.pointerEvents = "none";
+          if (options.repeatYBackground && url) {
+            segment.style.backgroundImage = `url(${resolveRenderableUrl(url, context.stateBaseUrl)})`;
+            segment.style.backgroundRepeat = "repeat-y";
+            segment.style.backgroundPosition = "center top";
+            segment.style.backgroundSize = "100% auto";
+            return segment;
+          }
           if (!url) {
             return segment;
           }
@@ -242,7 +258,7 @@
         };
 
         skinColumn.appendChild(createSkinSegment(topUrl, "page-renderer-fader-skin-top", "0 0 auto"));
-        skinColumn.appendChild(createSkinSegment(middleUrl, "page-renderer-fader-skin-middle", "1 1 auto"));
+        skinColumn.appendChild(createSkinSegment(middleUrl, "page-renderer-fader-skin-middle", "1 1 auto", { repeatYBackground: true }));
         skinColumn.appendChild(createSkinSegment(bottomUrl, "page-renderer-fader-skin-bottom", "0 0 auto"));
         skinLayer.appendChild(skinColumn);
 
@@ -252,11 +268,12 @@
           skinGrab.style.position = "absolute";
           skinGrab.style.left = "50%";
           skinGrab.style.top = "0";
-          skinGrab.style.width = "100%";
-          skinGrab.style.height = "auto";
+          skinGrab.style.width = "24px";
+          skinGrab.style.height = "24px";
           skinGrab.style.pointerEvents = "none";
+          skinGrab.style.objectFit = "contain";
           skinGrab.style.willChange = "transform";
-          skinGrab.style.transform = "translate(-50%, 0px)";
+          skinGrab.style.transform = "translateX(-50%) translateY(0px)";
           skinGrab.draggable = false;
           skinGrab.alt = "";
           skinGrab.loading = "lazy";
@@ -270,15 +287,26 @@
         const measureMetrics = () => {
           const trackRect = faderTrack.getBoundingClientRect();
           const knobRect = knob.getBoundingClientRect();
+          const trackWidth = trackRect.width;
           const trackHeight = trackRect.height;
           const knobHeightRaw = knobRect.height;
           const fallbackKnobHeight = Math.max(24, Math.min(44, trackHeight * 0.18));
-          const knobHeight = knobHeightRaw > 0 && knobHeightRaw < trackHeight
+          const grabHeight = knobHeightRaw > 0 && knobHeightRaw < trackHeight
             ? knobHeightRaw
             : fallbackKnobHeight;
+          const grabWidth = clampRange(trackWidth * 0.7, 24, 56, 24);
+
+          knob.style.width = `${grabWidth}px`;
+          knob.style.height = `${grabHeight}px`;
+
+          if (skinGrab) {
+            skinGrab.style.width = `${grabWidth}px`;
+            skinGrab.style.height = `${grabHeight}px`;
+          }
+
           metricsCache = {
             trackHeight,
-            knobHeight,
+            grabHeight,
           };
         };
 
@@ -296,13 +324,13 @@
               return;
             }
           }
-          const knobHeight = metricsCache?.knobHeight || 0;
-          const maxY = Math.max(0, trackHeight - knobHeight);
+          const grabHeight = metricsCache?.grabHeight || 0;
+          const maxY = Math.max(0, trackHeight - grabHeight);
           const y = (1 - safeValue01) * maxY;
 
-          knob.style.transform = `translate(-50%, ${y}px)`;
+          knob.style.transform = `translateX(-50%) translateY(${y}px)`;
           if (skinGrab) {
-            skinGrab.style.transform = `translate(-50%, ${y}px)`;
+            skinGrab.style.transform = `translateX(-50%) translateY(${y}px)`;
           }
           faderFill.style.height = `${Math.round(safeValue01 * 100)}%`;
         };
@@ -665,9 +693,14 @@
         let resizeMeasureListener = null;
 
         const getTrackElement = () => slot.querySelector(".page-renderer-fader-track, .page-renderer-fader-track-mvp");
-        const getKnobElement = () => params?.mobileFaderMvp === true
-          ? slot.querySelector(".page-renderer-fader-knob")
-          : slot.querySelector(".page-renderer-fader-grab");
+        const getKnobElement = () => {
+          if (params?.mobileFaderMvp === true) {
+            return slot.querySelector(".page-renderer-fader-skin-grab")
+              || slot.querySelector(".page-renderer-fader-knob");
+          }
+
+          return slot.querySelector(".page-renderer-fader-grab");
+        };
 
         const measureDragElements = () => {
           const trackElement = getTrackElement();
@@ -742,8 +775,16 @@
           event.preventDefault();
           measureDragElements();
           const knobHeight = knobRect?.height || 0;
-          const pressedKnob = event.target instanceof Element
+          const pressedKnobElement = event.target instanceof Element
             && Boolean(event.target.closest(".page-renderer-fader-knob, .page-renderer-fader-grab"));
+          const pressedVisualGrab = Boolean(
+            knobRect
+            && event.clientX >= knobRect.left
+            && event.clientX <= knobRect.right
+            && event.clientY >= knobRect.top
+            && event.clientY <= knobRect.bottom,
+          );
+          const pressedKnob = pressedKnobElement || pressedVisualGrab;
           dragOffsetPx = pressedKnob ? (event.clientY - (knobRect?.top || event.clientY)) : (knobHeight / 2);
           dragging = true;
           activePointerId = event.pointerId;
