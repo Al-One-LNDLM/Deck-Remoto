@@ -400,6 +400,13 @@
     const onFaderDragStateChange = typeof params?.onFaderDragStateChange === "function"
       ? params.onFaderDragStateChange
       : null;
+    const faderTuning = params?.faderTuning && typeof params.faderTuning === "object"
+      ? params.faderTuning
+      : {};
+    const SEND_INTERVAL_MS = Math.max(0, Number(faderTuning.SEND_INTERVAL_MS) || 50);
+    const VALUE7_DEADBAND = Math.max(0, Math.round(Number(faderTuning.VALUE7_DEADBAND) || 1));
+    const MEASURE_EVERY_MOVE = faderTuning.MEASURE_EVERY_MOVE === true;
+    const UI_SMOOTHING_ALPHA = clamp01(Number(faderTuning.UI_SMOOTHING_ALPHA), 0);
     const selectedElementId = typeof params?.selectedElementId === "string" ? params.selectedElementId : null;
 
     container.innerHTML = "";
@@ -552,15 +559,15 @@
         let dragging = false;
         let activePointerId = null;
         let lastSentAt = 0;
-        let lastSentValue01 = null;
+        let lastSentValue7 = null;
         let latestClientY = null;
         let latestValue01 = value01;
+        let displayValue01 = value01;
         let dragOffsetPx = 0;
         let trackRect = null;
         let knobRect = null;
         let dragRafId = null;
-
-        const SEND_INTERVAL_MS = 40;
+        let resizeMeasureListener = null;
 
         const getTrackElement = () => slot.querySelector(".page-renderer-fader-track, .page-renderer-fader-track-mvp");
         const getKnobElement = () => slot.querySelector(".page-renderer-fader-knob, .page-renderer-fader-grab");
@@ -589,8 +596,13 @@
         };
 
         const applyVisualValue = () => {
+          if (UI_SMOOTHING_ALPHA > 0) {
+            displayValue01 += (latestValue01 - displayValue01) * UI_SMOOTHING_ALPHA;
+          } else {
+            displayValue01 = latestValue01;
+          }
           if (typeof controlNode.setFaderValue01 === "function") {
-            controlNode.setFaderValue01(latestValue01);
+            controlNode.setFaderValue01(displayValue01);
           }
         };
 
@@ -605,12 +617,12 @@
           }
 
           const nextValue7 = clampValue7(latestValue01 * 127, 0);
-          if (!force && latestValue01 === lastSentValue01) {
+          if (lastSentValue7 !== null && Math.abs(nextValue7 - lastSentValue7) < VALUE7_DEADBAND) {
             return;
           }
 
           lastSentAt = now;
-          lastSentValue01 = latestValue01;
+          lastSentValue7 = nextValue7;
           onFaderChange({ controlId: control.id, value01: latestValue01, value7: nextValue7 });
         };
 
@@ -642,9 +654,16 @@
             onFaderDragStateChange({ controlId: control.id, dragging: true });
           }
           lastSentAt = 0;
-          lastSentValue01 = null;
+          lastSentValue7 = null;
           latestClientY = event.clientY;
           latestValue01 = resolveValueFromClientY(event.clientY);
+          displayValue01 = latestValue01;
+          if (!MEASURE_EVERY_MOVE) {
+            resizeMeasureListener = () => {
+              measureDragElements();
+            };
+            window.addEventListener("resize", resizeMeasureListener);
+          }
           applyVisualValue();
           if (!dragRafId) {
             dragRafId = window.requestAnimationFrame(stepDragFrame);
@@ -662,7 +681,9 @@
           }
 
           event.preventDefault();
-          measureDragElements();
+          if (MEASURE_EVERY_MOVE) {
+            measureDragElements();
+          }
           latestClientY = event.clientY;
           latestValue01 = resolveValueFromClientY(event.clientY);
         });
@@ -685,6 +706,10 @@
           if (dragRafId) {
             window.cancelAnimationFrame(dragRafId);
             dragRafId = null;
+          }
+          if (resizeMeasureListener) {
+            window.removeEventListener("resize", resizeMeasureListener);
+            resizeMeasureListener = null;
           }
           try {
             slot.releasePointerCapture?.(event.pointerId);
