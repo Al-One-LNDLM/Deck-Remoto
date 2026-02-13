@@ -550,12 +550,26 @@
       const isMobileFaderDragEnabled = isFaderDragEnabled;
       if (isMobileFaderDragEnabled) {
         let dragging = false;
+        let activePointerId = null;
         let lastTickAt = 0;
         let lastValue01 = null;
         let pendingTimer = null;
         let pendingEvent = null;
+        let dragOffsetPx = 0;
+        let trackRect = null;
+        let knobRect = null;
 
         const THROTTLE_MS = 16;
+
+        const getTrackElement = () => slot.querySelector(".page-renderer-fader-track, .page-renderer-fader-track-mvp");
+        const getKnobElement = () => slot.querySelector(".page-renderer-fader-knob, .page-renderer-fader-grab");
+
+        const measureDragElements = () => {
+          const trackElement = getTrackElement();
+          const knobElement = getKnobElement();
+          trackRect = trackElement ? trackElement.getBoundingClientRect() : null;
+          knobRect = knobElement ? knobElement.getBoundingClientRect() : null;
+        };
 
         const clearPendingTimer = () => {
           if (pendingTimer) {
@@ -565,13 +579,16 @@
         };
 
         const emitFaderValue = (event) => {
-          const rect = slot.getBoundingClientRect();
-          if (!rect.height) {
+          if (!trackRect || !trackRect.height) {
+            measureDragElements();
+          }
+          if (!trackRect || !trackRect.height) {
             return;
           }
 
-          const offsetY = event.clientY - rect.top;
-          const nextValue01 = clamp01(1 - (offsetY / rect.height), 0);
+          const knobHeight = knobRect?.height || 0;
+          const desiredCenterY = event.clientY - dragOffsetPx + (knobHeight / 2);
+          const nextValue01 = clamp01(1 - ((desiredCenterY - trackRect.top) / trackRect.height), 0);
           const nextValue7 = clampValue7(nextValue01 * 127, 0);
 
           if (typeof controlNode.setFaderValue01 === "function") {
@@ -611,7 +628,13 @@
 
         slot.addEventListener("pointerdown", (event) => {
           event.preventDefault();
+          measureDragElements();
+          const knobHeight = knobRect?.height || 0;
+          const pressedKnob = event.target instanceof Element
+            && Boolean(event.target.closest(".page-renderer-fader-knob, .page-renderer-fader-grab"));
+          dragOffsetPx = pressedKnob ? (event.clientY - (knobRect?.top || event.clientY)) : (knobHeight / 2);
           dragging = true;
+          activePointerId = event.pointerId;
           if (onFaderDragStateChange) {
             onFaderDragStateChange({ controlId: control.id, dragging: true });
           }
@@ -628,20 +651,22 @@
         });
 
         slot.addEventListener("pointermove", (event) => {
-          if (!dragging) {
+          if (!dragging || event.pointerId !== activePointerId) {
             return;
           }
 
           event.preventDefault();
+          measureDragElements();
           emitThrottled(event);
         });
 
         const endDrag = (event) => {
-          if (!dragging) {
+          if (!dragging || event.pointerId !== activePointerId) {
             return;
           }
 
           dragging = false;
+          activePointerId = null;
           if (onFaderDragStateChange) {
             onFaderDragStateChange({ controlId: control.id, dragging: false });
           }
