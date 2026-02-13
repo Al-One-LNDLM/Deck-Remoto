@@ -135,15 +135,15 @@
               "id": "placement2",
               "elementId": "fader1",
               "row": 0,
-              "col": 1,
-              "rowSpan": 3,
+              "col": 0,
+              "rowSpan": 4,
               "colSpan": 1
             },
             {
               "id": "placement1",
               "elementId": "folderButton1",
-              "row": 3,
-              "col": 1,
+              "row": 0,
+              "col": 2,
               "rowSpan": 1,
               "colSpan": 1
             }
