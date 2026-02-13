@@ -690,9 +690,12 @@
           } catch (_error) {
             // ignore
           }
+          window.addEventListener("pointermove", onPointerMove, { passive: false });
+          window.addEventListener("pointerup", endDrag);
+          window.addEventListener("pointercancel", endDrag);
         });
 
-        slot.addEventListener("pointermove", (event) => {
+        const onPointerMove = (event) => {
           if (!dragging || event.pointerId !== activePointerId) {
             return;
           }
@@ -703,7 +706,7 @@
           }
           latestClientY = event.clientY;
           latestValue01 = resolveValueFromClientY(event.clientY);
-        });
+        };
 
         const endDrag = (event) => {
           if (!dragging || event.pointerId !== activePointerId) {
@@ -728,6 +731,9 @@
             window.removeEventListener("resize", resizeMeasureListener);
             resizeMeasureListener = null;
           }
+          window.removeEventListener("pointermove", onPointerMove);
+          window.removeEventListener("pointerup", endDrag);
+          window.removeEventListener("pointercancel", endDrag);
           try {
             slot.releasePointerCapture?.(event.pointerId);
           } catch (_error) {
@@ -735,6 +741,7 @@
           }
         };
 
+        slot.addEventListener("pointermove", onPointerMove);
         slot.addEventListener("pointerup", endDrag);
         slot.addEventListener("pointercancel", endDrag);
       }
