@@ -293,6 +293,7 @@ function createRuntimeServer({ onLog }) {
         page: toPageContract(activePage),
         profiles,
         faderValues7,
+        baseUrl: getRequestOrigin(request),
         assets: {
           icons: buildIconAssetsMap(workspace, request),
         },

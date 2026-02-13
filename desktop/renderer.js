@@ -641,6 +641,7 @@ async function renderGridTab() {
   window.PageRenderer.render(gridCanvas, {
     page,
     assets,
+    state: { baseUrl: "http://localhost:3030" },
     isPlacing: isDesktopPlacing,
     selectedElementId: state.selectedElementId,
     onTileClick: isDesktopPlacing
@@ -923,6 +924,7 @@ async function renderActionsTab() {
   window.PageRenderer.render(actionsPreviewCanvas, {
     page: normalizePageForRenderer(ctx.page),
     assets: normalizeAssetsForRenderer(state.workspace),
+    state: { baseUrl: "http://localhost:3030" },
     selectedElementId: state.actionsSelection.controlId,
     onTileClick: (elementId) => {
       if (!controls.some((control) => control.id === elementId)) {

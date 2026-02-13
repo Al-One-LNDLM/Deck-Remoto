@@ -140,6 +140,30 @@
     return icon.serverUrl || icon.url || null;
   }
 
+  function resolveRenderableUrl(url, stateBaseUrl) {
+    if (typeof url !== "string" || !url) {
+      return null;
+    }
+
+    if (/^https?:\/\//i.test(url) || url.startsWith("data:")) {
+      return url;
+    }
+
+    const fallbackBase = typeof window?.location?.origin === "string" && window.location.origin !== "null"
+      ? window.location.origin
+      : null;
+    const base = stateBaseUrl || fallbackBase;
+    if (!base) {
+      return url;
+    }
+
+    try {
+      return new URL(url, base).href;
+    } catch (_error) {
+      return url;
+    }
+  }
+
   function createControlNode(control, iconUrl, style, context = {}) {
     const node = document.createElement("div");
     const isFader = control?.type === "fader";
@@ -186,7 +210,9 @@
         piece.style.objectFit = "cover";
         piece.style.maxWidth = "none";
         piece.style.maxHeight = "none";
-        piece.src = url;
+        piece.style.pointerEvents = "none";
+        piece.draggable = false;
+        piece.src = resolveRenderableUrl(url, context.stateBaseUrl);
         piece.alt = "";
         piece.loading = "lazy";
         return piece;
@@ -223,10 +249,12 @@
       grab.style.position = "absolute";
       grab.style.left = "0";
       grab.style.width = "100%";
+      grab.style.pointerEvents = "none";
       if (grabUrl) {
-        grab.src = grabUrl;
+        grab.src = resolveRenderableUrl(grabUrl, context.stateBaseUrl);
         grab.alt = "";
         grab.loading = "lazy";
+        grab.draggable = false;
       }
 
       faderTrack.appendChild(faderSubgrid);
@@ -276,7 +304,7 @@
     if (iconUrl) {
       const img = document.createElement("img");
       img.className = "page-renderer-icon";
-      img.src = iconUrl;
+      img.src = resolveRenderableUrl(iconUrl, context.stateBaseUrl);
       img.alt = control?.name || control?.id || "icon";
       img.loading = "lazy";
       node.appendChild(img);
@@ -441,6 +469,7 @@
         assets,
         value7,
         rowSpan: clamp(placement.rowSpan, 1),
+        stateBaseUrl: params?.state?.baseUrl,
       }));
 
       const isMobileFaderDragEnabled = isFaderDragEnabled;
