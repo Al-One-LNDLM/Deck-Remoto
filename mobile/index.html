@@ -501,7 +501,7 @@
             }
             sendControlPress(placement.elementId);
           },
-          onFaderChange: ({ controlId, value01 }) => sendFaderChange(controlId, value01),
+          onFaderChange: ({ controlId, value01, value7 }) => sendFaderChange(controlId, value01, value7),
           onFaderDragStateChange: ({ controlId, dragging }) => {
             if (typeof controlId !== "string" || !controlId) {
               return;
@@ -605,14 +605,17 @@
       }
 
 
-      function sendFaderChange(controlId, value01) {
+      function sendFaderChange(controlId, value01, value7) {
         if (typeof controlId !== "string" || !controlId) {
           return;
         }
 
-        const numeric = Number(value01);
-        const safeValue01 = Number.isFinite(numeric) ? Math.max(0, Math.min(1, numeric)) : 0;
-        const safeValue7 = Math.max(0, Math.min(127, Math.round(safeValue01 * 127)));
+        const numericValue7 = Number(value7);
+        const hasValue7 = Number.isFinite(numericValue7);
+        const safeValue7 = hasValue7
+          ? Math.max(0, Math.min(127, Math.round(numericValue7)))
+          : Math.max(0, Math.min(127, Math.round(Math.max(0, Math.min(1, Number(value01) || 0)) * 127)));
+        const safeValue01 = safeValue7 / 127;
 
         localFaderValues7[controlId] = safeValue7;
         if (currentState && !currentState.activeFolderId) {
@@ -637,6 +640,7 @@
           type: "faderChange",
           controlId,
           value01: safeValue01,
+          value7: safeValue7,
         }));
       }
 
