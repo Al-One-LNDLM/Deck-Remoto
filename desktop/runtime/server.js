@@ -438,12 +438,13 @@ function createRuntimeServer({ onLog }) {
             return;
           }
 
-          const value7 = clampValue7(parsed.value7, 0);
-          console.log("[WS] faderChange recv", parsed.controlId, value7);
+          const value01 = clamp01(parsed.value01, clampValue7(parsed.value7, 0) / 127);
+          const value7 = clampValue7(value01 * 127, 0);
           runtimeState.faderValues7[parsed.controlId] = value7;
           broadcastWsMessage({
             type: "faderUpdated",
             controlId: parsed.controlId,
+            value01,
             value7,
           });
           broadcastWsMessage({
@@ -453,6 +454,7 @@ function createRuntimeServer({ onLog }) {
             activeFolderId: workspace.activeFolderId || null,
             faderUpdated: {
               controlId: parsed.controlId,
+              value01,
               value7,
             },
           });

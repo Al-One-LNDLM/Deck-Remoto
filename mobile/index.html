@@ -230,6 +230,41 @@
         overflow: hidden;
       }
 
+      .page-renderer-fader-track-mvp {
+        position: relative;
+        width: 38%;
+        height: 100%;
+        min-width: 24px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        background: linear-gradient(180deg, rgba(10, 10, 14, 0.75), rgba(22, 22, 30, 0.85));
+        overflow: hidden;
+      }
+
+      .page-renderer-fader-fill {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 0%;
+        background: linear-gradient(180deg, rgba(129, 168, 255, 0.35), rgba(129, 168, 255, 0.9));
+        pointer-events: none;
+      }
+
+      .page-renderer-fader-knob {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: calc(100% + 12px);
+        min-height: 22px;
+        aspect-ratio: 3 / 1;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        background: linear-gradient(180deg, #f0f0f0, #b9b9b9);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+        pointer-events: none;
+      }
+
       .page-renderer-fader-subgrid {
         display: grid;
         width: 100%;
@@ -383,7 +418,7 @@
       let isSyncingSelects = false;
       const lastFaderSentAtMs = new Map();
       const localFaderValues7 = {};
-      const FADER_THROTTLE_MS = 33;
+      const FADER_THROTTLE_MS = 20;
 
       function setStatus(connected) {
         statusEl.textContent = connected ? "Conectado" : "Desconectado";
@@ -420,10 +455,11 @@
           try {
             const message = JSON.parse(event.data);
             if (message?.type === "faderUpdated" && typeof message.controlId === "string") {
-              const value7 = Number(message.value7);
-              localFaderValues7[message.controlId] = Number.isFinite(value7)
-                ? Math.max(0, Math.min(127, Math.round(value7)))
-                : 0;
+              const incoming01 = Number(message.value01);
+              const value7 = Number.isFinite(incoming01)
+                ? Math.max(0, Math.min(127, Math.round(incoming01 * 127)))
+                : Math.max(0, Math.min(127, Math.round(Number(message.value7) || 0)));
+              localFaderValues7[message.controlId] = value7;
               if (currentState && !currentState.activeFolderId) {
                 currentState.faderValues7 = {
                   ...(currentState.faderValues7 || {}),
@@ -451,6 +487,7 @@
 
       function renderGrid(state) {
         window.PageRenderer.render(gridEl, {
+          mobileFaderMvp: true,
           page: state.page,
           assets: state.assets,
           state,
@@ -461,7 +498,7 @@
             }
             sendControlPress(placement.elementId);
           },
-          onFaderChange: ({ controlId, value7 }) => sendFaderChange(controlId, value7),
+          onFaderChange: ({ controlId, value01 }) => sendFaderChange(controlId, value01),
         });
       }
 
@@ -550,13 +587,14 @@
       }
 
 
-      function sendFaderChange(controlId, value7) {
+      function sendFaderChange(controlId, value01) {
         if (typeof controlId !== "string" || !controlId) {
           return;
         }
 
-        const numeric = Number(value7);
-        const safeValue7 = Number.isFinite(numeric) ? Math.max(0, Math.min(127, Math.round(numeric))) : 0;
+        const numeric = Number(value01);
+        const safeValue01 = Number.isFinite(numeric) ? Math.max(0, Math.min(1, numeric)) : 0;
+        const safeValue7 = Math.max(0, Math.min(127, Math.round(safeValue01 * 127)));
 
         localFaderValues7[controlId] = safeValue7;
         if (currentState && !currentState.activeFolderId) {
@@ -578,11 +616,10 @@
         }
 
         lastFaderSentAtMs.set(controlId, now);
-        console.log("[MOBILE] faderChange", controlId, safeValue7);
         socket.send(JSON.stringify({
           type: "faderChange",
           controlId,
-          value7: safeValue7,
+          value01: safeValue01,
         }));
       }
 
