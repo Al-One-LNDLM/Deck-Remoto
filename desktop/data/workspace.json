@@ -100,16 +100,16 @@
                 }
               },
               "faderSkin": {
-                "topAssetId": null,
-                "middleAssetId": null,
-                "bottomAssetId": null,
-                "grabAssetId": null
+                "topAssetId": "icon_1770986367540",
+                "middleAssetId": "icon_1770986390460",
+                "bottomAssetId": "icon_1770986394618",
+                "grabAssetId": "icon_1770986396924"
               },
               "faderIconAssetIds": [
-                null,
-                null,
-                null,
-                null
+                "icon_1770986367540",
+                "icon_1770986390460",
+                "icon_1770986394618",
+                "icon_1770986396924"
               ],
               "style": {
                 "backgroundEnabled": false,
@@ -206,9 +206,9 @@
             {
               "id": "placement2",
               "elementId": "fader1",
-              "row": 2,
+              "row": 0,
               "col": 0,
-              "rowSpan": 2,
+              "rowSpan": 4,
               "colSpan": 1
             },
             {
@@ -217,14 +217,6 @@
               "row": 0,
               "col": 2,
               "rowSpan": 1,
-              "colSpan": 1
-            },
-            {
-              "id": "placement3",
-              "elementId": "fader2",
-              "row": 2,
-              "col": 1,
-              "rowSpan": 2,
               "colSpan": 1
             },
             {
@@ -579,6 +571,30 @@
         "type": "icon",
         "path": "assets/icons/1770939794031-fader_middle.png",
         "createdAt": "2026-02-12T23:43:14.032Z"
+      },
+      "icon_1770986367540": {
+        "id": "icon_1770986367540",
+        "type": "icon",
+        "path": "assets/icons/1770986367540-fader_top.png",
+        "createdAt": "2026-02-13T12:39:27.540Z"
+      },
+      "icon_1770986390460": {
+        "id": "icon_1770986390460",
+        "type": "icon",
+        "path": "assets/icons/1770986390459-fader_middle.png",
+        "createdAt": "2026-02-13T12:39:50.460Z"
+      },
+      "icon_1770986394618": {
+        "id": "icon_1770986394618",
+        "type": "icon",
+        "path": "assets/icons/1770986394617-fader_bottom.png",
+        "createdAt": "2026-02-13T12:39:54.618Z"
+      },
+      "icon_1770986396924": {
+        "id": "icon_1770986396924",
+        "type": "icon",
+        "path": "assets/icons/1770986396923-fader_grab.png",
+        "createdAt": "2026-02-13T12:39:56.924Z"
       }
     }
   },
