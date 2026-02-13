@@ -174,8 +174,21 @@
       const initialValue01 = clamp01(context.value01, clampValue7(context.value7, 0) / 127);
 
       if (useMvpMobileFader) {
+        const faderSkin = resolveFaderSkin(control);
+        const topUrl = resolveAssetUrl(faderSkin?.topAssetId, context.assets);
+        const middleUrl = resolveAssetUrl(faderSkin?.middleAssetId, context.assets);
+        const bottomUrl = resolveAssetUrl(faderSkin?.bottomAssetId, context.assets);
+        const grabUrl = resolveAssetUrl(faderSkin?.grabAssetId, context.assets);
+        const transparentMvpTrack = control?.faderSkin?.transparentMvp === true;
+
+        node.style.position = "relative";
+
         const faderTrack = document.createElement("div");
         faderTrack.className = "page-renderer-fader-track page-renderer-fader-track-mvp";
+        faderTrack.style.zIndex = "1";
+        if (transparentMvpTrack) {
+          faderTrack.style.opacity = "0";
+        }
 
         const faderFill = document.createElement("div");
         faderFill.className = "page-renderer-fader-fill";
@@ -188,6 +201,70 @@
         faderTrack.appendChild(faderFill);
         faderTrack.appendChild(knob);
         node.appendChild(faderTrack);
+
+        const skinLayer = document.createElement("div");
+        skinLayer.className = "page-renderer-fader-skin-layer";
+        skinLayer.style.position = "absolute";
+        skinLayer.style.inset = "0";
+        skinLayer.style.zIndex = "2";
+        skinLayer.style.pointerEvents = "none";
+
+        const skinColumn = document.createElement("div");
+        skinColumn.className = "page-renderer-fader-skin-column";
+        skinColumn.style.display = "flex";
+        skinColumn.style.flexDirection = "column";
+        skinColumn.style.width = "100%";
+        skinColumn.style.height = "100%";
+        skinColumn.style.minHeight = "0";
+
+        const createSkinSegment = (url, className, flex) => {
+          const segment = document.createElement("div");
+          segment.className = className;
+          segment.style.flex = flex;
+          segment.style.minHeight = "0";
+          segment.style.pointerEvents = "none";
+          if (!url) {
+            return segment;
+          }
+
+          const img = document.createElement("img");
+          img.style.display = "block";
+          img.style.width = "100%";
+          img.style.height = "100%";
+          img.style.objectFit = "cover";
+          img.style.pointerEvents = "none";
+          img.draggable = false;
+          img.alt = "";
+          img.loading = "lazy";
+          img.src = resolveRenderableUrl(url, context.stateBaseUrl);
+          segment.appendChild(img);
+          return segment;
+        };
+
+        skinColumn.appendChild(createSkinSegment(topUrl, "page-renderer-fader-skin-top", "0 0 auto"));
+        skinColumn.appendChild(createSkinSegment(middleUrl, "page-renderer-fader-skin-middle", "1 1 auto"));
+        skinColumn.appendChild(createSkinSegment(bottomUrl, "page-renderer-fader-skin-bottom", "0 0 auto"));
+        skinLayer.appendChild(skinColumn);
+
+        const skinGrab = grabUrl ? document.createElement("img") : null;
+        if (skinGrab) {
+          skinGrab.className = "page-renderer-fader-skin-grab";
+          skinGrab.style.position = "absolute";
+          skinGrab.style.left = "50%";
+          skinGrab.style.top = "0";
+          skinGrab.style.width = "100%";
+          skinGrab.style.height = "auto";
+          skinGrab.style.pointerEvents = "none";
+          skinGrab.style.willChange = "transform";
+          skinGrab.style.transform = "translate(-50%, 0px)";
+          skinGrab.draggable = false;
+          skinGrab.alt = "";
+          skinGrab.loading = "lazy";
+          skinGrab.src = resolveRenderableUrl(grabUrl, context.stateBaseUrl);
+          skinLayer.appendChild(skinGrab);
+        }
+
+        node.appendChild(skinLayer);
 
         let metricsCache = null;
         const measureMetrics = () => {
@@ -224,6 +301,9 @@
           const y = (1 - safeValue01) * maxY;
 
           knob.style.transform = `translate(-50%, ${y}px)`;
+          if (skinGrab) {
+            skinGrab.style.transform = `translate(-50%, ${y}px)`;
+          }
           faderFill.style.height = `${Math.round(safeValue01 * 100)}%`;
         };
 
