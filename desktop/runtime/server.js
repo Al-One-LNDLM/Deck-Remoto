@@ -429,18 +429,63 @@ function createRuntimeServer({ onLog }) {
           return;
         }
 
-        if (parsed?.type === "faderChange" && typeof parsed.controlId === "string") {
+        if (parsed?.type === "faderChange") {
+          if (typeof parsed.controlId !== "string") {
+            return;
+          }
+
+          const hasValue01 = Number.isFinite(Number(parsed.value01));
+          const hasValue7 = Number.isFinite(Number(parsed.value7));
+          if (!hasValue01 && !hasValue7) {
+            log(`[WS] faderChange ignorado: payload inválido (${parsed.controlId})`);
+            return;
+          }
+
           const workspace = getWorkspace();
           const { activePage } = getActiveState(workspace);
           const control = activePage?.controls?.find((item) => item.id === parsed.controlId) || null;
-          if (!control || control.type !== "fader") {
+          if (!control) {
             log(`[WS] faderChange ignorado: control no encontrado (${parsed.controlId})`);
             return;
           }
 
-          const value01 = clamp01(parsed.value01, clampValue7(parsed.value7, 0) / 127);
-          const value7 = clampValue7(value01 * 127, 0);
+          if (control.type !== "fader") {
+            log(`[WS] faderChange ignorado: control no es fader (${parsed.controlId})`);
+            return;
+          }
+
+          const value7 = hasValue7
+            ? clampValue7(parsed.value7, 0)
+            : clampValue7(clamp01(parsed.value01, 0) * 127, 0);
+          const value01 = value7 / 127;
+
+          log(`[WS] faderChange ${parsed.controlId} value7=${value7}`);
+
           runtimeState.faderValues7[parsed.controlId] = value7;
+
+          const actionBinding = control.actionBinding;
+          if (actionBinding && actionBinding.kind === "single") {
+            if (actionBinding.action?.type === "midiCc") {
+              await dispatcher.executeAction(
+                {
+                  ...actionBinding.action,
+                  value: value7,
+                },
+                {
+                  log,
+                  runtime: {
+                    setActiveProfile,
+                    setActivePage,
+                    openFolder,
+                    closeFolder,
+                  },
+                },
+              );
+            } else {
+              log(`[WS] faderChange sin acción compatible (${parsed.controlId})`);
+            }
+          }
+
           broadcastWsMessage({
             type: "faderUpdated",
             controlId: parsed.controlId,

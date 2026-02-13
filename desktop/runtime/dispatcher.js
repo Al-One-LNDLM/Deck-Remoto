@@ -76,6 +76,23 @@ async function executeAction(action, { log, runtime } = {}) {
     }
   }
 
+
+  if (action.type === "midiCc") {
+    const channel = Number.isFinite(Number(action.channel)) ? Math.max(1, Math.min(16, Math.round(Number(action.channel)))) : 1;
+    const cc = Number.isFinite(Number(action.cc)) ? Math.max(0, Math.min(127, Math.round(Number(action.cc)))) : 0;
+    const value = Number.isFinite(Number(action.value)) ? Math.max(0, Math.min(127, Math.round(Number(action.value)))) : null;
+
+    if (typeof log === "function") {
+      if (value == null) {
+        log(`[DISPATCH] midiCc channel=${channel} cc=${cc}`);
+      } else {
+        log(`[DISPATCH] midiCc channel=${channel} cc=${cc} value=${value}`);
+        log("[DISPATCH] TODO: enviar valor MIDI CC al backend MIDI real");
+      }
+    }
+    return;
+  }
+
   if (action.type === "switchPage") {
     const pageId = typeof action.pageId === "string" ? action.pageId.trim() : "";
     if (!pageId) {
