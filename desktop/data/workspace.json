@@ -15,7 +15,7 @@
           "id": "page1",
           "name": "Página 1",
           "grid": {
-            "rows": 4,
+            "rows": 5,
             "cols": 3
           },
           "showGrid": false,
@@ -76,7 +76,7 @@
                 }
               },
               "style": {
-                "backgroundEnabled": true,
+                "backgroundEnabled": false,
                 "backgroundColor": "#000000",
                 "backgroundOpacity": 1,
                 "borderEnabled": false,
@@ -136,16 +136,16 @@
                 }
               },
               "faderSkin": {
-                "topAssetId": null,
-                "middleAssetId": null,
-                "bottomAssetId": null,
-                "grabAssetId": null
+                "topAssetId": "icon_1770987956171",
+                "middleAssetId": "icon_1770987958511",
+                "bottomAssetId": "icon_1770987960334",
+                "grabAssetId": "icon_1770987962215"
               },
               "faderIconAssetIds": [
-                null,
-                null,
-                null,
-                null
+                "icon_1770987956171",
+                "icon_1770987958511",
+                "icon_1770987960334",
+                "icon_1770987962215"
               ],
               "style": {
                 "backgroundEnabled": false,
@@ -172,20 +172,54 @@
                 }
               },
               "faderSkin": {
-                "topAssetId": null,
-                "middleAssetId": null,
-                "bottomAssetId": null,
-                "grabAssetId": null
+                "topAssetId": "icon_1770987966444",
+                "middleAssetId": "icon_1770987967840",
+                "bottomAssetId": "icon_1770987969834",
+                "grabAssetId": "icon_1770987971464"
               },
               "faderIconAssetIds": [
-                null,
-                null,
-                null,
-                null
+                "icon_1770987966444",
+                "icon_1770987967840",
+                "icon_1770987969834",
+                "icon_1770987971464"
               ],
               "style": {
                 "backgroundEnabled": false,
                 "backgroundColor": "#080808",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": false
+              }
+            },
+            {
+              "id": "button4",
+              "type": "button",
+              "name": "IZDA",
+              "folderId": null,
+              "iconAssetId": "icon_1770988227089",
+              "actionBinding": null,
+              "style": {
+                "backgroundEnabled": false,
+                "backgroundColor": "#000000",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": false
+              }
+            },
+            {
+              "id": "button5",
+              "type": "button",
+              "name": "DCHA",
+              "folderId": null,
+              "iconAssetId": "icon_1770988233740",
+              "actionBinding": null,
+              "style": {
+                "backgroundEnabled": false,
+                "backgroundColor": "#000000",
                 "backgroundOpacity": 1,
                 "borderEnabled": false,
                 "borderColor": "#FFFFFF",
@@ -207,24 +241,32 @@
               "id": "placement2",
               "elementId": "fader1",
               "row": 0,
-              "col": 0,
+              "col": 2,
               "rowSpan": 4,
               "colSpan": 1
             },
             {
               "id": "placement1",
               "elementId": "folderButton1",
-              "row": 0,
-              "col": 2,
+              "row": 4,
+              "col": 1,
+              "rowSpan": 1,
+              "colSpan": 1
+            },
+            {
+              "id": "placement3",
+              "elementId": "button4",
+              "row": 4,
+              "col": 0,
               "rowSpan": 1,
               "colSpan": 1
             },
             {
               "id": "placement4",
-              "elementId": "fader3",
-              "row": 2,
+              "elementId": "button5",
+              "row": 4,
               "col": 2,
-              "rowSpan": 2,
+              "rowSpan": 1,
               "colSpan": 1
             }
           ],
@@ -595,6 +637,66 @@
         "type": "icon",
         "path": "assets/icons/1770986396923-fader_grab.png",
         "createdAt": "2026-02-13T12:39:56.924Z"
+      },
+      "icon_1770987956171": {
+        "id": "icon_1770987956171",
+        "type": "icon",
+        "path": "assets/icons/1770987956170-fader_top.png",
+        "createdAt": "2026-02-13T13:05:56.171Z"
+      },
+      "icon_1770987958511": {
+        "id": "icon_1770987958511",
+        "type": "icon",
+        "path": "assets/icons/1770987958510-fader_middle.png",
+        "createdAt": "2026-02-13T13:05:58.511Z"
+      },
+      "icon_1770987960334": {
+        "id": "icon_1770987960334",
+        "type": "icon",
+        "path": "assets/icons/1770987960334-fader_bottom.png",
+        "createdAt": "2026-02-13T13:06:00.334Z"
+      },
+      "icon_1770987962215": {
+        "id": "icon_1770987962215",
+        "type": "icon",
+        "path": "assets/icons/1770987962213-fader_grab.png",
+        "createdAt": "2026-02-13T13:06:02.215Z"
+      },
+      "icon_1770987966444": {
+        "id": "icon_1770987966444",
+        "type": "icon",
+        "path": "assets/icons/1770987966443-fader_top.png",
+        "createdAt": "2026-02-13T13:06:06.444Z"
+      },
+      "icon_1770987967840": {
+        "id": "icon_1770987967840",
+        "type": "icon",
+        "path": "assets/icons/1770987967839-fader_middle.png",
+        "createdAt": "2026-02-13T13:06:07.840Z"
+      },
+      "icon_1770987969834": {
+        "id": "icon_1770987969834",
+        "type": "icon",
+        "path": "assets/icons/1770987969833-fader_bottom.png",
+        "createdAt": "2026-02-13T13:06:09.834Z"
+      },
+      "icon_1770987971464": {
+        "id": "icon_1770987971464",
+        "type": "icon",
+        "path": "assets/icons/1770987971464-fader_grab.png",
+        "createdAt": "2026-02-13T13:06:11.464Z"
+      },
+      "icon_1770988227089": {
+        "id": "icon_1770988227089",
+        "type": "icon",
+        "path": "assets/icons/1770988227089-LEFT.png",
+        "createdAt": "2026-02-13T13:10:27.089Z"
+      },
+      "icon_1770988233740": {
+        "id": "icon_1770988233740",
+        "type": "icon",
+        "path": "assets/icons/1770988233739-RIGHT.png",
+        "createdAt": "2026-02-13T13:10:33.740Z"
       }
     }
   },
