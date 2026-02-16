@@ -15,10 +15,10 @@
           "id": "page1",
           "name": "Página 1",
           "grid": {
-            "rows": 5,
-            "cols": 3
+            "rows": 24,
+            "cols": 24
           },
-          "showGrid": false,
+          "showGrid": true,
           "controls": [
             {
               "id": "button1",
@@ -267,6 +267,14 @@
               "row": 4,
               "col": 2,
               "rowSpan": 1,
+              "colSpan": 1
+            },
+            {
+              "id": "placement5",
+              "elementId": "fader2",
+              "row": 0,
+              "col": 0,
+              "rowSpan": 4,
               "colSpan": 1
             }
           ],
