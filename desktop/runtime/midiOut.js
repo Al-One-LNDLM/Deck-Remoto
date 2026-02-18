@@ -27,8 +27,9 @@ function ensureOutput() {
 
     try {
       MidiLibrary = require("midi");
+      console.log("[MIDI] require('midi') ok");
     } catch (error) {
-      logUnavailableOnce(`[MIDI] Librería 'midi' no disponible: ${error?.message || String(error)}`);
+      logUnavailableOnce(`[MIDI] require('midi') error: ${error?.stack || error?.message || String(error)}`);
       return null;
     }
 
@@ -56,13 +57,23 @@ function listOutputs() {
   }
 
   const portCount = output.getPortCount();
+  console.log(`[MIDI] output.getPortCount() = ${portCount}`);
   if (!portCount) {
     logMissingPortOnce();
     return [];
   }
 
   return Array.from({ length: portCount }, (_, index) => {
-    const name = typeof output.getPortName === "function" ? output.getPortName(index) : `Output ${index + 1}`;
+    let name = `Output ${index + 1}`;
+    if (typeof output.getPortName === "function") {
+      try {
+        name = output.getPortName(index);
+      } catch (error) {
+        name = `Output ${index + 1}`;
+        console.warn(`[MIDI] output.getPortName(${index}) error: ${error?.stack || error?.message || String(error)}`);
+      }
+    }
+    console.log(`[MIDI] output.getPortName(${index}) = ${name}`);
     return { index, name };
   });
 }
