@@ -18,7 +18,7 @@
             "rows": 4,
             "cols": 3
           },
-          "showGrid": true,
+          "showGrid": false,
           "controls": [
             {
               "id": "button1",
@@ -124,7 +124,7 @@
             {
               "id": "fader2",
               "type": "fader",
-              "name": "Fader 1",
+              "name": "Fader 2",
               "folderId": null,
               "iconAssetId": null,
               "actionBinding": {
@@ -160,7 +160,7 @@
             {
               "id": "fader3",
               "type": "fader",
-              "name": "Fader 1",
+              "name": "Fader 3",
               "folderId": null,
               "iconAssetId": null,
               "actionBinding": {
@@ -238,42 +238,50 @@
           ],
           "placements": [
             {
-              "id": "placement2",
-              "elementId": "fader1",
-              "row": 0,
-              "col": 2,
-              "rowSpan": 3,
+              "id": "placement1",
+              "elementId": "folderButton1",
+              "row": 3,
+              "col": 1,
+              "rowSpan": 1,
               "colSpan": 1
             },
             {
-              "id": "placement1",
-              "elementId": "folderButton1",
-              "row": 4,
-              "col": 1,
+              "id": "placement2",
+              "elementId": "button5",
+              "row": 3,
+              "col": 2,
               "rowSpan": 1,
               "colSpan": 1
             },
             {
               "id": "placement3",
               "elementId": "button4",
-              "row": 4,
+              "row": 3,
               "col": 0,
               "rowSpan": 1,
               "colSpan": 1
             },
             {
               "id": "placement4",
-              "elementId": "button5",
-              "row": 4,
-              "col": 2,
-              "rowSpan": 1,
+              "elementId": "fader3",
+              "row": 0,
+              "col": 0,
+              "rowSpan": 3,
               "colSpan": 1
             },
             {
               "id": "placement5",
               "elementId": "fader2",
               "row": 0,
-              "col": 0,
+              "col": 1,
+              "rowSpan": 3,
+              "colSpan": 1
+            },
+            {
+              "id": "placement6",
+              "elementId": "fader1",
+              "row": 0,
+              "col": 2,
               "rowSpan": 3,
               "colSpan": 1
             }
