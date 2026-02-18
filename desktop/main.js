@@ -1,7 +1,9 @@
 const fs = require("fs");
 const path = require("path");
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, Menu } = require("electron");
 const { createRuntimeServer } = require("./runtime/server");
+const midiOut = require("./runtime/midiOut");
+const { readSettings, setSetting } = require("./runtime/settings");
 const {
   getWorkspace,
   addProfile,
@@ -128,6 +130,109 @@ async function importIconAsset() {
   fs.copyFileSync(sourcePath, targetPath);
 
   return `assets/icons/${targetName}`;
+}
+
+function buildMidiMenuTemplate() {
+  const outputs = midiOut.listOutputs();
+  const selectedIndex = midiOut.getSelectedOutputIndex();
+
+  const outputSubmenu = outputs.length
+    ? outputs.map((port) => ({
+      label: port.name,
+      type: "radio",
+      checked: port.index === selectedIndex,
+      click: () => {
+        const selectedPort = midiOut.setOutputByIndex(port.index);
+        if (!selectedPort) {
+          return;
+        }
+
+        setSetting("midiOutputIndex", selectedPort.index);
+        console.log(`[MIDI] selected output: ${selectedPort.name} (index ${selectedPort.index})`);
+        buildApplicationMenu();
+      },
+    }))
+    : [{
+      label: "No MIDI outputs found",
+      enabled: false,
+    }];
+
+  return {
+    label: "MIDI",
+    submenu: [
+      {
+        label: "Output",
+        submenu: outputSubmenu,
+      },
+      {
+        type: "separator",
+      },
+      {
+        label: "Refresh Ports",
+        click: () => {
+          const settings = readSettings();
+          const savedIndex = Number.isInteger(settings.midiOutputIndex) ? settings.midiOutputIndex : -1;
+          midiOut.setOutputByIndex(savedIndex);
+          buildApplicationMenu();
+        },
+      },
+    ],
+  };
+}
+
+function buildApplicationMenu() {
+  const template = [
+    {
+      label: "File",
+      submenu: [
+        { role: "quit" },
+      ],
+    },
+    {
+      label: "Edit",
+      submenu: [
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "selectAll" },
+      ],
+    },
+    {
+      label: "View",
+      submenu: [
+        { role: "reload" },
+        { role: "forceReload" },
+        { role: "toggleDevTools" },
+        { type: "separator" },
+        { role: "resetZoom" },
+        { role: "zoomIn" },
+        { role: "zoomOut" },
+        { type: "separator" },
+        { role: "togglefullscreen" },
+      ],
+    },
+    buildMidiMenuTemplate(),
+    {
+      label: "Help",
+      submenu: [],
+    },
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
+
+function restoreMidiOutputSelection() {
+  const settings = readSettings();
+  const savedIndex = Number.isInteger(settings.midiOutputIndex) ? settings.midiOutputIndex : 0;
+  const selectedPort = midiOut.setOutputByIndex(savedIndex);
+  if (selectedPort) {
+    setSetting("midiOutputIndex", selectedPort.index);
+    console.log(`[MIDI] selected output: ${selectedPort.name} (index ${selectedPort.index})`);
+  }
 }
 
 app.whenReady().then(() => {
@@ -257,6 +362,8 @@ app.whenReady().then(() => {
   ipcMain.handle("workspace:setFaderIconSlot", (_event, profileId, pageId, elementId, slotIndex, assetId) =>
     setFaderIconSlot(profileId, pageId, elementId, slotIndex, assetId),
   );
+  restoreMidiOutputSelection();
+  buildApplicationMenu();
   createWindow();
 
   app.on("activate", () => {

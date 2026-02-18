@@ -3,6 +3,7 @@ let output = null;
 let initAttempted = false;
 let loggedUnavailable = false;
 let loggedMissingPort = false;
+let selectedOutputIndex = -1;
 
 function logUnavailableOnce(message) {
   if (loggedUnavailable) {
@@ -21,10 +22,6 @@ function logMissingPortOnce() {
 }
 
 function ensureOutput() {
-  if (output) {
-    return output;
-  }
-
   if (!initAttempted) {
     initAttempted = true;
 
@@ -43,25 +40,66 @@ function ensureOutput() {
       return null;
     }
 
-    try {
-      const portCount = typeof output.getPortCount === "function" ? output.getPortCount() : 0;
-      if (!portCount) {
-        logMissingPortOnce();
-        output = null;
-        return null;
-      }
-
-      output.openPort(0);
-      const portName = typeof output.getPortName === "function" ? output.getPortName(0) : "(desconocido)";
-      console.log(`[MIDI] Salida MIDI conectada: ${portName}`);
-    } catch (error) {
-      logUnavailableOnce(`[MIDI] Error al abrir puerto MIDI: ${error?.message || String(error)}`);
-      output = null;
-      return null;
-    }
+    setOutputByIndex(0);
   }
 
   return output;
+}
+
+function listOutputs() {
+  if (!initAttempted) {
+    ensureOutput();
+  }
+
+  if (!output || typeof output.getPortCount !== "function") {
+    return [];
+  }
+
+  const portCount = output.getPortCount();
+  if (!portCount) {
+    logMissingPortOnce();
+    return [];
+  }
+
+  return Array.from({ length: portCount }, (_, index) => {
+    const name = typeof output.getPortName === "function" ? output.getPortName(index) : `Output ${index + 1}`;
+    return { index, name };
+  });
+}
+
+function getSelectedOutputIndex() {
+  return selectedOutputIndex;
+}
+
+function setOutputByIndex(index) {
+  if (!initAttempted) {
+    ensureOutput();
+  }
+
+  const outputs = listOutputs();
+  if (!outputs.length) {
+    selectedOutputIndex = -1;
+    return null;
+  }
+
+  const numericIndex = Number(index);
+  const targetIndex = Number.isInteger(numericIndex) && numericIndex >= 0 && numericIndex < outputs.length
+    ? numericIndex
+    : 0;
+
+  try {
+    if (selectedOutputIndex !== -1 && typeof output.closePort === "function") {
+      output.closePort();
+    }
+
+    output.openPort(targetIndex);
+    selectedOutputIndex = targetIndex;
+    return outputs[targetIndex];
+  } catch (error) {
+    console.warn(`[MIDI] Error al abrir puerto MIDI: ${error?.message || String(error)}`);
+    selectedOutputIndex = -1;
+    return null;
+  }
 }
 
 function normalizeChannel(channel) {
@@ -112,6 +150,9 @@ function sendNoteOff(channel, note, velocity) {
 }
 
 module.exports = {
+  listOutputs,
+  getSelectedOutputIndex,
+  setOutputByIndex,
   sendCc,
   sendNoteOn,
   sendNoteOff,
