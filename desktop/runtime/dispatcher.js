@@ -2,6 +2,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 const { shell } = require("electron");
 const KeyboardDriver = require("./keyboard-driver");
+const midiOut = require("./midiOut");
 const { sanitizeHttpUrl, sanitizeOpenAppTarget } = require("../../shared/schema/actions");
 
 async function executeAction(action, { log, runtime } = {}) {
@@ -87,7 +88,7 @@ async function executeAction(action, { log, runtime } = {}) {
         log(`[DISPATCH] midiCc channel=${channel} cc=${cc}`);
       } else {
         log(`[DISPATCH] midiCc channel=${channel} cc=${cc} value=${value}`);
-        log("[DISPATCH] TODO: enviar valor MIDI CC al backend MIDI real");
+        midiOut.sendCc(channel, cc, value);
       }
     }
     return;
