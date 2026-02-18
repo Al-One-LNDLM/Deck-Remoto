@@ -15,8 +15,8 @@
           "id": "page1",
           "name": "Página 1",
           "grid": {
-            "rows": 24,
-            "cols": 24
+            "rows": 4,
+            "cols": 3
           },
           "showGrid": true,
           "controls": [
@@ -242,7 +242,7 @@
               "elementId": "fader1",
               "row": 0,
               "col": 2,
-              "rowSpan": 4,
+              "rowSpan": 3,
               "colSpan": 1
             },
             {
@@ -274,7 +274,7 @@
               "elementId": "fader2",
               "row": 0,
               "col": 0,
-              "rowSpan": 4,
+              "rowSpan": 3,
               "colSpan": 1
             }
           ],
