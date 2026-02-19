@@ -1,5 +1,28 @@
 #Requires AutoHotkey v2.0
 
+if A_Args.Length >= 2 && A_Args[1] = "--special" {
+  key := Trim(A_Args[2])
+  if key = "" {
+    ExitApp 1
+  }
+
+  allowed := Map(
+    "Volume_Up", true,
+    "Volume_Down", true,
+    "Volume_Mute", true,
+    "Media_Play_Pause", true,
+    "Media_Next", true,
+    "Media_Prev", true
+  )
+
+  if !allowed.Has(key) {
+    ExitApp 1
+  }
+
+  SendInput "{" key "}"
+  ExitApp 0
+}
+
 if A_Args.Length < 1 {
   ExitApp 1
 }
