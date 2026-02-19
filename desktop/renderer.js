@@ -812,6 +812,26 @@ function getActionTypeForControl(control) {
     return "back";
   }
 
+  if (binding.action?.type === "midiNote") {
+    return "midiNote";
+  }
+
+  if (binding.action?.type === "pasteText") {
+    return "pasteText";
+  }
+
+  if (binding.action?.type === "typeText") {
+    return "typeText";
+  }
+
+  if (binding.action?.type === "mediaKey") {
+    return "mediaKey";
+  }
+
+  if (binding.action?.type === "delay") {
+    return "delay";
+  }
+
   return "none";
 }
 
@@ -942,6 +962,89 @@ async function renderActionsTab() {
     return;
   }
 
+  const supportsButtonActions = selected.type === "button" || selected.type === "toggle" || selected.type === "folderButton";
+  const supportsMidiCc = selected.type === "fader";
+  const availableSingleTypes = supportsMidiCc
+    ? ["midiCc"]
+    : ["hotkey", "openUrl", "openApp", "switchPage", "switchProfile", "openFolder", "back", "midiNote", "pasteText", "typeText", "mediaKey", "delay"];
+  const availableMacroTypes = supportsMidiCc
+    ? ["midiCc", "delay"]
+    : ["hotkey", "openUrl", "openApp", "switchPage", "switchProfile", "openFolder", "back", "midiNote", "pasteText", "typeText", "mediaKey", "delay"];
+
+  function makeDefaultAction(type) {
+    if (type === "midiCc") return { type: "midiCc", channel: 1, cc: 0 };
+    if (type === "openUrl") return { type: "openUrl", url: "" };
+    if (type === "openApp") return { type: "openApp", target: "", args: [] };
+    if (type === "switchPage") return { type: "switchPage", pageId: "" };
+    if (type === "switchProfile") return { type: "switchProfile", profileId: "" };
+    if (type === "openFolder") return { type: "openFolder", folderId: "" };
+    if (type === "back") return { type: "back" };
+    if (type === "midiNote") return { type: "midiNote", channel: 1, note: 60, mode: "tap", durationMs: 120 };
+    if (type === "pasteText" || type === "typeText") return { type, text: "", enterAfter: false };
+    if (type === "mediaKey") return { type: "mediaKey", key: "playPause" };
+    if (type === "delay") return { type: "delay", ms: 100 };
+    return { type: "hotkey", keys: "" };
+  }
+
+  function buildActionFromRow(type, row) {
+    if (type === "hotkey") {
+      return { type, keys: String(row.hotkey || "").trim() };
+    }
+    if (type === "openUrl") {
+      return { type, url: String(row.url || "").trim() };
+    }
+    if (type === "openApp") {
+      const args = String(row.appArgs || "")
+        .split(/[\n,]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+      return { type, target: String(row.appTarget || "").trim(), args };
+    }
+    if (type === "midiCc") {
+      return {
+        type,
+        channel: clampActionInt(row.channel, 1, 16, 1),
+        cc: clampActionInt(row.cc, 0, 127, 0),
+      };
+    }
+    if (type === "switchPage") {
+      return { type, pageId: String(row.pageId || "") };
+    }
+    if (type === "switchProfile") {
+      return { type, profileId: String(row.profileId || "") };
+    }
+    if (type === "openFolder") {
+      return { type, folderId: String(row.folderId || "") };
+    }
+    if (type === "back") {
+      return { type };
+    }
+    if (type === "midiNote") {
+      return {
+        type,
+        channel: clampActionInt(row.channel, 1, 16, 1),
+        note: clampActionInt(row.note, 0, 127, 60),
+        mode: row.mode === "hold" ? "hold" : "tap",
+        durationMs: clampActionInt(row.durationMs, 10, 10000, 120),
+      };
+    }
+    if (type === "pasteText" || type === "typeText") {
+      return {
+        type,
+        text: String(row.text || ""),
+        enterAfter: row.enterAfter === true,
+      };
+    }
+    if (type === "mediaKey") {
+      return { type, key: row.mediaKey || "playPause" };
+    }
+    if (type === "delay") {
+      return { type, ms: clampActionInt(row.ms, 0, 60000, 100) };
+    }
+
+    return makeDefaultAction(type);
+  }
+
   actionsInspector.innerHTML = "";
   const title = document.createElement("h3");
   title.textContent = "Inspector de Acción";
@@ -950,374 +1053,339 @@ async function renderActionsTab() {
   subtitle.textContent = `${selected.name || selected.id} · ${selected.type}`;
   actionsInspector.append(title, subtitle);
 
-  const actionRow = document.createElement("div");
-  actionRow.className = "actions-inspector-row";
-  const actionLabel = document.createElement("label");
-  actionLabel.textContent = "Tipo de acción";
-  const actionTypeSelect = document.createElement("select");
+  const currentBinding = selected.actionBinding && typeof selected.actionBinding === "object"
+    ? selected.actionBinding
+    : null;
+  const currentMode = currentBinding?.kind === "macro"
+    ? "macro"
+    : (currentBinding?.kind === "single" ? "single" : "none");
 
-  const noneOption = document.createElement("option");
-  noneOption.value = "none";
-  noneOption.textContent = "Ninguna";
-  actionTypeSelect.appendChild(noneOption);
-
-  const supportsHotkey = selected.type === "button" || selected.type === "toggle" || selected.type === "folderButton";
-  const supportsMidiCc = selected.type === "fader";
-
-  if (supportsHotkey) {
-    const hotkeyOption = document.createElement("option");
-    hotkeyOption.value = "hotkey";
-    hotkeyOption.textContent = "Hotkey";
-    actionTypeSelect.appendChild(hotkeyOption);
-
-    const openUrlOption = document.createElement("option");
-    openUrlOption.value = "openUrl";
-    openUrlOption.textContent = "Open URL";
-    actionTypeSelect.appendChild(openUrlOption);
-
-    const openAppOption = document.createElement("option");
-    openAppOption.value = "openApp";
-    openAppOption.textContent = "Open App";
-    actionTypeSelect.appendChild(openAppOption);
-
-    const switchPageOption = document.createElement("option");
-    switchPageOption.value = "switchPage";
-    switchPageOption.textContent = "Switch Page";
-    actionTypeSelect.appendChild(switchPageOption);
-
-    const switchProfileOption = document.createElement("option");
-    switchProfileOption.value = "switchProfile";
-    switchProfileOption.textContent = "Switch Profile";
-    actionTypeSelect.appendChild(switchProfileOption);
-
-    const openFolderOption = document.createElement("option");
-    openFolderOption.value = "openFolder";
-    openFolderOption.textContent = "Open Folder";
-    actionTypeSelect.appendChild(openFolderOption);
-
-    const backOption = document.createElement("option");
-    backOption.value = "back";
-    backOption.textContent = "Back";
-    actionTypeSelect.appendChild(backOption);
-  }
-
-  if (supportsMidiCc) {
-    const midiOption = document.createElement("option");
-    midiOption.value = "midiCc";
-    midiOption.textContent = "MIDI CC";
-    actionTypeSelect.appendChild(midiOption);
-  }
-
-  actionTypeSelect.value = getActionTypeForControl(selected);
-  if (![...actionTypeSelect.options].some((option) => option.value === actionTypeSelect.value)) {
-    actionTypeSelect.value = "none";
-  }
-
-  actionRow.append(actionLabel, actionTypeSelect);
-  actionsInspector.appendChild(actionRow);
-
-  const currentBinding = selected.actionBinding;
-  const hotkeyValue = currentBinding?.kind === "single" && currentBinding.action?.type === "hotkey"
-    ? String(currentBinding.action.keys || "")
-    : "";
-  const openUrlValue = currentBinding?.kind === "single" && currentBinding.action?.type === "openUrl"
-    ? String(currentBinding.action.url || "")
-    : "";
-  const openAppTargetValue = currentBinding?.kind === "single" && currentBinding.action?.type === "openApp"
-    ? String(currentBinding.action.target || "")
-    : "";
-  const openAppArgsValue = currentBinding?.kind === "single" && currentBinding.action?.type === "openApp"
-    ? (Array.isArray(currentBinding.action.args) ? currentBinding.action.args.join("\n") : "")
-    : "";
-  const midiChannelValue = currentBinding?.kind === "single" && currentBinding.action?.type === "midiCc"
-    ? clampActionInt(currentBinding.action.channel, 1, 16, 1)
-    : 1;
-  const midiCcValue = currentBinding?.kind === "single" && currentBinding.action?.type === "midiCc"
-    ? clampActionInt(currentBinding.action.cc, 0, 127, 0)
-    : 0;
-  const switchPageValue = currentBinding?.kind === "single" && currentBinding.action?.type === "switchPage"
-    ? String(currentBinding.action.pageId || "")
-    : "";
-  const switchProfileValue = currentBinding?.kind === "single" && currentBinding.action?.type === "switchProfile"
-    ? String(currentBinding.action.profileId || "")
-    : "";
-  const openFolderValue = currentBinding?.kind === "single" && currentBinding.action?.type === "openFolder"
-    ? String(currentBinding.action.folderId || "")
-    : "";
-
-  const hotkeyRow = document.createElement("div");
-  hotkeyRow.className = "actions-inspector-row";
-  const hotkeyLabel = document.createElement("label");
-  hotkeyLabel.textContent = "Keys";
-  let hotkeyValueDraft = hotkeyValue;
-  const hotkeyRecorder = window.HotkeyRecorder.createHotkeyRecorder({
-    value: hotkeyValueDraft,
-    placeholder: "Ctrl+Alt+K",
-    onChange: (nextKeys) => {
-      hotkeyValueDraft = nextKeys;
-      syncRows();
-    },
+  const bindingModeRow = document.createElement("div");
+  bindingModeRow.className = "actions-inspector-row";
+  const bindingModeLabel = document.createElement("label");
+  bindingModeLabel.textContent = "Binding Mode";
+  const bindingModeSelect = document.createElement("select");
+  ["none", "single", "macro"].forEach((mode) => {
+    const option = document.createElement("option");
+    option.value = mode;
+    option.textContent = mode;
+    bindingModeSelect.appendChild(option);
   });
-  const hotkeyInput = hotkeyRecorder.element;
-  hotkeyRow.append(hotkeyLabel, hotkeyInput);
+  bindingModeSelect.value = currentMode;
+  bindingModeRow.append(bindingModeLabel, bindingModeSelect);
+  actionsInspector.appendChild(bindingModeRow);
 
-  const openUrlRow = document.createElement("div");
-  openUrlRow.className = "actions-inspector-row";
-  const openUrlLabel = document.createElement("label");
-  openUrlLabel.textContent = "URL";
-  const openUrlInput = document.createElement("input");
-  openUrlInput.type = "url";
-  openUrlInput.placeholder = "https://...";
-  openUrlInput.value = openUrlValue;
-  openUrlRow.append(openUrlLabel, openUrlInput);
+  const contentHost = document.createElement("div");
+  actionsInspector.appendChild(contentHost);
 
+  function renderActionEditor(host, model, options, prefix) {
+    host.innerHTML = "";
+    const typeRow = document.createElement("div");
+    typeRow.className = "actions-inspector-row";
+    const typeLabel = document.createElement("label");
+    typeLabel.textContent = `${prefix} Type`;
+    const typeSelect = document.createElement("select");
+    options.forEach((type) => {
+      const option = document.createElement("option");
+      option.value = type;
+      option.textContent = type;
+      typeSelect.appendChild(option);
+    });
+    if (!options.includes(model.type)) {
+      model.type = options[0];
+    }
+    typeSelect.value = model.type;
+    typeRow.append(typeLabel, typeSelect);
+    host.appendChild(typeRow);
 
-  const openAppTargetRow = document.createElement("div");
-  openAppTargetRow.className = "actions-inspector-row";
-  const openAppTargetLabel = document.createElement("label");
-  openAppTargetLabel.textContent = "Target";
-  const openAppTargetWrap = document.createElement("div");
-  openAppTargetWrap.className = "inspector-inline-row";
-  const openAppTargetInput = document.createElement("input");
-  openAppTargetInput.type = "text";
-  openAppTargetInput.placeholder = "Puedes elegir .lnk, .exe, archivo o carpeta";
-  openAppTargetInput.value = openAppTargetValue;
-  const openAppBrowseButton = document.createElement("button");
-  openAppBrowseButton.type = "button";
-  openAppBrowseButton.textContent = "Browse...";
-  openAppBrowseButton.addEventListener("click", async () => {
-    const pickedPath = await window.runtime.pickOpenAppTarget();
-    if (!pickedPath) {
-      return;
+    const fieldsHost = document.createElement("div");
+    host.appendChild(fieldsHost);
+
+    function addRow(labelText, input) {
+      const row = document.createElement("div");
+      row.className = "actions-inspector-row";
+      const label = document.createElement("label");
+      label.textContent = labelText;
+      row.append(label, input);
+      fieldsHost.appendChild(row);
     }
 
-    openAppTargetInput.value = pickedPath;
-    syncRows();
-  });
-  openAppTargetWrap.append(openAppTargetInput, openAppBrowseButton);
-  openAppTargetRow.append(openAppTargetLabel, openAppTargetWrap);
+    function renderFields() {
+      fieldsHost.innerHTML = "";
+      const type = typeSelect.value;
+      model.type = type;
 
-  const openAppArgsRow = document.createElement("div");
-  openAppArgsRow.className = "actions-inspector-row";
-  const openAppArgsLabel = document.createElement("label");
-  openAppArgsLabel.textContent = "Args (opcional)";
-  const openAppArgsInput = document.createElement("textarea");
-  openAppArgsInput.rows = 3;
-  openAppArgsInput.placeholder = "Uno por línea o separado por comas";
-  openAppArgsInput.value = openAppArgsValue;
-  openAppArgsRow.append(openAppArgsLabel, openAppArgsInput);
+      if (type === "hotkey") {
+        let hotkeyValue = String(model.hotkey || model.keys || "");
+        const recorder = window.HotkeyRecorder.createHotkeyRecorder({
+          value: hotkeyValue,
+          placeholder: "Ctrl+Alt+K",
+          onChange: (nextKeys) => {
+            hotkeyValue = nextKeys;
+            model.hotkey = nextKeys;
+          },
+        });
+        addRow("Keys", recorder.element);
+        model.hotkey = hotkeyValue;
+      } else if (type === "openUrl") {
+        const input = document.createElement("input");
+        input.type = "url";
+        input.value = String(model.url || "");
+        input.oninput = () => { model.url = input.value; };
+        addRow("URL", input);
+      } else if (type === "openApp") {
+        const target = document.createElement("input");
+        target.value = String(model.appTarget || model.target || "");
+        target.oninput = () => { model.appTarget = target.value; };
+        addRow("Target", target);
 
-  const midiChannelRow = document.createElement("div");
-  midiChannelRow.className = "actions-inspector-row";
-  const midiChannelLabel = document.createElement("label");
-  midiChannelLabel.textContent = "Channel (1-16)";
-  const midiChannelInput = document.createElement("input");
-  midiChannelInput.type = "number";
-  midiChannelInput.min = "1";
-  midiChannelInput.max = "16";
-  midiChannelInput.step = "1";
-  midiChannelInput.value = String(midiChannelValue);
-  midiChannelRow.append(midiChannelLabel, midiChannelInput);
+        const args = document.createElement("textarea");
+        args.rows = 3;
+        args.value = String(model.appArgs || (Array.isArray(model.args) ? model.args.join("\n") : ""));
+        args.oninput = () => { model.appArgs = args.value; };
+        addRow("Args", args);
+      } else if (type === "midiCc") {
+        const channel = document.createElement("input");
+        channel.type = "number";
+        channel.min = "1";
+        channel.max = "16";
+        channel.value = String(clampActionInt(model.channel, 1, 16, 1));
+        channel.oninput = () => { model.channel = channel.value; };
+        addRow("Channel", channel);
 
-  const midiCcRow = document.createElement("div");
-  midiCcRow.className = "actions-inspector-row";
-  const midiCcLabel = document.createElement("label");
-  midiCcLabel.textContent = "CC (0-127)";
-  const midiCcInput = document.createElement("input");
-  midiCcInput.type = "number";
-  midiCcInput.min = "0";
-  midiCcInput.max = "127";
-  midiCcInput.step = "1";
-  midiCcInput.value = String(midiCcValue);
-  midiCcRow.append(midiCcLabel, midiCcInput);
+        const cc = document.createElement("input");
+        cc.type = "number";
+        cc.min = "0";
+        cc.max = "127";
+        cc.value = String(clampActionInt(model.cc, 0, 127, 0));
+        cc.oninput = () => { model.cc = cc.value; };
+        addRow("CC", cc);
+      } else if (type === "switchPage") {
+        const select = document.createElement("select");
+        (ctx.profile.pages || []).forEach((page) => {
+          const option = document.createElement("option");
+          option.value = page.id;
+          option.textContent = page.name || page.id;
+          select.appendChild(option);
+        });
+        select.value = String(model.pageId || "");
+        select.onchange = () => { model.pageId = select.value; };
+        addRow("Page", select);
+      } else if (type === "switchProfile") {
+        const select = document.createElement("select");
+        (state.workspace.profiles || []).forEach((profile) => {
+          const option = document.createElement("option");
+          option.value = profile.id;
+          option.textContent = profile.name || profile.id;
+          select.appendChild(option);
+        });
+        select.value = String(model.profileId || "");
+        select.onchange = () => { model.profileId = select.value; };
+        addRow("Profile", select);
+      } else if (type === "openFolder") {
+        const select = document.createElement("select");
+        (ctx.page.folders || []).forEach((folder) => {
+          const option = document.createElement("option");
+          option.value = folder.id;
+          option.textContent = folder.name || folder.id;
+          select.appendChild(option);
+        });
+        select.value = String(model.folderId || "");
+        select.onchange = () => { model.folderId = select.value; };
+        addRow("Folder", select);
+      } else if (type === "midiNote") {
+        const channel = document.createElement("input");
+        channel.type = "number";
+        channel.min = "1";
+        channel.max = "16";
+        channel.value = String(clampActionInt(model.channel, 1, 16, 1));
+        channel.oninput = () => { model.channel = channel.value; };
+        addRow("Channel", channel);
 
-  const switchPageRow = document.createElement("div");
-  switchPageRow.className = "actions-inspector-row";
-  const switchPageLabel = document.createElement("label");
-  switchPageLabel.textContent = "Página";
-  const switchPageSelect = document.createElement("select");
-  const switchPageEmptyOption = document.createElement("option");
-  switchPageEmptyOption.value = "";
-  switchPageEmptyOption.textContent = "Selecciona página";
-  switchPageSelect.appendChild(switchPageEmptyOption);
-  (ctx.profile.pages || []).forEach((page) => {
-    const option = document.createElement("option");
-    option.value = page.id;
-    option.textContent = page.name || page.id;
-    switchPageSelect.appendChild(option);
-  });
-  switchPageSelect.value = switchPageValue;
-  switchPageRow.append(switchPageLabel, switchPageSelect);
+        const note = document.createElement("input");
+        note.type = "number";
+        note.min = "0";
+        note.max = "127";
+        note.value = String(clampActionInt(model.note, 0, 127, 60));
+        note.oninput = () => { model.note = note.value; };
+        addRow("Note", note);
 
-  const switchProfileRow = document.createElement("div");
-  switchProfileRow.className = "actions-inspector-row";
-  const switchProfileLabel = document.createElement("label");
-  switchProfileLabel.textContent = "Perfil";
-  const switchProfileSelect = document.createElement("select");
-  const switchProfileEmptyOption = document.createElement("option");
-  switchProfileEmptyOption.value = "";
-  switchProfileEmptyOption.textContent = "Selecciona perfil";
-  switchProfileSelect.appendChild(switchProfileEmptyOption);
-  (state.workspace?.profiles || []).forEach((profile) => {
-    const option = document.createElement("option");
-    option.value = profile.id;
-    option.textContent = profile.name || profile.id;
-    switchProfileSelect.appendChild(option);
-  });
-  switchProfileSelect.value = switchProfileValue;
-  switchProfileRow.append(switchProfileLabel, switchProfileSelect);
+        const mode = document.createElement("select");
+        ["tap", "hold"].forEach((item) => {
+          const option = document.createElement("option");
+          option.value = item;
+          option.textContent = item;
+          mode.appendChild(option);
+        });
+        mode.value = model.mode === "hold" ? "hold" : "tap";
+        mode.onchange = () => { model.mode = mode.value; renderFields(); };
+        addRow("Mode", mode);
 
-  const openFolderRow = document.createElement("div");
-  openFolderRow.className = "actions-inspector-row";
-  const openFolderLabel = document.createElement("label");
-  openFolderLabel.textContent = "Carpeta";
-  const openFolderSelect = document.createElement("select");
-  const openFolderEmptyOption = document.createElement("option");
-  openFolderEmptyOption.value = "";
-  openFolderEmptyOption.textContent = "Selecciona carpeta";
-  openFolderSelect.appendChild(openFolderEmptyOption);
-  (ctx.page.folders || []).forEach((folder) => {
-    const option = document.createElement("option");
-    option.value = folder.id;
-    option.textContent = folder.name || folder.id;
-    openFolderSelect.appendChild(option);
-  });
-  openFolderSelect.value = openFolderValue;
-  openFolderRow.append(openFolderLabel, openFolderSelect);
+        if (mode.value === "tap") {
+          const duration = document.createElement("input");
+          duration.type = "number";
+          duration.min = "10";
+          duration.max = "10000";
+          duration.value = String(clampActionInt(model.durationMs, 10, 10000, 120));
+          duration.oninput = () => { model.durationMs = duration.value; };
+          addRow("Duration ms", duration);
+        }
+      } else if (type === "pasteText" || type === "typeText") {
+        const text = document.createElement("textarea");
+        text.rows = 4;
+        text.value = String(model.text || "");
+        text.oninput = () => { model.text = text.value; };
+        addRow("Text", text);
+
+        const enter = document.createElement("input");
+        enter.type = "checkbox";
+        enter.checked = model.enterAfter === true;
+        enter.onchange = () => { model.enterAfter = enter.checked; };
+        addRow("Enter after", enter);
+      } else if (type === "mediaKey") {
+        const select = document.createElement("select");
+        ["volUp", "volDown", "volMute", "playPause", "next", "prev"].forEach((key) => {
+          const option = document.createElement("option");
+          option.value = key;
+          option.textContent = key;
+          select.appendChild(option);
+        });
+        select.value = model.mediaKey || model.key || "playPause";
+        select.onchange = () => { model.mediaKey = select.value; };
+        addRow("Key", select);
+      } else if (type === "delay") {
+        const ms = document.createElement("input");
+        ms.type = "number";
+        ms.min = "0";
+        ms.max = "60000";
+        ms.value = String(clampActionInt(model.ms, 0, 60000, 100));
+        ms.oninput = () => { model.ms = ms.value; };
+        addRow("Delay ms", ms);
+      }
+    }
+
+    typeSelect.onchange = () => {
+      const nextType = typeSelect.value;
+      Object.assign(model, makeDefaultAction(nextType));
+      renderFields();
+    };
+
+    renderFields();
+  }
 
   const validation = document.createElement("p");
   validation.className = "actions-validation";
+  actionsInspector.appendChild(validation);
 
   const saveButton = document.createElement("button");
   saveButton.type = "button";
   saveButton.textContent = "Guardar acción";
+  actionsInspector.appendChild(saveButton);
 
-  function syncRows() {
-    const isHotkey = actionTypeSelect.value === "hotkey";
-    const isOpenUrl = actionTypeSelect.value === "openUrl";
-    const isOpenApp = actionTypeSelect.value === "openApp";
-    const isMidiCc = actionTypeSelect.value === "midiCc";
-    const isSwitchPage = actionTypeSelect.value === "switchPage";
-    const isSwitchProfile = actionTypeSelect.value === "switchProfile";
-    const isOpenFolder = actionTypeSelect.value === "openFolder";
-    hotkeyRow.style.display = isHotkey ? "grid" : "none";
-    openUrlRow.style.display = isOpenUrl ? "grid" : "none";
-    openAppTargetRow.style.display = isOpenApp ? "grid" : "none";
-    openAppArgsRow.style.display = isOpenApp ? "grid" : "none";
-    midiChannelRow.style.display = isMidiCc ? "grid" : "none";
-    midiCcRow.style.display = isMidiCc ? "grid" : "none";
-    switchPageRow.style.display = isSwitchPage ? "grid" : "none";
-    switchProfileRow.style.display = isSwitchProfile ? "grid" : "none";
-    openFolderRow.style.display = isOpenFolder ? "grid" : "none";
+  const singleModel = (() => {
+    if (currentBinding?.kind === "single" && currentBinding.action) {
+      return { ...currentBinding.action };
+    }
+    return makeDefaultAction(availableSingleTypes[0] || "hotkey");
+  })();
+
+  const macroModels = (() => {
+    if (currentBinding?.kind === "macro" && Array.isArray(currentBinding.steps)) {
+      return currentBinding.steps.map((step) => ({ ...step }));
+    }
+    return [];
+  })();
+
+  function renderBindingEditor() {
+    contentHost.innerHTML = "";
     validation.textContent = "";
-    saveButton.disabled = (isHotkey && !hotkeyValueDraft.trim())
-      || (isOpenUrl && !openUrlInput.value.trim())
-      || (isOpenApp && !openAppTargetInput.value.trim())
-      || (isSwitchPage && !switchPageSelect.value)
-      || (isSwitchProfile && !switchProfileSelect.value)
-      || (isOpenFolder && !openFolderSelect.value);
+
+    if (bindingModeSelect.value === "none") {
+      return;
+    }
+
+    if (bindingModeSelect.value === "single") {
+      const singleHost = document.createElement("div");
+      contentHost.appendChild(singleHost);
+      renderActionEditor(singleHost, singleModel, availableSingleTypes, "Action");
+      return;
+    }
+
+    const list = document.createElement("div");
+    macroModels.forEach((stepModel, index) => {
+      const wrapper = document.createElement("div");
+      wrapper.style.border = "1px solid #2a2a2a";
+      wrapper.style.padding = "8px";
+      wrapper.style.marginBottom = "8px";
+
+      const header = document.createElement("div");
+      header.textContent = `Step ${index + 1}`;
+      wrapper.appendChild(header);
+
+      const editorHost = document.createElement("div");
+      wrapper.appendChild(editorHost);
+      renderActionEditor(editorHost, stepModel, availableMacroTypes, "Step");
+
+      const buttons = document.createElement("div");
+      buttons.className = "grid-controls-row";
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "Remove";
+      remove.onclick = () => { macroModels.splice(index, 1); renderBindingEditor(); };
+
+      const up = document.createElement("button");
+      up.type = "button";
+      up.textContent = "Move Up";
+      up.disabled = index === 0;
+      up.onclick = () => {
+        const prev = macroModels[index - 1];
+        macroModels[index - 1] = macroModels[index];
+        macroModels[index] = prev;
+        renderBindingEditor();
+      };
+
+      const down = document.createElement("button");
+      down.type = "button";
+      down.textContent = "Move Down";
+      down.disabled = index === macroModels.length - 1;
+      down.onclick = () => {
+        const next = macroModels[index + 1];
+        macroModels[index + 1] = macroModels[index];
+        macroModels[index] = next;
+        renderBindingEditor();
+      };
+
+      buttons.append(remove, up, down);
+      wrapper.appendChild(buttons);
+      list.appendChild(wrapper);
+    });
+
+    const addStepBtn = document.createElement("button");
+    addStepBtn.type = "button";
+    addStepBtn.textContent = "Add step";
+    addStepBtn.onclick = () => {
+      macroModels.push(makeDefaultAction("delay"));
+      renderBindingEditor();
+    };
+
+    contentHost.append(list, addStepBtn);
   }
 
-  hotkeyInput.addEventListener("input", syncRows);
-  openUrlInput.addEventListener("input", syncRows);
-  openAppTargetInput.addEventListener("input", syncRows);
-  openAppArgsInput.addEventListener("input", syncRows);
-  switchPageSelect.addEventListener("change", syncRows);
-  switchProfileSelect.addEventListener("change", syncRows);
-  openFolderSelect.addEventListener("change", syncRows);
-  actionTypeSelect.addEventListener("change", syncRows);
+  bindingModeSelect.addEventListener("change", renderBindingEditor);
+  renderBindingEditor();
 
   saveButton.addEventListener("click", async () => {
     let nextBinding = null;
-    if (actionTypeSelect.value === "hotkey") {
-      const keys = hotkeyValueDraft.trim();
-      if (!keys) {
-        validation.textContent = "La combinación no puede estar vacía.";
-        return;
-      }
-      nextBinding = {
-        kind: "single",
-        action: {
-          type: "hotkey",
-          keys,
-        },
-      };
-    } else if (actionTypeSelect.value === "openUrl") {
-      const url = openUrlInput.value.trim();
-      if (!url) {
-        validation.textContent = "La URL no puede estar vacía.";
-        return;
-      }
-      nextBinding = {
-        kind: "single",
-        action: {
-          type: "openUrl",
-          url,
-        },
-      };
-    } else if (actionTypeSelect.value === "openApp") {
-      const target = openAppTargetInput.value.trim();
-      if (!target) {
-        validation.textContent = "El target no puede estar vacío.";
-        return;
-      }
 
-      const args = openAppArgsInput.value
-        .split(/[,\n]/)
-        .map((value) => value.trim())
-        .filter(Boolean);
-
+    if (bindingModeSelect.value === "single") {
       nextBinding = {
         kind: "single",
-        action: {
-          type: "openApp",
-          target,
-          args,
-        },
+        action: buildActionFromRow(singleModel.type, singleModel),
       };
-    } else if (actionTypeSelect.value === "midiCc") {
-      const channel = clampActionInt(midiChannelInput.value, 1, 16, 1);
-      const cc = clampActionInt(midiCcInput.value, 0, 127, 0);
-      midiChannelInput.value = String(channel);
-      midiCcInput.value = String(cc);
+    } else if (bindingModeSelect.value === "macro") {
       nextBinding = {
-        kind: "single",
-        action: {
-          type: "midiCc",
-          channel,
-          cc,
-        },
-      };
-    } else if (actionTypeSelect.value === "switchPage") {
-      nextBinding = {
-        kind: "single",
-        action: {
-          type: "switchPage",
-          pageId: switchPageSelect.value,
-        },
-      };
-    } else if (actionTypeSelect.value === "switchProfile") {
-      nextBinding = {
-        kind: "single",
-        action: {
-          type: "switchProfile",
-          profileId: switchProfileSelect.value,
-        },
-      };
-    } else if (actionTypeSelect.value === "openFolder") {
-      nextBinding = {
-        kind: "single",
-        action: {
-          type: "openFolder",
-          folderId: openFolderSelect.value,
-        },
-      };
-    } else if (actionTypeSelect.value === "back") {
-      nextBinding = {
-        kind: "single",
-        action: {
-          type: "back",
-        },
+        kind: "macro",
+        steps: macroModels.map((stepModel) => buildActionFromRow(stepModel.type, stepModel)),
       };
     }
 
@@ -1330,9 +1398,6 @@ async function renderActionsTab() {
     await renderActionsTab();
     renderNavigation();
   });
-
-  actionsInspector.append(hotkeyRow, openUrlRow, openAppTargetRow, openAppArgsRow, midiChannelRow, midiCcRow, switchPageRow, switchProfileRow, openFolderRow, validation, saveButton);
-  syncRows();
 }
 
 function appendLog(message) {

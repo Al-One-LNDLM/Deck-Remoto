@@ -21,6 +21,14 @@ function sanitizeOpenAppArgs(value) {
     .filter(Boolean);
 }
 
+function sanitizeTextValue(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
 
 function sanitizeReferenceId(value) {
   if (typeof value !== "string") {
@@ -88,6 +96,48 @@ function normalizeAction(action) {
       type: "midiCc",
       channel: clampInteger(action.channel, 1, 16, 1),
       cc: clampInteger(action.cc, 0, 127, 0),
+    };
+  }
+
+  if (action.type === "delay") {
+    return {
+      type: "delay",
+      ms: clampInteger(action.ms, 0, 60000, 100),
+    };
+  }
+
+  if (action.type === "pasteText" || action.type === "typeText") {
+    const text = sanitizeTextValue(action.text);
+    if (!text) {
+      return null;
+    }
+
+    return {
+      type: action.type,
+      text,
+      enterAfter: action.enterAfter === true,
+    };
+  }
+
+  if (action.type === "midiNote") {
+    const mode = action.mode === "hold" ? "hold" : "tap";
+
+    return {
+      type: "midiNote",
+      channel: clampInteger(action.channel, 1, 16, 1),
+      note: clampInteger(action.note, 0, 127, 60),
+      mode,
+      durationMs: clampInteger(action.durationMs, 10, 10000, 120),
+    };
+  }
+
+  if (action.type === "mediaKey") {
+    const allowedKeys = new Set(["volUp", "volDown", "volMute", "playPause", "next", "prev"]);
+    const key = typeof action.key === "string" && allowedKeys.has(action.key) ? action.key : "playPause";
+
+    return {
+      type: "mediaKey",
+      key,
     };
   }
 
