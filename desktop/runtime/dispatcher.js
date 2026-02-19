@@ -1,12 +1,94 @@
 const path = require("path");
 const { spawn } = require("child_process");
-const { shell } = require("electron");
+const { shell, clipboard } = require("electron");
 const KeyboardDriver = require("./keyboard-driver");
 const midiOut = require("./midiOut");
 const { sanitizeHttpUrl, sanitizeOpenAppTarget } = require("../../shared/schema/actions");
 
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, Math.max(0, Number(ms) || 0));
+  });
+}
+
+function clampInt(value, min, max, fallback) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+
+  return Math.max(min, Math.min(max, Math.round(numeric)));
+}
+
 async function executeAction(action, { log, runtime } = {}) {
-  if (!action || typeof action !== "object") {
+  if (!action || typeof action !== "object" || !action.type) {
+    return;
+  }
+
+  if (action.type === "delay") {
+    const ms = clampInt(action.ms, 0, 60000, 100);
+    if (typeof log === "function") {
+      log(`[DISPATCH] delay ${ms}ms`);
+    }
+    await sleep(ms);
+    return;
+  }
+
+  if (action.type === "pasteText" || action.type === "typeText") {
+    const text = typeof action.text === "string" ? action.text : "";
+    if (!text) {
+      if (typeof log === "function") {
+        log(`[DISPATCH] ${action.type} vacío`);
+      }
+      return;
+    }
+
+    clipboard.writeText(text);
+    await sleep(30);
+    await KeyboardDriver.sendHotkey("Ctrl+V");
+    if (action.enterAfter === true) {
+      await KeyboardDriver.sendHotkey("Enter");
+    }
+
+    if (typeof log === "function") {
+      log(`[DISPATCH] ${action.type} (${text.length} chars)`);
+    }
+    return;
+  }
+
+  if (action.type === "midiNote") {
+    const channel = clampInt(action.channel, 1, 16, 1);
+    const note = clampInt(action.note, 0, 127, 60);
+    const velocity = 100;
+    const mode = action.mode === "hold" ? "hold" : "tap";
+    const durationMs = clampInt(action.durationMs, 10, 10000, 120);
+    const noteOffDelay = mode === "hold" ? durationMs : durationMs;
+
+    midiOut.sendNoteOn(channel, note, velocity);
+    setTimeout(() => {
+      midiOut.sendNoteOff(channel, note, 0);
+    }, mode === "hold" ? Math.max(300, noteOffDelay) : noteOffDelay);
+
+    if (typeof log === "function") {
+      log(`[DISPATCH] midiNote channel=${channel} note=${note} mode=${mode} velocity=100`);
+    }
+    return;
+  }
+
+  if (action.type === "mediaKey") {
+    const mediaMap = {
+      volUp: "Volume_Up",
+      volDown: "Volume_Down",
+      volMute: "Volume_Mute",
+      playPause: "Media_Play_Pause",
+      next: "Media_Next",
+      prev: "Media_Prev",
+    };
+    const mappedKey = mediaMap[action.key] || mediaMap.playPause;
+    await KeyboardDriver.sendSpecialKey(mappedKey);
+    if (typeof log === "function") {
+      log(`[DISPATCH] mediaKey ${action.key || "playPause"}`);
+    }
     return;
   }
 
@@ -75,8 +157,8 @@ async function executeAction(action, { log, runtime } = {}) {
         log(`[DISPATCH] openApp error: ${error?.message || String(error)}`);
       }
     }
+    return;
   }
-
 
   if (action.type === "midiCc") {
     const channel = Number.isFinite(Number(action.channel)) ? Math.max(1, Math.min(16, Math.round(Number(action.channel)))) : 1;
@@ -140,7 +222,6 @@ async function executeAction(action, { log, runtime } = {}) {
     return;
   }
 
-
   if (action.type === "openFolder") {
     const folderId = typeof action.folderId === "string" ? action.folderId.trim() : "";
     if (!folderId) {
@@ -195,6 +276,25 @@ async function executeAction(action, { log, runtime } = {}) {
   }
 }
 
+async function executeActionBinding(actionBinding, ctx = {}) {
+  if (!actionBinding) {
+    return;
+  }
+
+  if (actionBinding.kind === "single") {
+    await executeAction(actionBinding.action, ctx);
+    return;
+  }
+
+  if (actionBinding.kind === "macro") {
+    const steps = Array.isArray(actionBinding.steps) ? actionBinding.steps : [];
+    for (const step of steps) {
+      await executeAction(step, ctx);
+    }
+  }
+}
+
 module.exports = {
   executeAction,
+  executeActionBinding,
 };

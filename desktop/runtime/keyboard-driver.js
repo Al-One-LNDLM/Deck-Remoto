@@ -19,6 +19,7 @@ const MODIFIER_ALIAS = {
 
 const SIMPLE_KEY_PATTERN = /^[A-Z0-9]$/;
 const FUNCTION_KEY_PATTERN = /^F([1-9]|1[0-9]|2[0-4])$/;
+const SPECIAL_KEYS = ["Volume_Up", "Volume_Down", "Volume_Mute", "Media_Play_Pause", "Media_Next", "Media_Prev"];
 
 function resolveAhkPath() {
   if (cachedAhkPath) {
@@ -122,7 +123,41 @@ function sendHotkey(keys) {
   });
 }
 
+function sendSpecialKey(keyName) {
+  if (!SPECIAL_KEYS.includes(keyName)) {
+    return Promise.reject(new Error(`Special key inválida: ${keyName}`));
+  }
+
+  return new Promise((resolve, reject) => {
+    const exePath = resolveAhkPath();
+    const child = spawn(exePath, [runnerPath, "--special", keyName], {
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on("error", (error) => {
+      reject(error);
+    });
+
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+
+      const details = stderr.trim();
+      reject(new Error(details || `AutoHotkey finalizó con código ${code}`));
+    });
+  });
+}
+
 module.exports = {
   sanitizeHotkey,
   sendHotkey,
+  sendSpecialKey,
 };

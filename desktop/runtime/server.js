@@ -388,15 +388,15 @@ function createRuntimeServer({ onLog }) {
           }
 
           const actionBinding = item.actionBinding;
-          if (!actionBinding || actionBinding.kind !== "single") {
-            log(`[WS] folderItemPress ignorado: sin actionBinding single (${parsed.itemId})`);
+          if (!actionBinding) {
+            log(`[WS] folderItemPress ignorado: sin actionBinding (${parsed.itemId})`);
             return;
           }
 
           const before = getActiveState(getWorkspace());
 
           try {
-            await dispatcher.executeAction(actionBinding.action, {
+            await dispatcher.executeActionBinding(actionBinding, {
               log,
               runtime: {
                 setActiveProfile,
@@ -530,7 +530,7 @@ function createRuntimeServer({ onLog }) {
           if (control.type === "folderButton") {
             const actionBinding = control.actionBinding;
             if (actionBinding && actionBinding.kind === "single" && actionBinding.action?.type === "openFolder") {
-              await dispatcher.executeAction(actionBinding.action, {
+              await dispatcher.executeActionBinding(actionBinding, {
                 log,
                 runtime: {
                   setActiveProfile,
@@ -546,8 +546,8 @@ function createRuntimeServer({ onLog }) {
                 return;
               }
               openFolder(folderId);
-            } else if (actionBinding.kind === "single") {
-              await dispatcher.executeAction(actionBinding.action, {
+            } else {
+              await dispatcher.executeActionBinding(actionBinding, {
                 log,
                 runtime: {
                   setActiveProfile,
@@ -556,18 +556,15 @@ function createRuntimeServer({ onLog }) {
                   closeFolder,
                 },
               });
-            } else {
-              log(`[WS] buttonPress ignorado: actionBinding no compatible (${parsed.controlId})`);
-              return;
             }
           } else {
             const actionBinding = control.actionBinding;
-            if (!actionBinding || actionBinding.kind !== "single") {
-              log(`[WS] buttonPress ignorado: sin actionBinding single (${parsed.controlId})`);
+            if (!actionBinding) {
+              log(`[WS] buttonPress ignorado: sin actionBinding (${parsed.controlId})`);
               return;
             }
 
-            await dispatcher.executeAction(actionBinding.action, {
+            await dispatcher.executeActionBinding(actionBinding, {
               log,
               runtime: {
                 setActiveProfile,
