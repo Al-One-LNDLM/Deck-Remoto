@@ -95,7 +95,7 @@
                 "kind": "single",
                 "action": {
                   "type": "midiCc",
-                  "channel": 1,
+                  "channel": 3,
                   "cc": 0
                 }
               },
@@ -131,7 +131,7 @@
                 "kind": "single",
                 "action": {
                   "type": "midiCc",
-                  "channel": 1,
+                  "channel": 2,
                   "cc": 0
                 }
               },
