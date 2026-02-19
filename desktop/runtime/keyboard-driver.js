@@ -17,8 +17,37 @@ const MODIFIER_ALIAS = {
   meta: "Win",
 };
 
+const MODIFIER_ORDER = ["Ctrl", "Alt", "Shift", "Win"];
 const SIMPLE_KEY_PATTERN = /^[A-Z0-9]$/;
 const FUNCTION_KEY_PATTERN = /^F([1-9]|1[0-9]|2[0-4])$/;
+const SPECIAL_KEY_ALIAS = {
+  up: "Up",
+  arrowup: "Up",
+  down: "Down",
+  arrowdown: "Down",
+  left: "Left",
+  arrowleft: "Left",
+  right: "Right",
+  arrowright: "Right",
+  enter: "Enter",
+  tab: "Tab",
+  space: "Space",
+  spacebar: "Space",
+  esc: "Esc",
+  escape: "Esc",
+  backspace: "Backspace",
+  delete: "Delete",
+  del: "Delete",
+  insert: "Insert",
+  ins: "Insert",
+  home: "Home",
+  end: "End",
+  pgup: "PgUp",
+  pageup: "PgUp",
+  pgdn: "PgDn",
+  pagedown: "PgDn",
+};
+
 const SPECIAL_KEYS = ["Volume_Up", "Volume_Down", "Volume_Mute", "Media_Play_Pause", "Media_Next", "Media_Prev"];
 
 function resolveAhkPath() {
@@ -47,6 +76,10 @@ function normalizeToken(token) {
   const lower = raw.toLowerCase();
   if (MODIFIER_ALIAS[lower]) {
     return { kind: "modifier", value: MODIFIER_ALIAS[lower] };
+  }
+
+  if (SPECIAL_KEY_ALIAS[lower]) {
+    return { kind: "key", value: SPECIAL_KEY_ALIAS[lower] };
   }
 
   const upper = raw.toUpperCase();
@@ -86,7 +119,37 @@ function sanitizeHotkey(keys) {
     .map((token) => token.value);
 
   const uniqueModifiers = [...new Set(modifierTokens)];
-  return [...uniqueModifiers, keyTokens[0].value].join("+");
+  const canonicalModifiers = MODIFIER_ORDER.filter((modifier) => uniqueModifiers.includes(modifier));
+  return [...canonicalModifiers, keyTokens[0].value].join("+");
+}
+
+function runAhk(args) {
+  return new Promise((resolve, reject) => {
+    const exePath = resolveAhkPath();
+    const child = spawn(exePath, [runnerPath, ...args], {
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on("error", (error) => {
+      reject(error);
+    });
+
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+
+      const details = stderr.trim();
+      reject(new Error(details || `AutoHotkey finalizó con código ${code}`));
+    });
+  });
 }
 
 function sendHotkey(keys) {
@@ -95,32 +158,28 @@ function sendHotkey(keys) {
     return Promise.reject(new Error("Hotkey inválida"));
   }
 
-  return new Promise((resolve, reject) => {
-    const exePath = resolveAhkPath();
-    const child = spawn(exePath, [runnerPath, sanitized], {
-      windowsHide: true,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+  return runAhk([sanitized]);
+}
 
-    let stderr = "";
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
+function sendText({ text, mode, enterAfter }) {
+  const payload = typeof text === "string" ? text : null;
+  if (payload == null) {
+    return Promise.reject(new Error("Texto inválido"));
+  }
 
-    child.on("error", (error) => {
-      reject(error);
-    });
+  if (!payload.length) {
+    return Promise.resolve();
+  }
 
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-        return;
-      }
+  if (mode !== "paste" && mode !== "type") {
+    return Promise.reject(new Error("Modo de texto inválido"));
+  }
 
-      const details = stderr.trim();
-      reject(new Error(details || `AutoHotkey finalizó con código ${code}`));
-    });
-  });
+  if (typeof enterAfter !== "boolean") {
+    return Promise.reject(new Error("enterAfter inválido"));
+  }
+
+  return runAhk(["--text", mode, enterAfter ? "1" : "0", payload]);
 }
 
 function sendSpecialKey(keyName) {
@@ -128,36 +187,12 @@ function sendSpecialKey(keyName) {
     return Promise.reject(new Error(`Special key inválida: ${keyName}`));
   }
 
-  return new Promise((resolve, reject) => {
-    const exePath = resolveAhkPath();
-    const child = spawn(exePath, [runnerPath, "--special", keyName], {
-      windowsHide: true,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    let stderr = "";
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-
-    child.on("error", (error) => {
-      reject(error);
-    });
-
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-        return;
-      }
-
-      const details = stderr.trim();
-      reject(new Error(details || `AutoHotkey finalizó con código ${code}`));
-    });
-  });
+  return runAhk(["--special", keyName]);
 }
 
 module.exports = {
   sanitizeHotkey,
   sendHotkey,
+  sendText,
   sendSpecialKey,
 };
