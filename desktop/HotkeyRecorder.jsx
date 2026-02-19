@@ -75,10 +75,20 @@
   }
 
   function createHotkeyRecorder({ value = "", onChange, placeholder = "Ctrl+Alt+K" } = {}) {
+    const wrapper = document.createElement("div");
+    wrapper.style.display = "flex";
+    wrapper.style.alignItems = "center";
+    wrapper.style.gap = "8px";
+    wrapper.style.width = "100%";
+
     const input = document.createElement("input");
     input.type = "text";
     input.placeholder = placeholder;
     input.autocomplete = "off";
+    input.style.flex = "1";
+
+    const modeButton = document.createElement("button");
+    modeButton.type = "button";
 
     const state = {
       value: String(value || ""),
@@ -90,10 +100,12 @@
     function renderValue() {
       if (!state.isRecording) {
         input.value = state.value;
+        modeButton.textContent = "Record";
         return;
       }
 
       input.value = toCanonicalString(state.currentMods, state.currentKey);
+      modeButton.textContent = "Manual";
     }
 
     function resetRecording() {
@@ -122,15 +134,21 @@
       stopRecording();
     }
 
-    input.addEventListener("focus", () => {
+    function startRecording() {
       state.isRecording = true;
       state.currentMods = new Set();
       state.currentKey = null;
       renderValue();
-    });
+      input.focus();
+    }
 
-    input.addEventListener("blur", () => {
-      stopRecording({ cancel: true });
+    input.addEventListener("focus", () => {
+      if (!state.isRecording) {
+        return;
+      }
+      state.currentMods = new Set();
+      state.currentKey = null;
+      renderValue();
     });
 
     input.addEventListener("keydown", (event) => {
@@ -202,10 +220,52 @@
       renderValue();
     });
 
-    input.value = state.value;
+    input.addEventListener("input", () => {
+      if (state.isRecording) {
+        return;
+      }
+
+      state.value = input.value;
+      if (typeof onChange === "function") {
+        onChange(state.value.trim());
+      }
+    });
+
+    input.addEventListener("blur", () => {
+      if (state.isRecording) {
+        stopRecording({ cancel: true });
+        return;
+      }
+
+      const normalized = input.value
+        .split("+")
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .join("+");
+      if (normalized !== state.value) {
+        state.value = normalized;
+        if (typeof onChange === "function") {
+          onChange(state.value.trim());
+        }
+      }
+      renderValue();
+    });
+
+    modeButton.addEventListener("click", () => {
+      if (state.isRecording) {
+        stopRecording({ cancel: true });
+        input.focus();
+        return;
+      }
+
+      startRecording();
+    });
+
+    renderValue();
+    wrapper.append(input, modeButton);
 
     return {
-      element: input,
+      element: wrapper,
       setValue(nextValue) {
         state.value = String(nextValue || "");
         if (!state.isRecording) {

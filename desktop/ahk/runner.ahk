@@ -1,5 +1,28 @@
 #Requires AutoHotkey v2.0
 
+if A_Args.Length >= 4 && A_Args[1] = "--text" {
+  mode := Trim(A_Args[2])
+  enterFlag := Trim(A_Args[3])
+  txt := A_Args[4]
+
+  if mode = "paste" {
+    A_Clipboard := txt
+    Sleep 30
+    Send "^v"
+  } else if mode = "type" {
+    SendText txt
+  } else {
+    ExitApp 1
+  }
+
+  if enterFlag = "1" {
+    Sleep 40
+    Send "{Enter}"
+  }
+
+  ExitApp 0
+}
+
 if A_Args.Length >= 2 && A_Args[1] = "--special" {
   key := Trim(A_Args[2])
   if key = "" {

@@ -106,14 +106,27 @@ function normalizeAction(action) {
     };
   }
 
-  if (action.type === "pasteText" || action.type === "typeText") {
+  if (action.type === "pasteText") {
     const text = sanitizeTextValue(action.text);
     if (!text) {
       return null;
     }
 
     return {
-      type: action.type,
+      type: "pasteText",
+      text,
+      enterAfter: action.enterAfter === true,
+    };
+  }
+
+  if (action.type === "typeText") {
+    const text = sanitizeTextValue(action.text);
+    if (!text) {
+      return null;
+    }
+
+    return {
+      type: "typeText",
       text,
       enterAfter: action.enterAfter === true,
     };

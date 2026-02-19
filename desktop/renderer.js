@@ -1119,7 +1119,7 @@ async function renderActionsTab() {
         let hotkeyValue = String(model.hotkey || model.keys || "");
         const recorder = window.HotkeyRecorder.createHotkeyRecorder({
           value: hotkeyValue,
-          placeholder: "Ctrl+Alt+K",
+          placeholder: "Ej: Win+Shift+S, Ctrl+Left",
           onChange: (nextKeys) => {
             hotkeyValue = nextKeys;
             model.hotkey = nextKeys;
@@ -2435,7 +2435,7 @@ function renderInspector(workspace, selection) {
     let keysValueDraft = hasHotkeyBinding ? (currentBinding.action.keys || "") : "";
     const keysRecorder = window.HotkeyRecorder.createHotkeyRecorder({
       value: keysValueDraft,
-      placeholder: "Ctrl+Alt+K",
+      placeholder: "Ej: Win+Shift+S, Ctrl+Left",
       onChange: (nextKeys) => {
         keysValueDraft = nextKeys;
       },

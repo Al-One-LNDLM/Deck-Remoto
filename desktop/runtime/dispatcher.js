@@ -1,6 +1,6 @@
 const path = require("path");
 const { spawn } = require("child_process");
-const { shell, clipboard } = require("electron");
+const { shell } = require("electron");
 const KeyboardDriver = require("./keyboard-driver");
 const midiOut = require("./midiOut");
 const { sanitizeHttpUrl, sanitizeOpenAppTarget } = require("../../shared/schema/actions");
@@ -43,12 +43,11 @@ async function executeAction(action, { log, runtime } = {}) {
       return;
     }
 
-    clipboard.writeText(text);
-    await sleep(30);
-    await KeyboardDriver.sendHotkey("Ctrl+V");
-    if (action.enterAfter === true) {
-      await KeyboardDriver.sendHotkey("Enter");
-    }
+    await KeyboardDriver.sendText({
+      text,
+      mode: action.type === "pasteText" ? "paste" : "type",
+      enterAfter: action.enterAfter === true,
+    });
 
     if (typeof log === "function") {
       log(`[DISPATCH] ${action.type} (${text.length} chars)`);
