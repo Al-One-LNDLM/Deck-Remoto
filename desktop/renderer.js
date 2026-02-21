@@ -4,7 +4,7 @@ const lanUrlEl = document.getElementById("lanUrl");
 const logsEl = document.getElementById("logs");
 const startBtn = document.getElementById("startBtn");
 const stopBtn = document.getElementById("stopBtn");
-const tabButtons = document.querySelectorAll(".tab");
+const tabButtons = document.querySelectorAll(".rd-tab");
 const serverTab = document.getElementById("serverTab");
 const navigationTab = document.getElementById("navigationTab");
 const gridTab = document.getElementById("gridTab");
@@ -1687,6 +1687,7 @@ function isNodeSelected(node, selection) {
 function createTreeItem(node, selection) {
   const item = document.createElement("li");
   item.className = `tree-item tree-level-${node.level}`;
+  item.dataset.kind = node.kind;
 
   const label = document.createElement("button");
   label.className = "tree-label";
@@ -2551,9 +2552,13 @@ function toggleAddMenu() {
 
 function setActiveTab(tabName) {
   tabButtons.forEach((button) => {
-    button.classList.toggle("active", button.dataset.tab === tabName);
+    const isActive = button.dataset.tab === tabName;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", isActive ? "true" : "false");
   });
 
+  const viewMap = { navigation: "nav", grid: "edit", actions: "actions", server: "server" };
+  document.body.dataset.view = viewMap[tabName] || "server";
   serverTab.classList.toggle("active", tabName === "server");
   navigationTab.classList.toggle("active", tabName === "navigation");
   gridTab.classList.toggle("active", tabName === "grid");
@@ -2678,6 +2683,7 @@ async function init() {
   renderNavigation();
   await renderGridTab();
   await renderActionsTab();
+  setActiveTab("server");
 }
 
 init();
