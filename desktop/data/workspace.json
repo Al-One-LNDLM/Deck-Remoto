@@ -1,9 +1,9 @@
 {
   "activeProfileId": "profile2",
-  "activePageId": "page3",
+  "activePageId": "page4",
   "lastSession": {
     "activeProfileId": "profile2",
-    "activePageId": "page3",
+    "activePageId": "page4",
     "activeFolderId": null
   },
   "profiles": [
@@ -511,7 +511,7 @@
                 "kind": "single",
                 "action": {
                   "type": "switchPage",
-                  "pageId": "page3"
+                  "pageId": "page4"
                 }
               },
               "style": {
@@ -655,6 +655,127 @@
               "row": 0,
               "col": 2,
               "rowSpan": 1,
+              "colSpan": 1
+            }
+          ],
+          "iconAssetId": null
+        },
+        {
+          "id": "page4",
+          "name": "P - C",
+          "grid": {
+            "rows": 4,
+            "cols": 3
+          },
+          "showGrid": true,
+          "controls": [
+            {
+              "id": "button16",
+              "type": "button",
+              "name": "IZDA",
+              "folderId": null,
+              "iconAssetId": "icon_1771460023844",
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "switchPage",
+                  "pageId": "page3"
+                }
+              },
+              "style": {
+                "backgroundEnabled": false,
+                "backgroundColor": "#000000",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": false
+              }
+            },
+            {
+              "id": "button17",
+              "type": "button",
+              "name": "DCHA",
+              "folderId": null,
+              "iconAssetId": "icon_1771460074358",
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "switchPage",
+                  "pageId": "page4"
+                }
+              },
+              "style": {
+                "backgroundEnabled": false,
+                "backgroundColor": "#000000",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": false
+              }
+            },
+            {
+              "id": "fader4",
+              "type": "fader",
+              "name": "Fader 4",
+              "folderId": null,
+              "iconAssetId": null,
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "midiCc",
+                  "channel": 1,
+                  "cc": 0
+                }
+              },
+              "faderSkin": {
+                "topAssetId": null,
+                "middleAssetId": null,
+                "bottomAssetId": null,
+                "grabAssetId": null
+              },
+              "faderIconAssetIds": [
+                null,
+                null,
+                null,
+                null
+              ],
+              "style": {
+                "backgroundEnabled": false,
+                "backgroundColor": "#000000",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": true
+              }
+            }
+          ],
+          "folders": [],
+          "placements": [
+            {
+              "id": "placement17",
+              "elementId": "button16",
+              "row": 3,
+              "col": 0,
+              "rowSpan": 1,
+              "colSpan": 1
+            },
+            {
+              "id": "placement18",
+              "elementId": "button17",
+              "row": 3,
+              "col": 2,
+              "rowSpan": 1,
+              "colSpan": 1
+            },
+            {
+              "id": "placement19",
+              "elementId": "fader4",
+              "row": 0,
+              "col": 1,
+              "rowSpan": 3,
               "colSpan": 1
             }
           ],
