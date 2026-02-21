@@ -76,19 +76,17 @@
 
   function createHotkeyRecorder({ value = "", onChange, placeholder = "Ctrl+Alt+K" } = {}) {
     const wrapper = document.createElement("div");
-    wrapper.style.display = "flex";
-    wrapper.style.alignItems = "center";
-    wrapper.style.gap = "8px";
-    wrapper.style.width = "100%";
+    wrapper.className = "rd-hotkey-recorder";
 
     const input = document.createElement("input");
     input.type = "text";
     input.placeholder = placeholder;
     input.autocomplete = "off";
-    input.style.flex = "1";
+    input.className = "rd-hotkey-recorder__input";
 
     const modeButton = document.createElement("button");
     modeButton.type = "button";
+    modeButton.className = "rd-hotkey-recorder__toggle";
 
     const state = {
       value: String(value || ""),
