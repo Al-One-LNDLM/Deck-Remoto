@@ -1,9 +1,9 @@
 {
   "activeProfileId": "profile2",
-  "activePageId": "page2",
+  "activePageId": "page3",
   "lastSession": {
     "activeProfileId": "profile2",
-    "activePageId": "page2",
+    "activePageId": "page3",
     "activeFolderId": null
   },
   "profiles": [
@@ -466,7 +466,8 @@
               "rowSpan": 1,
               "colSpan": 1
             }
-          ]
+          ],
+          "iconAssetId": null
         },
         {
           "id": "page3",
@@ -530,11 +531,22 @@
               "folderId": null,
               "iconAssetId": null,
               "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "mediaKey",
-                  "key": "volMute"
-                }
+                "kind": "macro",
+                "steps": [
+                  {
+                    "type": "hotkey",
+                    "keys": "Esc"
+                  },
+                  {
+                    "type": "delay",
+                    "ms": 50
+                  },
+                  {
+                    "type": "typeText",
+                    "text": "Baby Comeback",
+                    "enterAfter": true
+                  }
+                ]
               },
               "style": {
                 "backgroundEnabled": true,
@@ -585,7 +597,13 @@
               "name": "G",
               "folderId": null,
               "iconAssetId": null,
-              "actionBinding": null,
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "hotkey",
+                  "keys": "Win+Shift+S"
+                }
+              },
               "style": {
                 "backgroundEnabled": true,
                 "backgroundColor": "#27AA4E",
@@ -639,9 +657,11 @@
               "rowSpan": 1,
               "colSpan": 1
             }
-          ]
+          ],
+          "iconAssetId": null
         }
-      ]
+      ],
+      "iconAssetId": null
     }
   ],
   "assets": {
