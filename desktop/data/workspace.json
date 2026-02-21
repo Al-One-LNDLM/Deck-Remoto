@@ -724,9 +724,7 @@
               "actionBinding": {
                 "kind": "single",
                 "action": {
-                  "type": "midiCc",
-                  "channel": 1,
-                  "cc": 0
+                  "type": "masterVolume"
                 }
               },
               "faderSkin": {
