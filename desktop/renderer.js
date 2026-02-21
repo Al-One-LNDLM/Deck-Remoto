@@ -31,6 +31,13 @@ const actionsControlsList = document.getElementById("actionsControlsList");
 const actionsPreviewCanvas = document.getElementById("actionsPreviewCanvas");
 const actionsInspector = document.getElementById("actionsInspector");
 
+const TOPBAR_TAB_CONFIG = {
+  navigation: { label: "Navegación", iconBaseName: "NAV" },
+  grid: { label: "Edición", iconBaseName: "EDIT" },
+  actions: { label: "Acciones", iconBaseName: "ACT" },
+  server: { label: "Servidor", iconBaseName: "SERVER", iconOnly: true },
+};
+
 const state = {
   workspace: null,
   selection: null,
@@ -2517,6 +2524,53 @@ function renderInspector(workspace, selection) {
   }
 }
 
+function buildTopbarIconCandidates(iconBaseName) {
+  const extensions = window.styleResolver?.getTopbarIconExtensions?.() || ["png", "svg", "webp"];
+  return extensions.map((extension) => new URL(`./assets/${iconBaseName}.${extension}`, window.location.href).href);
+}
+
+function hydrateTopbarTabs() {
+  tabButtons.forEach((button) => {
+    const config = TOPBAR_TAB_CONFIG[button.dataset.tab];
+    if (!config) {
+      return;
+    }
+
+    button.replaceChildren();
+
+    if (!config.iconOnly) {
+      const label = document.createElement("span");
+      label.className = "rd-tab-label";
+      label.textContent = config.label;
+      button.appendChild(label);
+    }
+
+    const icon = document.createElement("img");
+    icon.className = "rd-tab-icon";
+    icon.alt = `${config.label} icono`;
+    icon.setAttribute("aria-hidden", "true");
+
+    const candidates = buildTopbarIconCandidates(config.iconBaseName);
+    let candidateIndex = 0;
+
+    const applyCandidate = () => {
+      icon.src = candidates[candidateIndex];
+    };
+
+    icon.addEventListener("error", () => {
+      candidateIndex += 1;
+      if (candidateIndex < candidates.length) {
+        applyCandidate();
+      } else {
+        icon.style.display = "none";
+      }
+    });
+
+    applyCandidate();
+    button.appendChild(icon);
+  });
+}
+
 function updateAddButtonState() {
   addNodeBtn.disabled = false;
 }
@@ -2674,6 +2728,7 @@ window.runtime.onLog((message) => {
 });
 
 async function init() {
+  hydrateTopbarTabs();
   await refreshStatus();
   state.workspace = await window.runtime.getWorkspace();
   state.selection = null;
