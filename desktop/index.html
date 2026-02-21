@@ -25,21 +25,22 @@
       .rd-topbar {
         display: flex;
         width: 100%;
-        min-height: 60px;
         height: 64px;
+        min-height: 60px;
         margin-bottom: 16px;
       }
 
       .rd-tab {
         flex: 1;
+        --tab-accent: #3a3a3a;
         border: 1px solid #2f2f2f;
         border-right-width: 0;
-        background: #1b1b1b;
-        color: #f0f0f0;
+        background: #000;
+        color: #d7d7d7;
         border-radius: 0;
         font-size: 15px;
         font-weight: 600;
-        transition: background-color 0.2s ease, filter 0.2s ease;
+        transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
       }
 
       .rd-tab:last-child {
@@ -47,33 +48,32 @@
       }
 
       .rd-tab[data-tab="navigation"] {
-        background: #20304d;
+        --tab-accent: #0586a8;
       }
 
       .rd-tab[data-tab="grid"] {
-        background: #2f284a;
+        --tab-accent: #90ad1a;
       }
 
       .rd-tab[data-tab="actions"] {
-        background: #3b2a23;
+        --tab-accent: #b92f2f;
       }
 
       .rd-tab[data-tab="server"] {
-        background: #1f3b2a;
+        --tab-accent: #1f8f4a;
+        flex: 0 0 5%;
       }
 
-      .rd-tab:hover {
-        filter: brightness(1.06);
-      }
-
-      .rd-tab[aria-selected="false"] {
-        opacity: 0.62;
-      }
-
+      .rd-tab:hover,
       .rd-tab.is-active,
       .rd-tab[aria-selected="true"] {
-        opacity: 1;
-        box-shadow: inset 0 -4px 0 rgba(255, 255, 255, 0.4);
+        background: var(--tab-accent);
+        color: #fff;
+        box-shadow: inset 0 -3px 0 rgba(255, 255, 255, 0.38), 0 0 10px rgba(255, 255, 255, 0.15);
+      }
+
+      .rd-tab[aria-selected="false"]:not(:hover) {
+        box-shadow: none;
       }
 
       .tab-panel {
