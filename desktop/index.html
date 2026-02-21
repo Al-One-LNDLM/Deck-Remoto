@@ -12,6 +12,14 @@
         color: #f5f5f5;
       }
 
+      :root {
+        --bg: #000;
+        --accent-nav: #0586a8;
+        --accent-edit: #90ad1a;
+        --accent-actions: #b92f2f;
+        --accent-server: #1f8f4a;
+      }
+
       .rd-app {
         padding: 16px 24px 24px;
       }
@@ -31,16 +39,16 @@
       }
 
       .rd-tab {
-        flex: 1;
+        flex: 1 1 0;
         --tab-accent: #3a3a3a;
         border: 1px solid #2f2f2f;
         border-right-width: 0;
-        background: #000;
+        background: var(--bg);
         color: #d7d7d7;
         border-radius: 0;
         font-size: 15px;
         font-weight: 600;
-        transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+        transition: background 0.2s ease, color 0.2s ease;
       }
 
       .rd-tab:last-child {
@@ -48,32 +56,27 @@
       }
 
       .rd-tab[data-tab="navigation"] {
-        --tab-accent: #0586a8;
+        --tab-accent: var(--accent-nav);
       }
 
       .rd-tab[data-tab="grid"] {
-        --tab-accent: #90ad1a;
+        --tab-accent: var(--accent-edit);
       }
 
       .rd-tab[data-tab="actions"] {
-        --tab-accent: #b92f2f;
+        --tab-accent: var(--accent-actions);
       }
 
       .rd-tab[data-tab="server"] {
-        --tab-accent: #1f8f4a;
+        --tab-accent: var(--accent-server);
         flex: 0 0 5%;
       }
 
       .rd-tab:hover,
       .rd-tab.is-active,
       .rd-tab[aria-selected="true"] {
-        background: var(--tab-accent);
+        background: linear-gradient(to left, var(--tab-accent) 0%, var(--bg) 75%, var(--bg) 100%);
         color: #fff;
-        box-shadow: inset 0 -3px 0 rgba(255, 255, 255, 0.38), 0 0 10px rgba(255, 255, 255, 0.15);
-      }
-
-      .rd-tab[aria-selected="false"]:not(:hover) {
-        box-shadow: none;
       }
 
       .tab-panel {
