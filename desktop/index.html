@@ -41,14 +41,34 @@
       .rd-tab {
         flex: 1 1 0;
         --tab-accent: #3a3a3a;
+        --rd-icon-idle-filter: brightness(0) saturate(100%) invert(83%) sepia(0%) saturate(0%) hue-rotate(150deg)
+          brightness(92%) contrast(88%);
+        --rd-icon-active-filter: brightness(0) saturate(100%) invert(100%);
         border: 1px solid #2f2f2f;
         border-right-width: 0;
         background: var(--bg);
         color: #d7d7d7;
         border-radius: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
         font-size: 15px;
         font-weight: 600;
         transition: background 0.2s ease, color 0.2s ease;
+      }
+
+      .rd-tab-label {
+        pointer-events: none;
+      }
+
+      .rd-tab-icon {
+        width: 20px;
+        height: 20px;
+        object-fit: contain;
+        pointer-events: none;
+        filter: var(--rd-icon-idle-filter);
+        transition: filter 0.2s ease;
       }
 
       .rd-tab:last-child {
@@ -70,6 +90,7 @@
       .rd-tab[data-tab="server"] {
         --tab-accent: var(--accent-server);
         flex: 0 0 5%;
+        gap: 0;
       }
 
       .rd-tab:hover,
@@ -77,6 +98,12 @@
       .rd-tab[aria-selected="true"] {
         background: linear-gradient(to left, var(--tab-accent) 0%, var(--bg) 75%, var(--bg) 100%);
         color: #fff;
+      }
+
+      .rd-tab:hover .rd-tab-icon,
+      .rd-tab.is-active .rd-tab-icon,
+      .rd-tab[aria-selected="true"] .rd-tab-icon {
+        filter: var(--rd-icon-active-filter);
       }
 
       .tab-panel {
@@ -842,10 +869,10 @@
   </head>
   <body>
     <div class="rd-topbar" role="tablist" aria-label="Selector de áreas">
-      <button class="rd-tab" data-tab="navigation" role="tab" aria-selected="false">Navegación</button>
-      <button class="rd-tab" data-tab="grid" role="tab" aria-selected="false">Edición</button>
-      <button class="rd-tab" data-tab="actions" role="tab" aria-selected="false">Acciones</button>
-      <button class="rd-tab is-active" data-tab="server" role="tab" aria-selected="true">Servidor</button>
+      <button class="rd-tab" data-tab="navigation" role="tab" aria-selected="false"></button>
+      <button class="rd-tab" data-tab="grid" role="tab" aria-selected="false"></button>
+      <button class="rd-tab" data-tab="actions" role="tab" aria-selected="false"></button>
+      <button class="rd-tab is-active" data-tab="server" role="tab" aria-selected="true"></button>
     </div>
 
     <main class="rd-app">

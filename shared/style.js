@@ -57,6 +57,11 @@
     return `rgba(${red}, ${green}, ${blue}, ${safeOpacity})`;
   }
 
+
+  function getTopbarIconExtensions() {
+    return ["png", "svg", "webp"];
+  }
+
   function getStyleBucket(pageStyle, controlType) {
     if (controlType === "fader") {
       return pageStyle.fader;
@@ -86,6 +91,7 @@
     hexToRgba,
     normalizePageStyle,
     normalizeTypeStyle,
+    getTopbarIconExtensions,
     resolveGlobalStyle,
     sanitizeHexColor,
   };
