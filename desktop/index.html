@@ -41,9 +41,6 @@
       .rd-tab {
         flex: 1 1 0;
         --tab-accent: #3a3a3a;
-        --rd-icon-idle-filter: brightness(0) saturate(100%) invert(83%) sepia(0%) saturate(0%) hue-rotate(150deg)
-          brightness(92%) contrast(88%);
-        --rd-icon-active-filter: brightness(0) saturate(100%) invert(100%);
         border: 1px solid #2f2f2f;
         border-right-width: 0;
         background: var(--bg);
@@ -63,12 +60,12 @@
       }
 
       .rd-tab-icon {
-        width: 20px;
-        height: 20px;
+        width: 24px;
+        height: 24px;
         object-fit: contain;
         pointer-events: none;
-        filter: var(--rd-icon-idle-filter);
-        transition: filter 0.2s ease;
+        opacity: 0.9;
+        transition: opacity 0.2s ease, filter 0.2s ease;
       }
 
       .rd-tab:last-child {
@@ -103,7 +100,8 @@
       .rd-tab:hover .rd-tab-icon,
       .rd-tab.is-active .rd-tab-icon,
       .rd-tab[aria-selected="true"] .rd-tab-icon {
-        filter: var(--rd-icon-active-filter);
+        opacity: 1;
+        filter: drop-shadow(0 0 4px var(--tab-accent));
       }
 
       .tab-panel {
