@@ -176,6 +176,7 @@ function createRuntimeServer({ onLog }) {
   let running = false;
   const runtimeState = {
     faderValues7: {},
+    lastMasterVolumePercentByControl: {},
   };
 
   function log(message) {
@@ -473,6 +474,7 @@ function createRuntimeServer({ onLog }) {
                 },
                 {
                   log,
+                  value: value7,
                   runtime: {
                     setActiveProfile,
                     setActivePage,
@@ -481,6 +483,28 @@ function createRuntimeServer({ onLog }) {
                   },
                 },
               );
+            } else if (actionBinding.action?.type === "masterVolume") {
+              const percent = Math.round((value7 * 100) / 127);
+              const previousPercent = runtimeState.lastMasterVolumePercentByControl[parsed.controlId];
+              if (typeof previousPercent !== "number" || Math.abs(percent - previousPercent) >= 1) {
+                runtimeState.lastMasterVolumePercentByControl[parsed.controlId] = percent;
+                await dispatcher.executeAction(
+                  {
+                    ...actionBinding.action,
+                    value: value7,
+                  },
+                  {
+                    log,
+                    value: value7,
+                    runtime: {
+                      setActiveProfile,
+                      setActivePage,
+                      openFolder,
+                      closeFolder,
+                    },
+                  },
+                );
+              }
             } else {
               log(`[WS] faderChange sin acción compatible (${parsed.controlId})`);
             }

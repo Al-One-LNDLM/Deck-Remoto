@@ -788,6 +788,10 @@ function getActionTypeForControl(control) {
     return "midiCc";
   }
 
+  if (binding.action?.type === "masterVolume") {
+    return "masterVolume";
+  }
+
   if (binding.action?.type === "openUrl") {
     return "openUrl";
   }
@@ -965,14 +969,15 @@ async function renderActionsTab() {
   const supportsButtonActions = selected.type === "button" || selected.type === "toggle" || selected.type === "folderButton";
   const supportsMidiCc = selected.type === "fader";
   const availableSingleTypes = supportsMidiCc
-    ? ["midiCc"]
+    ? ["midiCc", "masterVolume"]
     : ["hotkey", "openUrl", "openApp", "switchPage", "switchProfile", "openFolder", "back", "midiNote", "pasteText", "typeText", "mediaKey", "delay"];
   const availableMacroTypes = supportsMidiCc
-    ? ["midiCc", "delay"]
+    ? ["midiCc", "masterVolume", "delay"]
     : ["hotkey", "openUrl", "openApp", "switchPage", "switchProfile", "openFolder", "back", "midiNote", "pasteText", "typeText", "mediaKey", "delay"];
 
   function makeDefaultAction(type) {
     if (type === "midiCc") return { type: "midiCc", channel: 1, cc: 0 };
+    if (type === "masterVolume") return { type: "masterVolume" };
     if (type === "openUrl") return { type: "openUrl", url: "" };
     if (type === "openApp") return { type: "openApp", target: "", args: [] };
     if (type === "switchPage") return { type: "switchPage", pageId: "" };
@@ -1006,6 +1011,9 @@ async function renderActionsTab() {
         channel: clampActionInt(row.channel, 1, 16, 1),
         cc: clampActionInt(row.cc, 0, 127, 0),
       };
+    }
+    if (type === "masterVolume") {
+      return { type };
     }
     if (type === "switchPage") {
       return { type, pageId: String(row.pageId || "") };
@@ -1085,10 +1093,13 @@ async function renderActionsTab() {
     const typeLabel = document.createElement("label");
     typeLabel.textContent = `${prefix} Type`;
     const typeSelect = document.createElement("select");
+    const typeLabels = {
+      masterVolume: "Master Volume (Windows)",
+    };
     options.forEach((type) => {
       const option = document.createElement("option");
       option.value = type;
-      option.textContent = type;
+      option.textContent = typeLabels[type] || type;
       typeSelect.appendChild(option);
     });
     if (!options.includes(model.type)) {
