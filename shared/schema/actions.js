@@ -99,6 +99,12 @@ function normalizeAction(action) {
     };
   }
 
+  if (action.type === "masterVolume") {
+    return {
+      type: "masterVolume",
+    };
+  }
+
   if (action.type === "delay") {
     return {
       type: "delay",

@@ -1,5 +1,18 @@
 #Requires AutoHotkey v2.0
 
+if A_Args.Length >= 2 && A_Args[1] = "--volume" {
+  vol := Integer(A_Args[2])
+  if (vol < 0) {
+    vol := 0
+  }
+  if (vol > 100) {
+    vol := 100
+  }
+
+  SoundSetVolume vol
+  ExitApp 0
+}
+
 if A_Args.Length >= 4 && A_Args[1] = "--text" {
   mode := Trim(A_Args[2])
   enterFlag := Trim(A_Args[3])

@@ -20,7 +20,8 @@ function clampInt(value, min, max, fallback) {
   return Math.max(min, Math.min(max, Math.round(numeric)));
 }
 
-async function executeAction(action, { log, runtime } = {}) {
+async function executeAction(action, ctx = {}) {
+  const { log, runtime } = ctx;
   if (!action || typeof action !== "object" || !action.type) {
     return;
   }
@@ -171,6 +172,18 @@ async function executeAction(action, { log, runtime } = {}) {
         log(`[DISPATCH] midiCc channel=${channel} cc=${cc} value=${value}`);
         midiOut.sendCc(channel, cc, value);
       }
+    }
+    return;
+  }
+
+  if (action.type === "masterVolume") {
+    const rawValue = typeof action.value === "number" ? action.value : Number(ctx?.value);
+    const v127 = Math.max(0, Math.min(127, Number(rawValue) || 0));
+    const percent = Math.round((v127 * 100) / 127);
+
+    await KeyboardDriver.setMasterVolume(percent);
+    if (typeof log === "function") {
+      log(`[DISPATCH] masterVolume value127=${v127} percent=${percent}`);
     }
     return;
   }

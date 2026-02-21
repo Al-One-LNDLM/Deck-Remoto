@@ -123,6 +123,15 @@ function sanitizeHotkey(keys) {
   return [...canonicalModifiers, keyTokens[0].value].join("+");
 }
 
+function clampInt(value, min, max) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return min;
+  }
+
+  return Math.max(min, Math.min(max, Math.round(numeric)));
+}
+
 function runAhk(args) {
   return new Promise((resolve, reject) => {
     const exePath = resolveAhkPath();
@@ -182,6 +191,11 @@ function sendText({ text, mode, enterAfter }) {
   return runAhk(["--text", mode, enterAfter ? "1" : "0", payload]);
 }
 
+function setMasterVolume(percent) {
+  const vol = clampInt(percent, 0, 100);
+  return runAhk(["--volume", String(vol)]);
+}
+
 function sendSpecialKey(keyName) {
   if (!SPECIAL_KEYS.includes(keyName)) {
     return Promise.reject(new Error(`Special key inválida: ${keyName}`));
@@ -195,4 +209,5 @@ module.exports = {
   sendHotkey,
   sendText,
   sendSpecialKey,
+  setMasterVolume,
 };
