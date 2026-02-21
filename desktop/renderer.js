@@ -4,7 +4,7 @@ const lanUrlEl = document.getElementById("lanUrl");
 const logsEl = document.getElementById("logs");
 const startBtn = document.getElementById("startBtn");
 const stopBtn = document.getElementById("stopBtn");
-const tabButtons = document.querySelectorAll(".tab");
+const tabButtons = document.querySelectorAll(".rd-tab");
 const serverTab = document.getElementById("serverTab");
 const navigationTab = document.getElementById("navigationTab");
 const gridTab = document.getElementById("gridTab");
@@ -2551,7 +2551,9 @@ function toggleAddMenu() {
 
 function setActiveTab(tabName) {
   tabButtons.forEach((button) => {
-    button.classList.toggle("active", button.dataset.tab === tabName);
+    const isActive = button.dataset.tab === tabName;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
   });
 
   serverTab.classList.toggle("active", tabName === "server");
