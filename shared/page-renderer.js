@@ -656,7 +656,9 @@
       slot.dataset.col = String(Math.max(0, Math.floor(Number(placement.col) || 0)));
       slot.dataset.rowSpan = String(clamp(placement.rowSpan, 1));
       slot.dataset.colSpan = String(clamp(placement.colSpan, 1));
-      slot.classList.toggle("is-selected", selectedElementId === control.id);
+      const isSelected = selectedElementId === control.id;
+      slot.classList.toggle("is-selected", isSelected);
+      slot.dataset.selected = isSelected ? "true" : "false";
       slot.style.background = resolvedStyle.backgroundCssColor;
       slot.style.border = resolvedStyle.borderEnabled
         ? `1px solid ${resolvedStyle.borderCssColor}`
