@@ -7,9 +7,13 @@
     <style>
       body {
         font-family: Arial, sans-serif;
-        margin: 24px;
+        margin: 0;
         background: #121212;
         color: #f5f5f5;
+      }
+
+      .rd-app {
+        padding: 16px 24px 24px;
       }
 
       h1,
@@ -18,20 +22,58 @@
         margin-bottom: 12px;
       }
 
-      .tabs {
+      .rd-topbar {
         display: flex;
-        gap: 8px;
+        width: 100%;
+        min-height: 60px;
+        height: 64px;
         margin-bottom: 16px;
       }
 
-      .tab {
-        border: 1px solid #3a3a3a;
-        background: #1e1e1e;
+      .rd-tab {
+        flex: 1;
+        border: 1px solid #2f2f2f;
+        border-right-width: 0;
+        background: #1b1b1b;
         color: #f0f0f0;
+        border-radius: 0;
+        font-size: 15px;
+        font-weight: 600;
+        transition: background-color 0.2s ease, filter 0.2s ease;
       }
 
-      .tab.active {
-        background: #2e5fca;
+      .rd-tab:last-child {
+        border-right-width: 1px;
+      }
+
+      .rd-tab[data-tab="navigation"] {
+        background: #20304d;
+      }
+
+      .rd-tab[data-tab="grid"] {
+        background: #2f284a;
+      }
+
+      .rd-tab[data-tab="actions"] {
+        background: #3b2a23;
+      }
+
+      .rd-tab[data-tab="server"] {
+        background: #1f3b2a;
+      }
+
+      .rd-tab:hover {
+        filter: brightness(1.06);
+      }
+
+      .rd-tab[aria-selected="false"] {
+        opacity: 0.62;
+      }
+
+      .rd-tab.is-active,
+      .rd-tab[aria-selected="true"] {
+        opacity: 1;
+        box-shadow: inset 0 -4px 0 rgba(255, 255, 255, 0.4);
       }
 
       .tab-panel {
@@ -796,15 +838,14 @@
     </style>
   </head>
   <body>
-    <h1>Remote Deck - Desktop</h1>
-
-    <div class="tabs">
-      <button class="tab active" data-tab="server">Servidor</button>
-      <button class="tab" data-tab="navigation">Navegación</button>
-      <button class="tab" data-tab="grid">Rejilla</button>
-      <button class="tab" data-tab="actions">Acciones</button>
+    <div class="rd-topbar" role="tablist" aria-label="Selector de áreas">
+      <button class="rd-tab" data-tab="navigation" role="tab" aria-selected="false">Navegación</button>
+      <button class="rd-tab" data-tab="grid" role="tab" aria-selected="false">Edición</button>
+      <button class="rd-tab" data-tab="actions" role="tab" aria-selected="false">Acciones</button>
+      <button class="rd-tab is-active" data-tab="server" role="tab" aria-selected="true">Servidor</button>
     </div>
 
+    <main class="rd-app">
     <section id="serverTab" class="tab-panel active">
       <section class="panel">
         <h2>Server</h2>
@@ -934,6 +975,7 @@
 
     <div id="contextMenu" class="context-menu" style="display: none;"></div>
     <div id="moveModalHost"></div>
+    </main>
 
     <script src="../shared/style.js"></script>
     <script src="../shared/page-renderer.js"></script>
