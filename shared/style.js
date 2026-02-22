@@ -62,6 +62,57 @@
     return ["png", "svg", "webp"];
   }
 
+  function getTopbarFadeStyles() {
+    return `
+      .rd-tab {
+        position: relative;
+        overflow: hidden;
+        background: var(--bg);
+        transition: color 0.2s ease;
+      }
+
+      .rd-tab::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to left, var(--tab-accent) 0%, #000 75%, #000 100%);
+        opacity: 0;
+        transition: opacity 140ms ease-out;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .rd-tab-content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: inherit;
+        width: 100%;
+        height: 100%;
+      }
+
+      .rd-tab:hover,
+      .rd-tab.is-active,
+      .rd-tab[aria-selected="true"] {
+        background: var(--bg);
+      }
+
+      .rd-tab:hover::before,
+      .rd-tab.is-active::before,
+      .rd-tab[aria-selected="true"]::before {
+        opacity: 1;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .rd-tab::before {
+          transition: none;
+        }
+      }
+    `;
+  }
+
   function getStyleBucket(pageStyle, controlType) {
     if (controlType === "fader") {
       return pageStyle.fader;
@@ -92,6 +143,7 @@
     normalizePageStyle,
     normalizeTypeStyle,
     getTopbarIconExtensions,
+    getTopbarFadeStyles,
     resolveGlobalStyle,
     sanitizeHexColor,
   };
