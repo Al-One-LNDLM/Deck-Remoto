@@ -33,9 +33,46 @@ const actionsInspector = document.getElementById("actionsInspector");
 
 const SPLIT_STORAGE_PREFIX = "rd.split.";
 const SPLIT_GUTTER_PX = 10;
+const SPLIT_LAYOUT_MAX_WAIT_FRAMES = 30;
+const splitControllers = new Map();
+const splitMountFlags = {
+  nav: false,
+  edit: false,
+  actions: false,
+  server: false,
+};
 
 function clampSplitSize(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+function waitForLayout(element, maxFrames = SPLIT_LAYOUT_MAX_WAIT_FRAMES) {
+  return new Promise((resolve) => {
+    let frames = 0;
+
+    function check() {
+      if (!element) {
+        resolve(false);
+        return;
+      }
+
+      const rect = element.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        resolve(true);
+        return;
+      }
+
+      frames += 1;
+      if (frames >= maxFrames) {
+        resolve(false);
+        return;
+      }
+
+      requestAnimationFrame(check);
+    }
+
+    requestAnimationFrame(check);
+  });
 }
 
 function readSplitState(key) {
@@ -48,6 +85,7 @@ function readSplitState(key) {
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === "object" ? parsed : null;
   } catch (_error) {
+    window.localStorage.removeItem(`${SPLIT_STORAGE_PREFIX}${key}`);
     return null;
   }
 }
@@ -63,6 +101,18 @@ function writeSplitState(key, payload) {
 function createPane(child) {
   const pane = document.createElement("div");
   pane.className = "rd-pane";
+  if (child instanceof HTMLElement) {
+    child.style.position = "relative";
+    child.style.minWidth = "0";
+    child.style.minHeight = "0";
+    child.style.width = "100%";
+    child.style.height = "100%";
+    child.style.maxWidth = "100%";
+    child.style.left = "auto";
+    child.style.top = "auto";
+    child.style.right = "auto";
+    child.style.bottom = "auto";
+  }
   pane.appendChild(child);
   return pane;
 }
@@ -77,7 +127,7 @@ function endDrag() {
   delete document.body.dataset.rdDragAxis;
 }
 
-function createSplit2({ key, leftEl, rightEl, defaultRatio = 0.5, minLeft = 260, minRight = 320 }) {
+function createSplit2({ key, leftEl, rightEl, minLeft = 260, minRight = 320 }) {
   const wrapper = document.createElement("div");
   wrapper.className = "rd-split rd-split--cols2";
   const leftPane = createPane(leftEl);
@@ -91,39 +141,44 @@ function createSplit2({ key, leftEl, rightEl, defaultRatio = 0.5, minLeft = 260,
   wrapper.append(leftPane, gutter, rightPane);
 
   const apply = (widthPx) => {
-    wrapper.style.setProperty("--a", `${widthPx}px`);
+    wrapper.style.setProperty("--a", `${Math.round(widthPx)}px`);
   };
 
-  const resolveInitial = () => {
+  const normalize = (candidate) => {
     const containerWidth = wrapper.clientWidth;
     const maxLeft = Math.max(minLeft, containerWidth - SPLIT_GUTTER_PX - minRight);
-    const stored = readSplitState(key)?.a;
-    const start = Number.isFinite(Number(stored)) ? Number(stored) : containerWidth * defaultRatio;
-    return clampSplitSize(start, minLeft, maxLeft);
+    return clampSplitSize(candidate, minLeft, maxLeft);
   };
 
-  requestAnimationFrame(() => {
-    apply(resolveInitial());
-  });
+  const reflow = () => {
+    const stored = readSplitState(key)?.a;
+    const defaultWidth = Math.round(wrapper.clientWidth * 0.5);
+    const desired = Number.isFinite(Number(stored)) ? Number(stored) : defaultWidth;
+    const next = normalize(desired);
+    apply(next);
+    if (!Number.isFinite(Number(stored)) || Math.round(desired) !== Math.round(next)) {
+      writeSplitState(key, { a: Math.round(next) });
+    }
+  };
 
   gutter.addEventListener("pointerdown", (event) => {
     event.preventDefault();
     const pointerId = event.pointerId;
     const startX = event.clientX;
-    const startWidth = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || resolveInitial();
+    const startWidth = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || normalize(Math.round(wrapper.clientWidth * 0.5));
     beginDrag("x");
     gutter.setPointerCapture(pointerId);
 
     const onMove = (moveEvent) => {
-      const containerWidth = wrapper.clientWidth;
-      const maxLeft = Math.max(minLeft, containerWidth - SPLIT_GUTTER_PX - minRight);
-      const next = clampSplitSize(startWidth + (moveEvent.clientX - startX), minLeft, maxLeft);
+      const next = normalize(startWidth + (moveEvent.clientX - startX));
       apply(next);
     };
 
     const onEnd = () => {
-      const finalValue = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || resolveInitial();
-      writeSplitState(key, { a: Math.round(finalValue) });
+      const finalValue = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || normalize(Math.round(wrapper.clientWidth * 0.5));
+      const next = normalize(finalValue);
+      apply(next);
+      writeSplitState(key, { a: Math.round(next) });
       gutter.removeEventListener("pointermove", onMove);
       gutter.removeEventListener("pointerup", onEnd);
       gutter.removeEventListener("pointercancel", onEnd);
@@ -138,10 +193,10 @@ function createSplit2({ key, leftEl, rightEl, defaultRatio = 0.5, minLeft = 260,
     gutter.addEventListener("pointercancel", onEnd);
   });
 
-  return wrapper;
+  return { wrapper, reflow };
 }
 
-function createSplit3({ key, leftEl, midEl, rightEl, defaultRatios = [1 / 3, 1 / 3, 1 / 3], minLeft = 220, minMid = 220, minRight = 220 }) {
+function createSplit3({ key, leftEl, midEl, rightEl, minLeft = 220, minMid = 220, minRight = 220 }) {
   const wrapper = document.createElement("div");
   wrapper.className = "rd-split rd-split--cols3";
   const leftPane = createPane(leftEl);
@@ -157,36 +212,37 @@ function createSplit3({ key, leftEl, midEl, rightEl, defaultRatios = [1 / 3, 1 /
   wrapper.append(leftPane, gutterA, midPane, gutterB, rightPane);
 
   const apply = (a, b) => {
-    wrapper.style.setProperty("--a", `${a}px`);
-    wrapper.style.setProperty("--b", `${b}px`);
+    wrapper.style.setProperty("--a", `${Math.round(a)}px`);
+    wrapper.style.setProperty("--b", `${Math.round(b)}px`);
   };
 
-  const resolveInitial = () => {
+  const normalize = (rawA, rawB) => {
     const width = wrapper.clientWidth;
-    const maxA = Math.max(minLeft, width - (SPLIT_GUTTER_PX * 2) - minMid - minRight);
-    const maxB = Math.max(minMid, width - (SPLIT_GUTTER_PX * 2) - minLeft - minRight);
-    const stored = readSplitState(key) || {};
-    const aRaw = Number.isFinite(Number(stored.a)) ? Number(stored.a) : width * defaultRatios[0];
-    const bRaw = Number.isFinite(Number(stored.b)) ? Number(stored.b) : width * defaultRatios[1];
-    let a = clampSplitSize(aRaw, minLeft, maxA);
-    let b = clampSplitSize(bRaw, minMid, maxB);
-    const maxCombined = width - (SPLIT_GUTTER_PX * 2) - minRight;
+    const maxCombined = Math.max(minLeft + minMid, width - (SPLIT_GUTTER_PX * 2) - minRight);
+    let a = Math.max(minLeft, rawA);
+    let b = Math.max(minMid, rawB);
     if (a + b > maxCombined) {
       const overflow = a + b - maxCombined;
-      if (b - overflow >= minMid) {
-        b -= overflow;
-      } else {
-        a = Math.max(minLeft, a - (overflow - (b - minMid)));
-        b = minMid;
-      }
+      const reduceB = Math.min(overflow, b - minMid);
+      b -= reduceB;
+      a = Math.max(minLeft, a - (overflow - reduceB));
     }
     return { a, b };
   };
 
-  requestAnimationFrame(() => {
-    const initial = resolveInitial();
-    apply(initial.a, initial.b);
-  });
+  const reflow = () => {
+    const stored = readSplitState(key) || {};
+    const width = wrapper.clientWidth;
+    const defaultA = Math.round(width / 3);
+    const defaultB = Math.round(width / 3);
+    const rawA = Number.isFinite(Number(stored.a)) ? Number(stored.a) : defaultA;
+    const rawB = Number.isFinite(Number(stored.b)) ? Number(stored.b) : defaultB;
+    const next = normalize(rawA, rawB);
+    apply(next.a, next.b);
+    if (!Number.isFinite(Number(stored.a)) || !Number.isFinite(Number(stored.b)) || Math.round(rawA) !== Math.round(next.a) || Math.round(rawB) !== Math.round(next.b)) {
+      writeSplitState(key, { a: Math.round(next.a), b: Math.round(next.b) });
+    }
+  };
 
   function mountGutterDrag(gutter, getter, setter) {
     gutter.addEventListener("pointerdown", (event) => {
@@ -202,9 +258,11 @@ function createSplit3({ key, leftEl, midEl, rightEl, defaultRatios = [1 / 3, 1 /
       };
 
       const onEnd = () => {
-        const a = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || resolveInitial().a;
-        const b = parseFloat(getComputedStyle(wrapper).getPropertyValue("--b")) || resolveInitial().b;
-        writeSplitState(key, { a: Math.round(a), b: Math.round(b) });
+        const a = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || Math.round(wrapper.clientWidth / 3);
+        const b = parseFloat(getComputedStyle(wrapper).getPropertyValue("--b")) || Math.round(wrapper.clientWidth / 3);
+        const next = normalize(a, b);
+        apply(next.a, next.b);
+        writeSplitState(key, { a: Math.round(next.a), b: Math.round(next.b) });
         gutter.removeEventListener("pointermove", onMove);
         gutter.removeEventListener("pointerup", onEnd);
         gutter.removeEventListener("pointercancel", onEnd);
@@ -222,38 +280,33 @@ function createSplit3({ key, leftEl, midEl, rightEl, defaultRatios = [1 / 3, 1 /
 
   mountGutterDrag(
     gutterA,
-    () => parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || resolveInitial().a,
+    () => parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || Math.round(wrapper.clientWidth / 3),
     (rawA) => {
-      const width = wrapper.clientWidth;
-      const currentB = parseFloat(getComputedStyle(wrapper).getPropertyValue("--b")) || resolveInitial().b;
-      const maxA = width - (SPLIT_GUTTER_PX * 2) - currentB - minRight;
-      const a = clampSplitSize(rawA, minLeft, Math.max(minLeft, maxA));
-      apply(a, currentB);
+      const currentB = parseFloat(getComputedStyle(wrapper).getPropertyValue("--b")) || Math.round(wrapper.clientWidth / 3);
+      const next = normalize(rawA, currentB);
+      apply(next.a, next.b);
     },
   );
 
   mountGutterDrag(
     gutterB,
     () => {
-      const a = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || resolveInitial().a;
-      const b = parseFloat(getComputedStyle(wrapper).getPropertyValue("--b")) || resolveInitial().b;
+      const a = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || Math.round(wrapper.clientWidth / 3);
+      const b = parseFloat(getComputedStyle(wrapper).getPropertyValue("--b")) || Math.round(wrapper.clientWidth / 3);
       return a + b;
     },
     (rawAB) => {
-      const width = wrapper.clientWidth;
-      const currentA = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || resolveInitial().a;
-      const minAB = currentA + minMid;
-      const maxAB = width - (SPLIT_GUTTER_PX * 2) - minRight;
-      const ab = clampSplitSize(rawAB, minAB, Math.max(minAB, maxAB));
-      const b = Math.max(minMid, ab - currentA);
-      apply(currentA, b);
+      const currentA = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || Math.round(wrapper.clientWidth / 3);
+      const candidateB = Math.max(minMid, rawAB - currentA);
+      const next = normalize(currentA, candidateB);
+      apply(next.a, next.b);
     },
   );
 
-  return wrapper;
+  return { wrapper, reflow };
 }
 
-function createSplitRows2({ key, topEl, bottomEl, defaultRatio = 0.5, minTop = 160, minBottom = 160 }) {
+function createSplitRows2({ key, topEl, bottomEl, minTop = 160, minBottom = 160 }) {
   const wrapper = document.createElement("div");
   wrapper.className = "rd-split rd-split--rows2";
   const topPane = createPane(topEl);
@@ -266,39 +319,44 @@ function createSplitRows2({ key, topEl, bottomEl, defaultRatio = 0.5, minTop = 1
   wrapper.append(topPane, gutter, bottomPane);
 
   const apply = (heightPx) => {
-    wrapper.style.setProperty("--a", `${heightPx}px`);
+    wrapper.style.setProperty("--a", `${Math.round(heightPx)}px`);
   };
 
-  const resolveInitial = () => {
-    const height = wrapper.clientHeight;
-    const maxTop = Math.max(minTop, height - SPLIT_GUTTER_PX - minBottom);
+  const normalize = (candidate) => {
+    const containerHeight = wrapper.clientHeight;
+    const maxTop = Math.max(minTop, containerHeight - SPLIT_GUTTER_PX - minBottom);
+    return clampSplitSize(candidate, minTop, maxTop);
+  };
+
+  const reflow = () => {
     const stored = readSplitState(key)?.a;
-    const start = Number.isFinite(Number(stored)) ? Number(stored) : height * defaultRatio;
-    return clampSplitSize(start, minTop, maxTop);
+    const defaultHeight = Math.round(wrapper.clientHeight * 0.5);
+    const desired = Number.isFinite(Number(stored)) ? Number(stored) : defaultHeight;
+    const next = normalize(desired);
+    apply(next);
+    if (!Number.isFinite(Number(stored)) || Math.round(desired) !== Math.round(next)) {
+      writeSplitState(key, { a: Math.round(next) });
+    }
   };
-
-  requestAnimationFrame(() => {
-    apply(resolveInitial());
-  });
 
   gutter.addEventListener("pointerdown", (event) => {
     event.preventDefault();
     const pointerId = event.pointerId;
     const startY = event.clientY;
-    const startHeight = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || resolveInitial();
+    const startHeight = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || normalize(Math.round(wrapper.clientHeight * 0.5));
     beginDrag("y");
     gutter.setPointerCapture(pointerId);
 
     const onMove = (moveEvent) => {
-      const containerHeight = wrapper.clientHeight;
-      const maxTop = Math.max(minTop, containerHeight - SPLIT_GUTTER_PX - minBottom);
-      const next = clampSplitSize(startHeight + (moveEvent.clientY - startY), minTop, maxTop);
+      const next = normalize(startHeight + (moveEvent.clientY - startY));
       apply(next);
     };
 
     const onEnd = () => {
-      const finalValue = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || resolveInitial();
-      writeSplitState(key, { a: Math.round(finalValue) });
+      const finalValue = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || normalize(Math.round(wrapper.clientHeight * 0.5));
+      const next = normalize(finalValue);
+      apply(next);
+      writeSplitState(key, { a: Math.round(next) });
       gutter.removeEventListener("pointermove", onMove);
       gutter.removeEventListener("pointerup", onEnd);
       gutter.removeEventListener("pointercancel", onEnd);
@@ -313,44 +371,91 @@ function createSplitRows2({ key, topEl, bottomEl, defaultRatio = 0.5, minTop = 1
     gutter.addEventListener("pointercancel", onEnd);
   });
 
-  return wrapper;
+  return { wrapper, reflow };
 }
 
-function mountViewSplits() {
-  const navLayout = navigationTab.querySelector(".nav-layout");
-  if (navLayout && !navLayout.querySelector(":scope > .rd-split")) {
-    const [left, right] = Array.from(navLayout.children);
-    if (left && right) {
-      navLayout.textContent = "";
-      navLayout.appendChild(createSplit2({ key: "nav", leftEl: left, rightEl: right, minLeft: 260, minRight: 320 }));
+function mountSplitInLayout(layoutEl, factory) {
+  if (!layoutEl || layoutEl.querySelector(":scope > .rd-split")) {
+    return null;
+  }
+  const split = factory();
+  if (!split) {
+    return null;
+  }
+  layoutEl.textContent = "";
+  layoutEl.appendChild(split.wrapper);
+  return split;
+}
+
+async function mountViewSplitsForTab(tabName) {
+  if (tabName === "navigation" && !splitMountFlags.nav) {
+    const navLayout = navigationTab.querySelector(".nav-layout");
+    await waitForLayout(navigationTab);
+    if (navLayout) {
+      const [left, right] = Array.from(navLayout.children);
+      if (left && right) {
+        const split = mountSplitInLayout(navLayout, () => createSplit2({ key: "nav", leftEl: left, rightEl: right, minLeft: 260, minRight: 320 }));
+        if (split) {
+          splitControllers.set("nav", split.reflow);
+          splitMountFlags.nav = true;
+          split.reflow();
+        }
+      }
     }
   }
 
-  const gridLayout = gridTab.querySelector(".grid-layout");
-  if (gridLayout && !gridLayout.querySelector(":scope > .rd-split")) {
-    const [left, mid, right] = Array.from(gridLayout.children);
-    if (left && mid && right) {
-      gridLayout.textContent = "";
-      gridLayout.appendChild(createSplit3({ key: "edit", leftEl: left, midEl: mid, rightEl: right, minLeft: 220, minMid: 220, minRight: 220 }));
+  if (tabName === "grid" && !splitMountFlags.edit) {
+    const gridLayout = gridTab.querySelector(".grid-layout");
+    await waitForLayout(gridTab);
+    if (gridLayout) {
+      const [left, mid, right] = Array.from(gridLayout.children);
+      if (left && mid && right) {
+        const split = mountSplitInLayout(gridLayout, () => createSplit3({ key: "edit", leftEl: left, midEl: mid, rightEl: right, minLeft: 220, minMid: 220, minRight: 220 }));
+        if (split) {
+          splitControllers.set("edit", split.reflow);
+          splitMountFlags.edit = true;
+          split.reflow();
+        }
+      }
     }
   }
 
-  const actionsLayout = actionsTab.querySelector(".actions-layout");
-  if (actionsLayout && !actionsLayout.querySelector(":scope > .rd-split")) {
-    const [left, mid, right] = Array.from(actionsLayout.children);
-    if (left && mid && right) {
-      actionsLayout.textContent = "";
-      actionsLayout.appendChild(createSplit3({ key: "actions", leftEl: left, midEl: mid, rightEl: right, minLeft: 220, minMid: 220, minRight: 220 }));
+  if (tabName === "actions" && !splitMountFlags.actions) {
+    const actionsLayout = actionsTab.querySelector(".actions-layout");
+    await waitForLayout(actionsTab);
+    if (actionsLayout) {
+      const [left, mid, right] = Array.from(actionsLayout.children);
+      if (left && mid && right) {
+        const split = mountSplitInLayout(actionsLayout, () => createSplit3({ key: "actions", leftEl: left, midEl: mid, rightEl: right, minLeft: 220, minMid: 220, minRight: 220 }));
+        if (split) {
+          splitControllers.set("actions", split.reflow);
+          splitMountFlags.actions = true;
+          split.reflow();
+        }
+      }
     }
   }
 
-  if (!serverTab.querySelector(":scope > .rd-split")) {
+  if (tabName === "server" && !splitMountFlags.server) {
+    await waitForLayout(serverTab);
     const [top, bottom] = Array.from(serverTab.children);
     if (top && bottom) {
-      serverTab.textContent = "";
-      serverTab.appendChild(createSplitRows2({ key: "server", topEl: top, bottomEl: bottom, minTop: 160, minBottom: 160 }));
+      const split = mountSplitInLayout(serverTab, () => createSplitRows2({ key: "server", topEl: top, bottomEl: bottom, minTop: 160, minBottom: 160 }));
+      if (split) {
+        splitControllers.set("server", split.reflow);
+        splitMountFlags.server = true;
+        split.reflow();
+      }
     }
   }
+}
+
+function reflowMountedSplits() {
+  splitControllers.forEach((reflow) => {
+    if (typeof reflow === "function") {
+      reflow();
+    }
+  });
 }
 
 const TOPBAR_TAB_CONFIG = {
@@ -3171,6 +3276,10 @@ function setActiveTab(tabName) {
   navigationTab.classList.toggle("active", tabName === "navigation");
   gridTab.classList.toggle("active", tabName === "grid");
   actionsTab.classList.toggle("active", tabName === "actions");
+
+  mountViewSplitsForTab(tabName).then(() => {
+    reflowMountedSplits();
+  });
 }
 
 startBtn.addEventListener("click", async () => {
@@ -3243,6 +3352,10 @@ document.addEventListener("contextmenu", (event) => {
 
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => setActiveTab(button.dataset.tab));
+});
+
+window.addEventListener("resize", () => {
+  reflowMountedSplits();
 });
 
 gridProfileSelect.addEventListener("change", () => {
@@ -3324,8 +3437,9 @@ async function init() {
   injectTopbarStyles();
   injectNavigationTreeStyles();
   injectSplitLayoutStyles();
-  mountViewSplits();
   hydrateTopbarTabs();
+  await mountViewSplitsForTab("server");
+  reflowMountedSplits();
   await refreshStatus();
   state.workspace = await window.runtime.getWorkspace();
   state.selection = null;
