@@ -52,7 +52,16 @@
         gap: 8px;
         font-size: 15px;
         font-weight: 600;
-        transition: background 0.2s ease, color 0.2s ease;
+        transition: color 0.2s ease;
+      }
+
+      .rd-tab-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: inherit;
+        width: 100%;
+        height: 100%;
       }
 
       .rd-tab-label {
@@ -93,7 +102,6 @@
       .rd-tab:hover,
       .rd-tab.is-active,
       .rd-tab[aria-selected="true"] {
-        background: linear-gradient(to left, var(--tab-accent) 0%, var(--bg) 75%, var(--bg) 100%);
         color: #fff;
       }
 

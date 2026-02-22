@@ -2538,11 +2538,14 @@ function hydrateTopbarTabs() {
 
     button.replaceChildren();
 
+    const content = document.createElement("div");
+    content.className = "rd-tab-content";
+
     if (!config.iconOnly) {
       const label = document.createElement("span");
       label.className = "rd-tab-label";
       label.textContent = config.label;
-      button.appendChild(label);
+      content.appendChild(label);
     }
 
     const icon = document.createElement("img");
@@ -2567,7 +2570,8 @@ function hydrateTopbarTabs() {
     });
 
     applyCandidate();
-    button.appendChild(icon);
+    content.appendChild(icon);
+    button.appendChild(content);
   });
 }
 
@@ -2723,11 +2727,24 @@ actionsPageSelect.addEventListener("change", () => {
 });
 
 
+function injectTopbarStyles() {
+  const styles = window.styleResolver?.getTopbarFadeStyles?.();
+  if (!styles) {
+    return;
+  }
+
+  const styleTag = document.createElement("style");
+  styleTag.id = "rd-topbar-fade-styles";
+  styleTag.textContent = styles;
+  document.head.appendChild(styleTag);
+}
+
 window.runtime.onLog((message) => {
   appendLog(message);
 });
 
 async function init() {
+  injectTopbarStyles();
   hydrateTopbarTabs();
   await refreshStatus();
   state.workspace = await window.runtime.getWorkspace();
