@@ -1861,11 +1861,13 @@ function createTreeItem(node, selection) {
 
   const row = document.createElement("div");
   row.className = "rd-tree-row";
+  row.dataset.kind = node.kind === "element" ? "element" : node.kind;
 
   const label = document.createElement("button");
-  label.className = "tree-label";
+  label.className = "tree-label rd-tree-label";
   if (isNodeSelected(node, selection)) {
     label.classList.add("selected");
+    row.classList.add("is-selected");
   }
 
   const treeIconSlot = document.createElement("span");
