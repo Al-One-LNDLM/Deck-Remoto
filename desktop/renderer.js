@@ -59,6 +59,73 @@ const state = {
 
 const ACTIONS_ALLOWED_TYPES = new Set(["button", "toggle", "folderButton", "fader"]);
 
+
+const UI_FONT_FAMILY = "RD Pixel";
+const UI_FONT_CANDIDATES = [
+  "./assets/fonts/Minercraftory.woff2",
+  "./assets/fonts/Minercraftory.woff",
+  "./assets/fonts/Minercraftory.ttf",
+  "./assets/fonts/Minercraftory.otf",
+  "./assets/Minercraftory.woff2",
+  "./assets/Minercraftory.woff",
+  "./assets/Minercraftory.ttf",
+  "./assets/Minercraftory.otf",
+];
+
+function buildFontFaceSource(fontUrl) {
+  const lowerUrl = fontUrl.toLowerCase();
+  if (lowerUrl.endsWith(".woff2")) {
+    return `url("${fontUrl}") format("woff2")`;
+  }
+
+  if (lowerUrl.endsWith(".woff")) {
+    return `url("${fontUrl}") format("woff")`;
+  }
+
+  if (lowerUrl.endsWith(".ttf")) {
+    return `url("${fontUrl}") format("truetype")`;
+  }
+
+  if (lowerUrl.endsWith(".otf")) {
+    return `url("${fontUrl}") format("opentype")`;
+  }
+
+  return `url("${fontUrl}")`;
+}
+
+async function loadUiFont() {
+  const resolvedCandidates = UI_FONT_CANDIDATES.map((relativePath) => new URL(relativePath, window.location.href).toString());
+
+  for (const fontUrl of resolvedCandidates) {
+    try {
+      const fontFace = new FontFace(UI_FONT_FAMILY, buildFontFaceSource(fontUrl), {
+        display: "swap",
+      });
+      await fontFace.load();
+      document.fonts.add(fontFace);
+
+      const styleEl = document.createElement("style");
+      styleEl.id = "rd-ui-font-face";
+      styleEl.textContent = `
+        @font-face {
+          font-family: "${UI_FONT_FAMILY}";
+          src: ${buildFontFaceSource(fontUrl)};
+          font-display: swap;
+        }
+      `;
+      document.head.appendChild(styleEl);
+      return;
+    } catch (_error) {
+      // Try the next candidate path/format.
+    }
+  }
+
+  console.warn("[ui-font] Pixel font not found in desktop/assets/fonts or desktop/assets; using monospace fallback.");
+}
+
+
+loadUiFont();
+
 function clampGridValue(value) {
   const number = Number(value) || 1;
   return Math.max(1, Math.min(24, Math.round(number)));
