@@ -295,16 +295,18 @@
           const trackRect = faderTrack.getBoundingClientRect();
           const trackWidth = trackRect.width;
           const trackHeight = trackRect.height;
-          const targetGrabHeight = clampRange(trackHeight * 0.12, 28, 64, 28);
+          const targetGrabHeight = clampRange(trackHeight * 0.16, 36, 78, 36);
           const grabHeight = targetGrabHeight;
-          const grabWidth = clampRange(trackWidth * 0.8, 36, 88, 36);
+          const grabWidth = clampRange(trackWidth * 1.08, 52, 108, 52);
+          const visualGrabHeight = clampRange(grabHeight * 1.2, 44, 92, 44);
+          const visualGrabWidth = clampRange(grabWidth * 1.16, 60, 124, 60);
 
           knob.style.width = `${grabWidth}px`;
           knob.style.height = `${grabHeight}px`;
 
           if (skinGrab) {
-            skinGrab.style.width = `${grabWidth}px`;
-            skinGrab.style.height = `${grabHeight}px`;
+            skinGrab.style.width = `${visualGrabWidth}px`;
+            skinGrab.style.height = `${visualGrabHeight}px`;
           }
 
           metricsCache = {
