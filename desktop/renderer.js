@@ -31,6 +31,328 @@ const actionsControlsList = document.getElementById("actionsControlsList");
 const actionsPreviewCanvas = document.getElementById("actionsPreviewCanvas");
 const actionsInspector = document.getElementById("actionsInspector");
 
+const SPLIT_STORAGE_PREFIX = "rd.split.";
+const SPLIT_GUTTER_PX = 10;
+
+function clampSplitSize(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function readSplitState(key) {
+  try {
+    const raw = window.localStorage.getItem(`${SPLIT_STORAGE_PREFIX}${key}`);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function writeSplitState(key, payload) {
+  try {
+    window.localStorage.setItem(`${SPLIT_STORAGE_PREFIX}${key}`, JSON.stringify(payload));
+  } catch (_error) {
+    // Ignore storage failures and keep UI functional.
+  }
+}
+
+function createPane(child) {
+  const pane = document.createElement("div");
+  pane.className = "rd-pane";
+  pane.appendChild(child);
+  return pane;
+}
+
+function beginDrag(axis) {
+  document.body.classList.add("rd-dragging");
+  document.body.dataset.rdDragAxis = axis;
+}
+
+function endDrag() {
+  document.body.classList.remove("rd-dragging");
+  delete document.body.dataset.rdDragAxis;
+}
+
+function createSplit2({ key, leftEl, rightEl, defaultRatio = 0.5, minLeft = 260, minRight = 320 }) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "rd-split rd-split--cols2";
+  const leftPane = createPane(leftEl);
+  const rightPane = createPane(rightEl);
+  const gutter = document.createElement("div");
+  gutter.className = "rd-gutter rd-gutter--vertical";
+  gutter.setAttribute("role", "separator");
+  gutter.setAttribute("aria-orientation", "vertical");
+  gutter.setAttribute("tabindex", "0");
+
+  wrapper.append(leftPane, gutter, rightPane);
+
+  const apply = (widthPx) => {
+    wrapper.style.setProperty("--a", `${widthPx}px`);
+  };
+
+  const resolveInitial = () => {
+    const containerWidth = wrapper.clientWidth;
+    const maxLeft = Math.max(minLeft, containerWidth - SPLIT_GUTTER_PX - minRight);
+    const stored = readSplitState(key)?.a;
+    const start = Number.isFinite(Number(stored)) ? Number(stored) : containerWidth * defaultRatio;
+    return clampSplitSize(start, minLeft, maxLeft);
+  };
+
+  requestAnimationFrame(() => {
+    apply(resolveInitial());
+  });
+
+  gutter.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    const pointerId = event.pointerId;
+    const startX = event.clientX;
+    const startWidth = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || resolveInitial();
+    beginDrag("x");
+    gutter.setPointerCapture(pointerId);
+
+    const onMove = (moveEvent) => {
+      const containerWidth = wrapper.clientWidth;
+      const maxLeft = Math.max(minLeft, containerWidth - SPLIT_GUTTER_PX - minRight);
+      const next = clampSplitSize(startWidth + (moveEvent.clientX - startX), minLeft, maxLeft);
+      apply(next);
+    };
+
+    const onEnd = () => {
+      const finalValue = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || resolveInitial();
+      writeSplitState(key, { a: Math.round(finalValue) });
+      gutter.removeEventListener("pointermove", onMove);
+      gutter.removeEventListener("pointerup", onEnd);
+      gutter.removeEventListener("pointercancel", onEnd);
+      endDrag();
+      if (gutter.hasPointerCapture(pointerId)) {
+        gutter.releasePointerCapture(pointerId);
+      }
+    };
+
+    gutter.addEventListener("pointermove", onMove);
+    gutter.addEventListener("pointerup", onEnd);
+    gutter.addEventListener("pointercancel", onEnd);
+  });
+
+  return wrapper;
+}
+
+function createSplit3({ key, leftEl, midEl, rightEl, defaultRatios = [1 / 3, 1 / 3, 1 / 3], minLeft = 220, minMid = 220, minRight = 220 }) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "rd-split rd-split--cols3";
+  const leftPane = createPane(leftEl);
+  const midPane = createPane(midEl);
+  const rightPane = createPane(rightEl);
+  const gutterA = document.createElement("div");
+  gutterA.className = "rd-gutter rd-gutter--vertical";
+  gutterA.setAttribute("role", "separator");
+  gutterA.setAttribute("aria-orientation", "vertical");
+  gutterA.setAttribute("tabindex", "0");
+  const gutterB = gutterA.cloneNode(false);
+
+  wrapper.append(leftPane, gutterA, midPane, gutterB, rightPane);
+
+  const apply = (a, b) => {
+    wrapper.style.setProperty("--a", `${a}px`);
+    wrapper.style.setProperty("--b", `${b}px`);
+  };
+
+  const resolveInitial = () => {
+    const width = wrapper.clientWidth;
+    const maxA = Math.max(minLeft, width - (SPLIT_GUTTER_PX * 2) - minMid - minRight);
+    const maxB = Math.max(minMid, width - (SPLIT_GUTTER_PX * 2) - minLeft - minRight);
+    const stored = readSplitState(key) || {};
+    const aRaw = Number.isFinite(Number(stored.a)) ? Number(stored.a) : width * defaultRatios[0];
+    const bRaw = Number.isFinite(Number(stored.b)) ? Number(stored.b) : width * defaultRatios[1];
+    let a = clampSplitSize(aRaw, minLeft, maxA);
+    let b = clampSplitSize(bRaw, minMid, maxB);
+    const maxCombined = width - (SPLIT_GUTTER_PX * 2) - minRight;
+    if (a + b > maxCombined) {
+      const overflow = a + b - maxCombined;
+      if (b - overflow >= minMid) {
+        b -= overflow;
+      } else {
+        a = Math.max(minLeft, a - (overflow - (b - minMid)));
+        b = minMid;
+      }
+    }
+    return { a, b };
+  };
+
+  requestAnimationFrame(() => {
+    const initial = resolveInitial();
+    apply(initial.a, initial.b);
+  });
+
+  function mountGutterDrag(gutter, getter, setter) {
+    gutter.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      const pointerId = event.pointerId;
+      const startX = event.clientX;
+      const start = getter();
+      beginDrag("x");
+      gutter.setPointerCapture(pointerId);
+
+      const onMove = (moveEvent) => {
+        setter(start + (moveEvent.clientX - startX));
+      };
+
+      const onEnd = () => {
+        const a = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || resolveInitial().a;
+        const b = parseFloat(getComputedStyle(wrapper).getPropertyValue("--b")) || resolveInitial().b;
+        writeSplitState(key, { a: Math.round(a), b: Math.round(b) });
+        gutter.removeEventListener("pointermove", onMove);
+        gutter.removeEventListener("pointerup", onEnd);
+        gutter.removeEventListener("pointercancel", onEnd);
+        endDrag();
+        if (gutter.hasPointerCapture(pointerId)) {
+          gutter.releasePointerCapture(pointerId);
+        }
+      };
+
+      gutter.addEventListener("pointermove", onMove);
+      gutter.addEventListener("pointerup", onEnd);
+      gutter.addEventListener("pointercancel", onEnd);
+    });
+  }
+
+  mountGutterDrag(
+    gutterA,
+    () => parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || resolveInitial().a,
+    (rawA) => {
+      const width = wrapper.clientWidth;
+      const currentB = parseFloat(getComputedStyle(wrapper).getPropertyValue("--b")) || resolveInitial().b;
+      const maxA = width - (SPLIT_GUTTER_PX * 2) - currentB - minRight;
+      const a = clampSplitSize(rawA, minLeft, Math.max(minLeft, maxA));
+      apply(a, currentB);
+    },
+  );
+
+  mountGutterDrag(
+    gutterB,
+    () => {
+      const a = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || resolveInitial().a;
+      const b = parseFloat(getComputedStyle(wrapper).getPropertyValue("--b")) || resolveInitial().b;
+      return a + b;
+    },
+    (rawAB) => {
+      const width = wrapper.clientWidth;
+      const currentA = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || resolveInitial().a;
+      const minAB = currentA + minMid;
+      const maxAB = width - (SPLIT_GUTTER_PX * 2) - minRight;
+      const ab = clampSplitSize(rawAB, minAB, Math.max(minAB, maxAB));
+      const b = Math.max(minMid, ab - currentA);
+      apply(currentA, b);
+    },
+  );
+
+  return wrapper;
+}
+
+function createSplitRows2({ key, topEl, bottomEl, defaultRatio = 0.5, minTop = 160, minBottom = 160 }) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "rd-split rd-split--rows2";
+  const topPane = createPane(topEl);
+  const bottomPane = createPane(bottomEl);
+  const gutter = document.createElement("div");
+  gutter.className = "rd-gutter rd-gutter--horizontal";
+  gutter.setAttribute("role", "separator");
+  gutter.setAttribute("aria-orientation", "horizontal");
+  gutter.setAttribute("tabindex", "0");
+  wrapper.append(topPane, gutter, bottomPane);
+
+  const apply = (heightPx) => {
+    wrapper.style.setProperty("--a", `${heightPx}px`);
+  };
+
+  const resolveInitial = () => {
+    const height = wrapper.clientHeight;
+    const maxTop = Math.max(minTop, height - SPLIT_GUTTER_PX - minBottom);
+    const stored = readSplitState(key)?.a;
+    const start = Number.isFinite(Number(stored)) ? Number(stored) : height * defaultRatio;
+    return clampSplitSize(start, minTop, maxTop);
+  };
+
+  requestAnimationFrame(() => {
+    apply(resolveInitial());
+  });
+
+  gutter.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    const pointerId = event.pointerId;
+    const startY = event.clientY;
+    const startHeight = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || resolveInitial();
+    beginDrag("y");
+    gutter.setPointerCapture(pointerId);
+
+    const onMove = (moveEvent) => {
+      const containerHeight = wrapper.clientHeight;
+      const maxTop = Math.max(minTop, containerHeight - SPLIT_GUTTER_PX - minBottom);
+      const next = clampSplitSize(startHeight + (moveEvent.clientY - startY), minTop, maxTop);
+      apply(next);
+    };
+
+    const onEnd = () => {
+      const finalValue = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || resolveInitial();
+      writeSplitState(key, { a: Math.round(finalValue) });
+      gutter.removeEventListener("pointermove", onMove);
+      gutter.removeEventListener("pointerup", onEnd);
+      gutter.removeEventListener("pointercancel", onEnd);
+      endDrag();
+      if (gutter.hasPointerCapture(pointerId)) {
+        gutter.releasePointerCapture(pointerId);
+      }
+    };
+
+    gutter.addEventListener("pointermove", onMove);
+    gutter.addEventListener("pointerup", onEnd);
+    gutter.addEventListener("pointercancel", onEnd);
+  });
+
+  return wrapper;
+}
+
+function mountViewSplits() {
+  const navLayout = navigationTab.querySelector(".nav-layout");
+  if (navLayout && !navLayout.querySelector(":scope > .rd-split")) {
+    const [left, right] = Array.from(navLayout.children);
+    if (left && right) {
+      navLayout.textContent = "";
+      navLayout.appendChild(createSplit2({ key: "nav", leftEl: left, rightEl: right, minLeft: 260, minRight: 320 }));
+    }
+  }
+
+  const gridLayout = gridTab.querySelector(".grid-layout");
+  if (gridLayout && !gridLayout.querySelector(":scope > .rd-split")) {
+    const [left, mid, right] = Array.from(gridLayout.children);
+    if (left && mid && right) {
+      gridLayout.textContent = "";
+      gridLayout.appendChild(createSplit3({ key: "edit", leftEl: left, midEl: mid, rightEl: right, minLeft: 220, minMid: 220, minRight: 220 }));
+    }
+  }
+
+  const actionsLayout = actionsTab.querySelector(".actions-layout");
+  if (actionsLayout && !actionsLayout.querySelector(":scope > .rd-split")) {
+    const [left, mid, right] = Array.from(actionsLayout.children);
+    if (left && mid && right) {
+      actionsLayout.textContent = "";
+      actionsLayout.appendChild(createSplit3({ key: "actions", leftEl: left, midEl: mid, rightEl: right, minLeft: 220, minMid: 220, minRight: 220 }));
+    }
+  }
+
+  if (!serverTab.querySelector(":scope > .rd-split")) {
+    const [top, bottom] = Array.from(serverTab.children);
+    if (top && bottom) {
+      serverTab.textContent = "";
+      serverTab.appendChild(createSplitRows2({ key: "server", topEl: top, bottomEl: bottom, minTop: 160, minBottom: 160 }));
+    }
+  }
+}
+
 const TOPBAR_TAB_CONFIG = {
   navigation: { label: "Navegación", iconBaseName: "NAV" },
   grid: { label: "Edición", iconBaseName: "EDIT" },
@@ -2982,6 +3304,18 @@ function injectNavigationTreeStyles() {
   document.head.appendChild(styleTag);
 }
 
+function injectSplitLayoutStyles() {
+  const styles = window.styleResolver?.getSplitLayoutStyles?.();
+  if (!styles) {
+    return;
+  }
+
+  const styleTag = document.createElement("style");
+  styleTag.id = "rd-split-layout-styles";
+  styleTag.textContent = styles;
+  document.head.appendChild(styleTag);
+}
+
 window.runtime.onLog((message) => {
   appendLog(message);
 });
@@ -2989,6 +3323,8 @@ window.runtime.onLog((message) => {
 async function init() {
   injectTopbarStyles();
   injectNavigationTreeStyles();
+  injectSplitLayoutStyles();
+  mountViewSplits();
   hydrateTopbarTabs();
   await refreshStatus();
   state.workspace = await window.runtime.getWorkspace();

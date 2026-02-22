@@ -10,6 +10,7 @@
         margin: 0;
         background: #121212;
         color: #f5f5f5;
+        min-height: 100vh;
       }
 
       :root {
@@ -30,6 +31,9 @@
 
       .rd-app {
         padding: 16px 24px 24px;
+        height: calc(100vh - 96px);
+        min-height: 0;
+        min-width: 0;
       }
 
       h1,
@@ -122,6 +126,9 @@
 
       .tab-panel {
         display: none;
+        height: 100%;
+        min-height: 0;
+        min-width: 0;
       }
 
       .tab-panel.active {
@@ -134,6 +141,8 @@
         padding: 16px;
         margin-bottom: 16px;
         background: #1c1c1c;
+        min-width: 0;
+        min-height: 0;
       }
 
       .buttons {
@@ -209,24 +218,21 @@
       }
 
       .nav-layout {
-        display: grid;
-        grid-template-columns: 1fr 360px;
-        gap: 16px;
+        display: block;
         min-height: 500px;
+        height: 100%;
       }
 
       .grid-layout {
-        display: grid;
-        grid-template-columns: 320px 1fr minmax(220px, 320px);
-        gap: 16px;
+        display: block;
         min-height: 500px;
+        height: 100%;
       }
 
       .actions-layout {
-        display: grid;
-        grid-template-columns: 320px 1fr minmax(260px, 360px);
-        gap: 16px;
+        display: block;
         min-height: 500px;
+        height: 100%;
       }
 
       .grid-column {
@@ -234,6 +240,7 @@
         gap: 12px;
         align-content: start;
         min-height: 0;
+        min-width: 0;
       }
 
       .grid-select-row {
@@ -262,6 +269,7 @@
         gap: 12px;
         align-content: start;
         min-height: 0;
+        min-width: 0;
       }
 
       .actions-select-row {
