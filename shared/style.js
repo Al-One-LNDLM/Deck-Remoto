@@ -117,9 +117,42 @@
     return `
       .rd-tree-row {
         width: 100%;
+        min-height: 42px;
+        padding: 6px 10px;
         display: flex;
         align-items: center;
         gap: 8px;
+        background: linear-gradient(
+          to right,
+          var(--tree-color, transparent) 0%,
+          rgba(0, 0, 0, 0) 35%,
+          #000 100%
+        );
+      }
+
+      .rd-tree-row[data-kind="profile"] {
+        --tree-color: var(--accent-nav, #2ec7ff);
+      }
+
+      .rd-tree-row[data-kind="page"] {
+        --tree-color: var(--accent-edit, #ffd84a);
+      }
+
+      .rd-tree-row[data-kind="folder"] {
+        --tree-color: var(--accent-actions, #ff4444);
+      }
+
+      .rd-tree-row[data-kind="element"] {
+        --tree-color: var(--accent-server, #3cff6a);
+      }
+
+      .rd-tree-row:hover {
+        filter: brightness(1.08);
+      }
+
+      .rd-tree-row.is-selected {
+        outline: 2px solid var(--tree-color);
+        outline-offset: -2px;
       }
 
       .rd-tree-iconSlot {
@@ -155,6 +188,11 @@
 
       .rd-tree-iconSlot[data-icon-missing="1"] .rd-tree-iconFallback {
         display: inline-block;
+      }
+
+
+      .rd-tree-label {
+        text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
       }
 
       .rd-tree-toggle {
