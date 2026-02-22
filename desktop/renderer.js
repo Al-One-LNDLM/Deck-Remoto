@@ -1621,12 +1621,12 @@ function getTreeElementName(element) {
 }
 
 function getTreeIconBaseName(node) {
-  if (node.kind === "profile") return "Perf";
-  if (node.kind === "page") return "Pag";
-  if (node.kind === "folder") return "Carp";
+  if (node.kind === "profile") return "PERF";
+  if (node.kind === "page") return "PAG";
+  if (node.kind === "folder") return "CARP";
 
   if (node.kind === "element") {
-    return node.elementType === "fader" ? "Fad" : "Bot";
+    return node.elementType === "fader" ? "FAD" : "BOT";
   }
 
   return null;
@@ -1649,7 +1649,7 @@ function buildTreeIconCandidates(iconBaseName) {
   }
 
   const extensions = window.styleResolver?.getTopbarIconExtensions?.() || ["png", "svg", "webp"];
-  return extensions.map((extension) => new URL(`./assets/${iconBaseName}.${extension}`, window.location.href).href);
+  return extensions.map((extension) => new URL(`./assets/iconos por defecto/${iconBaseName}.${extension}`, window.location.href).href);
 }
 
 function buildTreeNodes(workspace) {
