@@ -196,7 +196,7 @@ function endDrag() {
   delete document.body.dataset.rdDragAxis;
 }
 
-function createSplit2({ key, leftEl, rightEl, minLeft = 260, minRight = 320 }) {
+function createSplit2({ key, leftEl, rightEl, minLeft = 220, minRight = 220 }) {
   const wrapper = document.createElement("div");
   wrapper.className = "rd-split rd-split--cols2";
   const leftPane = createPane(leftEl);
@@ -226,14 +226,8 @@ function createSplit2({ key, leftEl, rightEl, minLeft = 260, minRight = 320 }) {
     if (!initialized) {
       return;
     }
-    const stored = readSplitState(key)?.a;
-    const defaultWidth = Math.round(wrapper.clientWidth * 0.5);
-    const desired = Number.isFinite(Number(stored)) ? Number(stored) : defaultWidth;
-    const next = normalize(desired);
+    const next = normalize(Math.round(wrapper.clientWidth * 0.5));
     apply(next);
-    if (!Number.isFinite(Number(stored)) || Math.round(desired) !== Math.round(next)) {
-      writeSplitState(key, { a: Math.round(next) });
-    }
   };
 
   const init = async () => {
@@ -242,12 +236,6 @@ function createSplit2({ key, leftEl, rightEl, minLeft = 260, minRight = 320 }) {
     apply(defaultWidth);
     initialized = true;
     logSplitInitDebug(key, { width, height }, { a: defaultWidth });
-
-    const stored = readSplitState(key)?.a;
-    if (Number.isFinite(Number(stored))) {
-      const restored = normalize(Math.round(Number(stored)));
-      apply(restored);
-    }
 
     reflow();
   };
@@ -269,7 +257,6 @@ function createSplit2({ key, leftEl, rightEl, minLeft = 260, minRight = 320 }) {
       const finalValue = parseFloat(getComputedStyle(wrapper).getPropertyValue("--a")) || normalize(Math.round(wrapper.clientWidth * 0.5));
       const next = normalize(finalValue);
       apply(next);
-      writeSplitState(key, { a: Math.round(next) });
       gutter.removeEventListener("pointermove", onMove);
       gutter.removeEventListener("pointerup", onEnd);
       gutter.removeEventListener("pointercancel", onEnd);
@@ -329,17 +316,9 @@ function createSplit3({ key, leftEl, midEl, rightEl, minLeft = 220, minMid = 220
     if (!initialized) {
       return;
     }
-    const stored = readSplitState(key) || {};
     const width = wrapper.clientWidth;
-    const defaultA = Math.round(width / 3);
-    const defaultB = Math.round(width / 3);
-    const rawA = Number.isFinite(Number(stored.a)) ? Number(stored.a) : defaultA;
-    const rawB = Number.isFinite(Number(stored.b)) ? Number(stored.b) : defaultB;
-    const next = normalize(rawA, rawB);
+    const next = normalize(Math.round(width / 3), Math.round(width / 3));
     apply(next.a, next.b);
-    if (!Number.isFinite(Number(stored.a)) || !Number.isFinite(Number(stored.b)) || Math.round(rawA) !== Math.round(next.a) || Math.round(rawB) !== Math.round(next.b)) {
-      writeSplitState(key, { a: Math.round(next.a), b: Math.round(next.b) });
-    }
   };
 
   const init = async () => {
@@ -348,12 +327,6 @@ function createSplit3({ key, leftEl, midEl, rightEl, minLeft = 220, minMid = 220
     apply(defaults.a, defaults.b);
     initialized = true;
     logSplitInitDebug(key, { width, height }, defaults);
-
-    const stored = readSplitState(key) || {};
-    if (Number.isFinite(Number(stored.a)) && Number.isFinite(Number(stored.b))) {
-      const restored = normalize(Math.round(Number(stored.a)), Math.round(Number(stored.b)));
-      apply(restored.a, restored.b);
-    }
 
     reflow();
   };
@@ -376,7 +349,6 @@ function createSplit3({ key, leftEl, midEl, rightEl, minLeft = 220, minMid = 220
         const b = parseFloat(getComputedStyle(wrapper).getPropertyValue("--b")) || Math.round(wrapper.clientWidth / 3);
         const next = normalize(a, b);
         apply(next.a, next.b);
-        writeSplitState(key, { a: Math.round(next.a), b: Math.round(next.b) });
         gutter.removeEventListener("pointermove", onMove);
         gutter.removeEventListener("pointerup", onEnd);
         gutter.removeEventListener("pointercancel", onEnd);
@@ -530,7 +502,7 @@ async function mountViewSplitsForTab(tabName) {
     if (navLayout) {
       const [left, right] = Array.from(navLayout.children);
       if (left && right) {
-        const split = mountSplitInLayout(navLayout, () => createSplit2({ key: "nav", leftEl: left, rightEl: right, minLeft: 260, minRight: 320 }));
+        const split = mountSplitInLayout(navLayout, () => createSplit2({ key: "nav", leftEl: left, rightEl: right, minLeft: 220, minRight: 220 }));
         if (split) {
           splitControllers.set("nav", split.reflow);
           splitMountFlags.nav = true;
