@@ -60,16 +60,10 @@ const state = {
 const ACTIONS_ALLOWED_TYPES = new Set(["button", "toggle", "folderButton", "fader"]);
 
 
-const UI_FONT_FAMILY = "RD Pixel";
+const UI_FONT_FAMILY = "Press Start 2P";
 const UI_FONT_CANDIDATES = [
-  "./assets/fonts/Minercraftory.woff2",
-  "./assets/fonts/Minercraftory.woff",
-  "./assets/fonts/Minercraftory.ttf",
-  "./assets/fonts/Minercraftory.otf",
-  "./assets/Minercraftory.woff2",
-  "./assets/Minercraftory.woff",
-  "./assets/Minercraftory.ttf",
-  "./assets/Minercraftory.otf",
+  "./assets/fonts/PressStart2P-Regular.woff2",
+  "./assets/PressStart2P-Regular.woff2",
 ];
 
 function buildFontFaceSource(fontUrl) {
