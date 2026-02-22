@@ -702,11 +702,17 @@
 
       .tree-toolbar {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
         margin-bottom: 12px;
         min-width: 0;
         max-width: 100%;
+      }
+
+      .tree-toolbar h2,
+      .nav-inspector-pane h2 {
+        margin: 0;
+        line-height: 1.3;
       }
 
       .tree-list {
@@ -757,13 +763,14 @@
 
       .inspector-form {
         display: grid;
-        gap: 12px;
+        gap: 20px;
         align-content: start;
+        line-height: 1.5;
       }
 
       .inspector-row {
         display: grid;
-        gap: 4px;
+        gap: 8px;
       }
 
       .inspector-row input {
@@ -776,11 +783,12 @@
 
       .inspector-elements {
         display: grid;
-        gap: 8px;
+        gap: 12px;
       }
 
       .inspector-elements h4 {
         margin: 0;
+        line-height: 1.4;
       }
 
       .inspector-item-row {
