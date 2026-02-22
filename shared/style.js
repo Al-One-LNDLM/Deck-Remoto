@@ -118,16 +118,31 @@
       .rd-tree-row {
         width: 100%;
         min-height: 42px;
-        padding: 6px 10px;
-        display: flex;
+        padding: 6px 12px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
         gap: 8px;
+        border: 1px solid #2f2f2f;
+        border-radius: 6px;
         background: linear-gradient(
           to right,
           var(--tree-color, transparent) 0%,
           rgba(0, 0, 0, 0) 35%,
           #000 100%
         );
+      }
+
+      .tree-item.tree-level-1 .rd-tree-row {
+        margin-left: 18px;
+      }
+
+      .tree-item.tree-level-2 .rd-tree-row {
+        margin-left: 36px;
+      }
+
+      .tree-item.tree-level-3 .rd-tree-row {
+        margin-left: 54px;
       }
 
       .rd-tree-row[data-kind="profile"] {
@@ -147,12 +162,11 @@
       }
 
       .rd-tree-row:hover {
-        filter: brightness(1.08);
+        filter: brightness(1.08) saturate(1.05);
       }
 
       .rd-tree-row.is-selected {
-        outline: 2px solid var(--tree-color);
-        outline-offset: -2px;
+        box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.75);
       }
 
       .rd-tree-iconSlot {
@@ -192,20 +206,36 @@
 
 
       .rd-tree-label {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #f5f5f5;
+        text-align: left;
+        min-height: 28px;
+        display: inline-flex;
+        align-items: center;
         text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
       }
 
+      .tree-item.tree-level-1 .rd-tree-label,
+      .tree-item.tree-level-2 .rd-tree-label,
+      .tree-item.tree-level-3 .rd-tree-label {
+        margin-left: 0;
+      }
+
       .rd-tree-toggle {
-        margin-left: auto;
+        margin-left: 0;
         width: 24px;
         height: 24px;
         min-width: 24px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border: 1px solid #3a3a3a;
-        border-radius: 6px;
-        background: #000;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.2);
         color: #f5f5f5;
         padding: 0;
         line-height: 1;
