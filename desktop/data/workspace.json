@@ -63,29 +63,6 @@
               }
             },
             {
-              "id": "folderButton1",
-              "type": "folderButton",
-              "name": "Carpeta 1",
-              "folderId": "folder1",
-              "iconAssetId": null,
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "openFolder",
-                  "folderId": "folder1"
-                }
-              },
-              "style": {
-                "backgroundEnabled": false,
-                "backgroundColor": "#000000",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": false
-              }
-            },
-            {
               "id": "fader1",
               "type": "fader",
               "name": "Fader 1",
@@ -237,14 +214,6 @@
             }
           ],
           "placements": [
-            {
-              "id": "placement1",
-              "elementId": "folderButton1",
-              "row": 3,
-              "col": 1,
-              "rowSpan": 1,
-              "colSpan": 1
-            },
             {
               "id": "placement2",
               "elementId": "button5",
