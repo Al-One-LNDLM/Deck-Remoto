@@ -252,6 +252,75 @@
     `;
   }
 
+  function getSplitLayoutStyles() {
+    return `
+      .rd-split {
+        --g: 10px;
+        --a: 50%;
+        --b: 33.33%;
+        display: grid;
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        min-height: 0;
+      }
+
+      .rd-split--cols2 {
+        grid-template-columns: var(--a) var(--g) minmax(0, 1fr);
+      }
+
+      .rd-split--cols3 {
+        grid-template-columns: var(--a) var(--g) var(--b) var(--g) minmax(0, 1fr);
+      }
+
+      .rd-split--rows2 {
+        grid-template-rows: var(--a) var(--g) minmax(0, 1fr);
+      }
+
+      .rd-pane {
+        min-width: 0;
+        min-height: 0;
+        overflow: auto;
+      }
+
+      .rd-gutter {
+        background: #000;
+        border: 3px solid #1b1b1b;
+        box-sizing: border-box;
+        transition: box-shadow 120ms ease;
+      }
+
+      .rd-gutter:hover,
+      .rd-gutter:focus-visible {
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+        outline: none;
+      }
+
+      .rd-gutter--vertical {
+        width: var(--g);
+        cursor: col-resize;
+      }
+
+      .rd-gutter--horizontal {
+        height: var(--g);
+        cursor: row-resize;
+      }
+
+      body.rd-dragging,
+      body.rd-dragging * {
+        user-select: none !important;
+      }
+
+      body.rd-dragging[data-rd-drag-axis="x"] {
+        cursor: col-resize;
+      }
+
+      body.rd-dragging[data-rd-drag-axis="y"] {
+        cursor: row-resize;
+      }
+    `;
+  }
+
   function getStyleBucket(pageStyle, controlType) {
     if (controlType === "fader") {
       return pageStyle.fader;
@@ -283,6 +352,7 @@
     normalizeTypeStyle,
     getTopbarIconExtensions,
     getNavigationTreeStyles,
+    getSplitLayoutStyles,
     getTopbarFadeStyles,
     resolveGlobalStyle,
     sanitizeHexColor,
