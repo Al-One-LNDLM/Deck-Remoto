@@ -1,9 +1,9 @@
 {
-  "activeProfileId": "profile2",
-  "activePageId": "page4",
+  "activeProfileId": "profile1",
+  "activePageId": "page1",
   "lastSession": {
-    "activeProfileId": "profile2",
-    "activePageId": "page4",
+    "activeProfileId": "profile1",
+    "activePageId": "page1",
     "activeFolderId": null
   },
   "profiles": [
