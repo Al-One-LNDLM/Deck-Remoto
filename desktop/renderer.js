@@ -34,6 +34,8 @@ const actionsInspector = document.getElementById("actionsInspector");
 const SPLIT_STORAGE_PREFIX = "rd.split.";
 const SPLIT_GUTTER_PX = 10;
 const SPLIT_LAYOUT_MAX_WAIT_FRAMES = 30;
+const SPLIT_READY_MIN_PX = 50;
+const SPLIT_READY_MAX_ATTEMPTS = 60;
 const splitControllers = new Map();
 const splitMountFlags = {
   nav: false,
@@ -44,6 +46,73 @@ const splitMountFlags = {
 
 function clampSplitSize(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+function isDevMode() {
+  return window.location.hostname === "localhost" || window.location.search.includes("dev=1");
+}
+
+function logSplitInitDebug(key, containerSize, paneSizes) {
+  if (!isDevMode()) {
+    return;
+  }
+  console.debug("[rd-split:init]", key, {
+    container: containerSize,
+    panes: paneSizes,
+  });
+}
+
+function waitForSplitLayoutReady(element) {
+  return new Promise((resolve) => {
+    if (!element) {
+      resolve({ width: 0, height: 0, ready: false });
+      return;
+    }
+
+    const isReady = (width, height) => width > SPLIT_READY_MIN_PX && height > SPLIT_READY_MIN_PX;
+    const readRect = () => {
+      const rect = element.getBoundingClientRect();
+      const width = Math.round(rect.width);
+      const height = Math.round(rect.height);
+      return { width, height, ready: isReady(width, height) };
+    };
+
+    if (typeof window.ResizeObserver === "function") {
+      const initial = readRect();
+      if (initial.ready) {
+        resolve(initial);
+        return;
+      }
+
+      const observer = new window.ResizeObserver((entries) => {
+        const entryRect = entries[0]?.contentRect;
+        const width = Math.round(entryRect?.width ?? element.getBoundingClientRect().width);
+        const height = Math.round(entryRect?.height ?? element.getBoundingClientRect().height);
+        if (isReady(width, height)) {
+          observer.disconnect();
+          resolve({ width, height, ready: true });
+        }
+      });
+      observer.observe(element);
+      return;
+    }
+
+    let attempts = 0;
+    const poll = () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const measured = readRect();
+          if (measured.ready || attempts >= SPLIT_READY_MAX_ATTEMPTS) {
+            resolve(measured);
+            return;
+          }
+          attempts += 1;
+          poll();
+        });
+      });
+    };
+    poll();
+  });
 }
 
 function waitForLayout(element, maxFrames = SPLIT_LAYOUT_MAX_WAIT_FRAMES) {
@@ -139,9 +208,12 @@ function createSplit2({ key, leftEl, rightEl, minLeft = 260, minRight = 320 }) {
   gutter.setAttribute("tabindex", "0");
 
   wrapper.append(leftPane, gutter, rightPane);
+  let initialized = false;
 
   const apply = (widthPx) => {
-    wrapper.style.setProperty("--a", `${Math.round(widthPx)}px`);
+    const a = Math.round(widthPx);
+    wrapper.style.setProperty("--a", `${a}px`);
+    wrapper.style.gridTemplateColumns = `${a}px ${SPLIT_GUTTER_PX}px minmax(0, 1fr)`;
   };
 
   const normalize = (candidate) => {
@@ -151,6 +223,9 @@ function createSplit2({ key, leftEl, rightEl, minLeft = 260, minRight = 320 }) {
   };
 
   const reflow = () => {
+    if (!initialized) {
+      return;
+    }
     const stored = readSplitState(key)?.a;
     const defaultWidth = Math.round(wrapper.clientWidth * 0.5);
     const desired = Number.isFinite(Number(stored)) ? Number(stored) : defaultWidth;
@@ -159,6 +234,22 @@ function createSplit2({ key, leftEl, rightEl, minLeft = 260, minRight = 320 }) {
     if (!Number.isFinite(Number(stored)) || Math.round(desired) !== Math.round(next)) {
       writeSplitState(key, { a: Math.round(next) });
     }
+  };
+
+  const init = async () => {
+    const { width, height } = await waitForSplitLayoutReady(wrapper);
+    const defaultWidth = normalize(Math.round(width / 2));
+    apply(defaultWidth);
+    initialized = true;
+    logSplitInitDebug(key, { width, height }, { a: defaultWidth });
+
+    const stored = readSplitState(key)?.a;
+    if (Number.isFinite(Number(stored))) {
+      const restored = normalize(Math.round(Number(stored)));
+      apply(restored);
+    }
+
+    reflow();
   };
 
   gutter.addEventListener("pointerdown", (event) => {
@@ -193,7 +284,7 @@ function createSplit2({ key, leftEl, rightEl, minLeft = 260, minRight = 320 }) {
     gutter.addEventListener("pointercancel", onEnd);
   });
 
-  return { wrapper, reflow };
+  return { wrapper, reflow, init };
 }
 
 function createSplit3({ key, leftEl, midEl, rightEl, minLeft = 220, minMid = 220, minRight = 220 }) {
@@ -210,10 +301,14 @@ function createSplit3({ key, leftEl, midEl, rightEl, minLeft = 220, minMid = 220
   const gutterB = gutterA.cloneNode(false);
 
   wrapper.append(leftPane, gutterA, midPane, gutterB, rightPane);
+  let initialized = false;
 
   const apply = (a, b) => {
-    wrapper.style.setProperty("--a", `${Math.round(a)}px`);
-    wrapper.style.setProperty("--b", `${Math.round(b)}px`);
+    const nextA = Math.round(a);
+    const nextB = Math.round(b);
+    wrapper.style.setProperty("--a", `${nextA}px`);
+    wrapper.style.setProperty("--b", `${nextB}px`);
+    wrapper.style.gridTemplateColumns = `${nextA}px ${SPLIT_GUTTER_PX}px ${nextB}px ${SPLIT_GUTTER_PX}px minmax(0, 1fr)`;
   };
 
   const normalize = (rawA, rawB) => {
@@ -231,6 +326,9 @@ function createSplit3({ key, leftEl, midEl, rightEl, minLeft = 220, minMid = 220
   };
 
   const reflow = () => {
+    if (!initialized) {
+      return;
+    }
     const stored = readSplitState(key) || {};
     const width = wrapper.clientWidth;
     const defaultA = Math.round(width / 3);
@@ -242,6 +340,22 @@ function createSplit3({ key, leftEl, midEl, rightEl, minLeft = 220, minMid = 220
     if (!Number.isFinite(Number(stored.a)) || !Number.isFinite(Number(stored.b)) || Math.round(rawA) !== Math.round(next.a) || Math.round(rawB) !== Math.round(next.b)) {
       writeSplitState(key, { a: Math.round(next.a), b: Math.round(next.b) });
     }
+  };
+
+  const init = async () => {
+    const { width, height } = await waitForSplitLayoutReady(wrapper);
+    const defaults = normalize(Math.round(width / 3), Math.round(width / 3));
+    apply(defaults.a, defaults.b);
+    initialized = true;
+    logSplitInitDebug(key, { width, height }, defaults);
+
+    const stored = readSplitState(key) || {};
+    if (Number.isFinite(Number(stored.a)) && Number.isFinite(Number(stored.b))) {
+      const restored = normalize(Math.round(Number(stored.a)), Math.round(Number(stored.b)));
+      apply(restored.a, restored.b);
+    }
+
+    reflow();
   };
 
   function mountGutterDrag(gutter, getter, setter) {
@@ -303,7 +417,7 @@ function createSplit3({ key, leftEl, midEl, rightEl, minLeft = 220, minMid = 220
     },
   );
 
-  return { wrapper, reflow };
+  return { wrapper, reflow, init };
 }
 
 function createSplitRows2({ key, topEl, bottomEl, minTop = 160, minBottom = 160 }) {
@@ -317,9 +431,12 @@ function createSplitRows2({ key, topEl, bottomEl, minTop = 160, minBottom = 160 
   gutter.setAttribute("aria-orientation", "horizontal");
   gutter.setAttribute("tabindex", "0");
   wrapper.append(topPane, gutter, bottomPane);
+  let initialized = false;
 
   const apply = (heightPx) => {
-    wrapper.style.setProperty("--a", `${Math.round(heightPx)}px`);
+    const a = Math.round(heightPx);
+    wrapper.style.setProperty("--a", `${a}px`);
+    wrapper.style.gridTemplateRows = `${a}px ${SPLIT_GUTTER_PX}px minmax(0, 1fr)`;
   };
 
   const normalize = (candidate) => {
@@ -329,6 +446,9 @@ function createSplitRows2({ key, topEl, bottomEl, minTop = 160, minBottom = 160 
   };
 
   const reflow = () => {
+    if (!initialized) {
+      return;
+    }
     const stored = readSplitState(key)?.a;
     const defaultHeight = Math.round(wrapper.clientHeight * 0.5);
     const desired = Number.isFinite(Number(stored)) ? Number(stored) : defaultHeight;
@@ -337,6 +457,22 @@ function createSplitRows2({ key, topEl, bottomEl, minTop = 160, minBottom = 160 
     if (!Number.isFinite(Number(stored)) || Math.round(desired) !== Math.round(next)) {
       writeSplitState(key, { a: Math.round(next) });
     }
+  };
+
+  const init = async () => {
+    const { width, height } = await waitForSplitLayoutReady(wrapper);
+    const defaultHeight = normalize(Math.round(height / 2));
+    apply(defaultHeight);
+    initialized = true;
+    logSplitInitDebug(key, { width, height }, { a: defaultHeight });
+
+    const stored = readSplitState(key)?.a;
+    if (Number.isFinite(Number(stored))) {
+      const restored = normalize(Math.round(Number(stored)));
+      apply(restored);
+    }
+
+    reflow();
   };
 
   gutter.addEventListener("pointerdown", (event) => {
@@ -371,7 +507,7 @@ function createSplitRows2({ key, topEl, bottomEl, minTop = 160, minBottom = 160 
     gutter.addEventListener("pointercancel", onEnd);
   });
 
-  return { wrapper, reflow };
+  return { wrapper, reflow, init };
 }
 
 function mountSplitInLayout(layoutEl, factory) {
@@ -398,7 +534,7 @@ async function mountViewSplitsForTab(tabName) {
         if (split) {
           splitControllers.set("nav", split.reflow);
           splitMountFlags.nav = true;
-          split.reflow();
+          await split.init();
         }
       }
     }
@@ -414,7 +550,7 @@ async function mountViewSplitsForTab(tabName) {
         if (split) {
           splitControllers.set("edit", split.reflow);
           splitMountFlags.edit = true;
-          split.reflow();
+          await split.init();
         }
       }
     }
@@ -430,7 +566,7 @@ async function mountViewSplitsForTab(tabName) {
         if (split) {
           splitControllers.set("actions", split.reflow);
           splitMountFlags.actions = true;
-          split.reflow();
+          await split.init();
         }
       }
     }
@@ -444,7 +580,7 @@ async function mountViewSplitsForTab(tabName) {
       if (split) {
         splitControllers.set("server", split.reflow);
         splitMountFlags.server = true;
-        split.reflow();
+        await split.init();
       }
     }
   }
