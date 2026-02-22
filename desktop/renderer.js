@@ -39,6 +39,7 @@ const TOPBAR_TAB_CONFIG = {
 };
 
 const NAV_COLLAPSED_STORAGE_KEY = "rd.nav.collapsed";
+const warnedTreeIconUrls = new Set();
 
 function loadCollapsedMap() {
   try {
@@ -62,10 +63,11 @@ function saveCollapsedMap(map) {
   }
 }
 
+const navCollapsedMap = loadCollapsedMap();
+
 const state = {
   workspace: null,
   selection: null,
-  navCollapsedMap: loadCollapsedMap(),
   renameTimer: null,
   gridSelection: {
     profileId: null,
@@ -150,7 +152,7 @@ function isCollapsed(key) {
     return false;
   }
 
-  return state.navCollapsedMap[key] === true;
+  return navCollapsedMap[key] === true;
 }
 
 function toggleCollapsed(key) {
@@ -158,18 +160,13 @@ function toggleCollapsed(key) {
     return;
   }
 
-  const nextMap = {
-    ...(state.navCollapsedMap || {}),
-  };
-
-  if (nextMap[key]) {
-    delete nextMap[key];
+  if (navCollapsedMap[key]) {
+    delete navCollapsedMap[key];
   } else {
-    nextMap[key] = true;
+    navCollapsedMap[key] = true;
   }
 
-  state.navCollapsedMap = nextMap;
-  saveCollapsedMap(nextMap);
+  saveCollapsedMap(navCollapsedMap);
 }
 
 function clampGridValue(value) {
@@ -1635,6 +1632,17 @@ function getTreeIconBaseName(node) {
   return null;
 }
 
+function getTreeIconFallbackLabel(node) {
+  if (node.kind === "profile") return "P";
+  if (node.kind === "page") return "Pg";
+  if (node.kind === "folder") return "C";
+  if (node.kind === "element") {
+    return node.elementType === "fader" ? "F" : "B";
+  }
+
+  return "?";
+}
+
 function buildTreeIconCandidates(iconBaseName) {
   if (!iconBaseName) {
     return [];
@@ -1860,6 +1868,10 @@ function createTreeItem(node, selection) {
     label.classList.add("selected");
   }
 
+  const treeIconSlot = document.createElement("span");
+  treeIconSlot.className = "rd-tree-iconSlot";
+  treeIconSlot.textContent = getTreeIconFallbackLabel(node);
+
   const treeIcon = document.createElement("img");
   treeIcon.className = "rd-tree-icon";
   treeIcon.alt = "";
@@ -1873,17 +1885,25 @@ function createTreeItem(node, selection) {
   };
 
   treeIcon.addEventListener("error", () => {
+    const failedUrl = treeIcon.currentSrc || treeIcon.src;
     treeIconCandidateIndex += 1;
     if (treeIconCandidateIndex < treeIconCandidates.length) {
       applyTreeIconCandidate();
       return;
     }
 
+    if (failedUrl && !warnedTreeIconUrls.has(failedUrl)) {
+      warnedTreeIconUrls.add(failedUrl);
+      console.warn(`[tree-icon] No se pudo cargar: ${failedUrl}`);
+    }
+
+    treeIconSlot.dataset.iconMissing = "1";
     treeIcon.style.display = "none";
   });
 
   applyTreeIconCandidate();
-  label.appendChild(treeIcon);
+  treeIconSlot.appendChild(treeIcon);
+  label.appendChild(treeIconSlot);
 
   const text = document.createElement("span");
   text.textContent = node.label;

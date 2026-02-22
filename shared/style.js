@@ -122,15 +122,29 @@
         gap: 8px;
       }
 
+      .rd-tree-iconSlot {
+        width: 20px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 8px;
+        flex: 0 0 20px;
+      }
+
       .rd-tree-icon {
         width: 20px;
         height: 20px;
-        margin-right: 8px;
-        display: inline-block;
-        vertical-align: middle;
+        object-fit: contain;
         image-rendering: pixelated;
         pointer-events: none;
-        flex: 0 0 auto;
+        filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.35));
+      }
+
+      .rd-tree-iconSlot[data-icon-missing="1"] {
+        color: #fff;
+        opacity: 0.9;
+        font-size: 12px;
       }
 
       .rd-tree-toggle {
