@@ -235,6 +235,11 @@
         overflow: hidden;
       }
 
+      .nav-layout > div {
+        min-width: 0;
+        max-width: 100%;
+      }
+
       .grid-layout {
         display: block;
         min-height: 0;
@@ -670,17 +675,24 @@
         align-items: center;
         justify-content: space-between;
         margin-bottom: 12px;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .tree-list {
         list-style: none;
         margin: 0;
         padding: 0;
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: hidden;
       }
 
       .tree-item {
         display: block;
         margin-bottom: 6px;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .tree-actions-btn {
@@ -708,6 +720,8 @@
 
       .tree-label {
         flex: 1;
+        min-width: 0;
+        max-width: 100%;
       }
 
 
