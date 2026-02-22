@@ -2453,6 +2453,7 @@ function createTreeItem(node, selection) {
   label.appendChild(treeIconSlot);
 
   const text = document.createElement("span");
+  text.className = "rd-tree-text";
   text.textContent = node.label;
   label.appendChild(text);
   label.addEventListener("click", () => {

@@ -117,6 +117,7 @@
     return `
       .rd-tree-row {
         width: 100%;
+        max-width: 100%;
         min-height: 42px;
         padding: 6px 12px;
         display: grid;
@@ -131,18 +132,29 @@
           rgba(0, 0, 0, 0) 35%,
           #000 100%
         );
+        box-sizing: border-box;
+        min-width: 0;
+        overflow: hidden;
       }
 
-      .tree-item.tree-level-1 .rd-tree-row {
-        margin-left: 18px;
+      .tree-item {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        overflow: hidden;
       }
 
-      .tree-item.tree-level-2 .rd-tree-row {
-        margin-left: 36px;
+      .tree-item.tree-level-1 {
+        padding-left: 18px;
       }
 
-      .tree-item.tree-level-3 .rd-tree-row {
-        margin-left: 54px;
+      .tree-item.tree-level-2 {
+        padding-left: 36px;
+      }
+
+      .tree-item.tree-level-3 {
+        padding-left: 54px;
       }
 
       .rd-tree-row[data-kind="profile"] {
@@ -207,6 +219,7 @@
 
       .rd-tree-label {
         width: 100%;
+        max-width: 100%;
         margin: 0;
         padding: 0;
         border: 0;
@@ -216,6 +229,8 @@
         min-height: 28px;
         display: inline-flex;
         align-items: center;
+        min-width: 0;
+        overflow: hidden;
         text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
       }
 
@@ -239,6 +254,15 @@
         color: #f5f5f5;
         padding: 0;
         line-height: 1;
+        flex: 0 0 auto;
+      }
+
+      .rd-tree-text {
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .rd-tree-toggle:hover {
