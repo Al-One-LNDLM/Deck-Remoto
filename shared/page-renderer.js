@@ -176,7 +176,10 @@
   function createControlNode(control, iconUrl, style, context = {}) {
     const node = document.createElement("div");
     const isFader = control?.type === "fader";
+    const showLabel = style.showLabel !== false;
     node.className = `page-renderer-control ${isFader ? "is-fader" : "is-button"}`;
+    node.classList.toggle("is-with-label", !isFader && showLabel);
+    node.classList.toggle("is-icon-only", !isFader && !showLabel);
 
     if (isFader) {
       const useMvpMobileFader = context.mobileFaderMvp === true;
@@ -495,10 +498,11 @@
       img.src = resolveRenderableUrl(iconUrl, context.stateBaseUrl);
       img.alt = control?.name || control?.id || "icon";
       img.loading = "lazy";
+      img.draggable = false;
       node.appendChild(img);
     }
 
-    if (style.showLabel !== false) {
+    if (showLabel) {
       const label = document.createElement("span");
       label.className = "page-renderer-label";
       label.textContent = control?.name || control?.id || "Elemento";
