@@ -38,9 +38,34 @@ const TOPBAR_TAB_CONFIG = {
   server: { label: "Servidor", iconBaseName: "SERVER", iconOnly: true },
 };
 
+const NAV_COLLAPSED_STORAGE_KEY = "rd.nav.collapsed";
+
+function loadCollapsedMap() {
+  try {
+    const rawValue = window.localStorage.getItem(NAV_COLLAPSED_STORAGE_KEY);
+    if (!rawValue) {
+      return {};
+    }
+
+    const parsed = JSON.parse(rawValue);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (_error) {
+    return {};
+  }
+}
+
+function saveCollapsedMap(map) {
+  try {
+    window.localStorage.setItem(NAV_COLLAPSED_STORAGE_KEY, JSON.stringify(map));
+  } catch (_error) {
+    // Ignore storage issues and keep UI usable.
+  }
+}
+
 const state = {
   workspace: null,
   selection: null,
+  navCollapsedMap: loadCollapsedMap(),
   renameTimer: null,
   gridSelection: {
     profileId: null,
@@ -119,6 +144,33 @@ async function loadUiFont() {
 
 
 loadUiFont();
+
+function isCollapsed(key) {
+  if (!key) {
+    return false;
+  }
+
+  return state.navCollapsedMap[key] === true;
+}
+
+function toggleCollapsed(key) {
+  if (!key) {
+    return;
+  }
+
+  const nextMap = {
+    ...(state.navCollapsedMap || {}),
+  };
+
+  if (nextMap[key]) {
+    delete nextMap[key];
+  } else {
+    nextMap[key] = true;
+  }
+
+  state.navCollapsedMap = nextMap;
+  saveCollapsedMap(nextMap);
+}
 
 function clampGridValue(value) {
   const number = Number(value) || 1;
@@ -1564,6 +1616,8 @@ function buildTreeNodes(workspace) {
     nodes.push({
       kind: "profile",
       level: 0,
+      treeKey: `profile:${profile.id}`,
+      hasChildren: (profile.pages || []).length > 0,
       profileId: profile.id,
       label: profile.name,
       iconAssetId: typeof profile.iconAssetId === "string" ? profile.iconAssetId : null,
@@ -1571,16 +1625,18 @@ function buildTreeNodes(workspace) {
 
     profile.pages.forEach((page) => {
       const controls = Array.isArray(page.controls) ? page.controls : [];
+      const pageRootElements = controls.filter((element) => !element.folderId);
       nodes.push({
         kind: "page",
         level: 1,
+        treeKey: `page:${page.id}`,
+        hasChildren: pageRootElements.length + page.folders.length > 0,
         profileId: profile.id,
         pageId: page.id,
         label: page.name,
         iconAssetId: typeof page.iconAssetId === "string" ? page.iconAssetId : null,
       });
 
-      const pageRootElements = controls.filter((element) => !element.folderId);
       pageRootElements.forEach((element) => {
         nodes.push({
           kind: "element",
@@ -1594,9 +1650,12 @@ function buildTreeNodes(workspace) {
       });
 
       page.folders.forEach((folder) => {
+        const folderElements = controls.filter((element) => element.folderId === folder.id);
         nodes.push({
           kind: "folder",
           level: 2,
+          treeKey: `folder:${folder.id}`,
+          hasChildren: folderElements.length > 0,
           profileId: profile.id,
           pageId: page.id,
           folderId: folder.id,
@@ -1604,7 +1663,6 @@ function buildTreeNodes(workspace) {
           iconAssetId: typeof folder.iconAssetId === "string" ? folder.iconAssetId : null,
         });
 
-        const folderElements = controls.filter((element) => element.folderId === folder.id);
         folderElements.forEach((element) => {
           nodes.push({
             kind: "element",
@@ -1756,6 +1814,9 @@ function createTreeItem(node, selection) {
   const item = document.createElement("li");
   item.className = `tree-item tree-level-${node.level}`;
 
+  const row = document.createElement("div");
+  row.className = "rd-tree-row";
+
   const label = document.createElement("button");
   label.className = "tree-label";
   if (isNodeSelected(node, selection)) {
@@ -1790,7 +1851,25 @@ function createTreeItem(node, selection) {
     openContextMenuForNode(node, event.clientX, event.clientY);
   });
 
-  item.appendChild(label);
+  row.appendChild(label);
+
+  if (node.hasChildren && node.treeKey) {
+    const collapsed = isCollapsed(node.treeKey);
+    const toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.className = "rd-tree-toggle";
+    toggleBtn.setAttribute("aria-label", collapsed ? "Expandir" : "Contraer");
+    toggleBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    toggleBtn.textContent = collapsed ? "▶" : "▼";
+    toggleBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleCollapsed(node.treeKey);
+      renderNavigation();
+    });
+    row.appendChild(toggleBtn);
+  }
+
+  item.appendChild(row);
   return item;
 }
 
@@ -1987,8 +2066,21 @@ function openContextMenuForNode(node, clientX, clientY) {
 function renderTree(workspace, selection) {
   treeRoot.innerHTML = "";
   const nodes = buildTreeNodes(workspace);
+  const hiddenLevels = [];
   nodes.forEach((node) => {
+    while (hiddenLevels.length && node.level <= hiddenLevels[hiddenLevels.length - 1]) {
+      hiddenLevels.pop();
+    }
+
+    if (hiddenLevels.length) {
+      return;
+    }
+
     treeRoot.appendChild(createTreeItem(node, selection));
+
+    if (node.hasChildren && node.treeKey && isCollapsed(node.treeKey)) {
+      hiddenLevels.push(node.level);
+    }
   });
 }
 
@@ -2800,12 +2892,25 @@ function injectTopbarStyles() {
   document.head.appendChild(styleTag);
 }
 
+function injectNavigationTreeStyles() {
+  const styles = window.styleResolver?.getNavigationTreeStyles?.();
+  if (!styles) {
+    return;
+  }
+
+  const styleTag = document.createElement("style");
+  styleTag.id = "rd-navigation-tree-styles";
+  styleTag.textContent = styles;
+  document.head.appendChild(styleTag);
+}
+
 window.runtime.onLog((message) => {
   appendLog(message);
 });
 
 async function init() {
   injectTopbarStyles();
+  injectNavigationTreeStyles();
   hydrateTopbarTabs();
   await refreshStatus();
   state.workspace = await window.runtime.getWorkspace();

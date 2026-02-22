@@ -113,6 +113,42 @@
     `;
   }
 
+  function getNavigationTreeStyles() {
+    return `
+      .rd-tree-row {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .rd-tree-toggle {
+        margin-left: auto;
+        width: 24px;
+        height: 24px;
+        min-width: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #3a3a3a;
+        border-radius: 6px;
+        background: #000;
+        color: #f5f5f5;
+        padding: 0;
+        line-height: 1;
+      }
+
+      .rd-tree-toggle:hover {
+        border-color: #6d8ed9;
+        box-shadow: 0 0 0 1px rgba(109, 142, 217, 0.3);
+      }
+
+      .rd-tree-toggle:active {
+        background: #1b2e58;
+      }
+    `;
+  }
+
   function getStyleBucket(pageStyle, controlType) {
     if (controlType === "fader") {
       return pageStyle.fader;
@@ -143,6 +179,7 @@
     normalizePageStyle,
     normalizeTypeStyle,
     getTopbarIconExtensions,
+    getNavigationTreeStyles,
     getTopbarFadeStyles,
     resolveGlobalStyle,
     sanitizeHexColor,
