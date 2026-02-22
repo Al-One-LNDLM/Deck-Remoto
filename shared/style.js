@@ -263,6 +263,7 @@
         height: 100%;
         min-width: 0;
         min-height: 0;
+        overflow: hidden;
       }
 
       .rd-split--cols2 {
@@ -281,6 +282,13 @@
         min-width: 0;
         min-height: 0;
         overflow: auto;
+        position: relative;
+      }
+
+      .rd-pane > * {
+        min-width: 0;
+        min-height: 0;
+        max-width: 100%;
       }
 
       .rd-gutter {
