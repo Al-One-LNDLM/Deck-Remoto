@@ -1870,7 +1870,11 @@ function createTreeItem(node, selection) {
 
   const treeIconSlot = document.createElement("span");
   treeIconSlot.className = "rd-tree-iconSlot";
-  treeIconSlot.textContent = getTreeIconFallbackLabel(node);
+
+  const treeIconFallback = document.createElement("span");
+  treeIconFallback.className = "rd-tree-iconFallback";
+  treeIconFallback.textContent = getTreeIconFallbackLabel(node);
+  treeIconFallback.setAttribute("aria-hidden", "true");
 
   const treeIcon = document.createElement("img");
   treeIcon.className = "rd-tree-icon";
@@ -1901,8 +1905,14 @@ function createTreeItem(node, selection) {
     treeIcon.style.display = "none";
   });
 
+  treeIcon.addEventListener("load", () => {
+    delete treeIconSlot.dataset.iconMissing;
+    treeIcon.style.display = "";
+  });
+
   applyTreeIconCandidate();
   treeIconSlot.appendChild(treeIcon);
+  treeIconSlot.appendChild(treeIconFallback);
   label.appendChild(treeIconSlot);
 
   const text = document.createElement("span");

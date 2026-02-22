@@ -128,7 +128,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        margin-right: 8px;
+        margin-right: 12px;
         flex: 0 0 20px;
       }
 
@@ -141,10 +141,20 @@
         filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.35));
       }
 
-      .rd-tree-iconSlot[data-icon-missing="1"] {
+      .rd-tree-iconFallback {
+        display: none;
+        font-size: 12px;
+        font-weight: bold;
         color: #fff;
         opacity: 0.9;
-        font-size: 12px;
+      }
+
+      .rd-tree-iconSlot[data-icon-missing="1"] .rd-tree-icon {
+        display: none;
+      }
+
+      .rd-tree-iconSlot[data-icon-missing="1"] .rd-tree-iconFallback {
+        display: inline-block;
       }
 
       .rd-tree-toggle {
