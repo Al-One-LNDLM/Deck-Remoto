@@ -122,6 +122,17 @@
         gap: 8px;
       }
 
+      .rd-tree-icon {
+        width: 20px;
+        height: 20px;
+        margin-right: 8px;
+        display: inline-block;
+        vertical-align: middle;
+        image-rendering: pixelated;
+        pointer-events: none;
+        flex: 0 0 auto;
+      }
+
       .rd-tree-toggle {
         margin-left: auto;
         width: 24px;

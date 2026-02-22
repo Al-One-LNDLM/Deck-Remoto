@@ -1609,6 +1609,41 @@ function getElementTypeLabel(type) {
   return "Botón";
 }
 
+function getTreeElementName(element) {
+  if (!element || typeof element !== "object") {
+    return "";
+  }
+
+  const preferredLabel = typeof element.label === "string" ? element.label.trim() : "";
+  if (preferredLabel) {
+    return preferredLabel;
+  }
+
+  const fallbackName = typeof element.name === "string" ? element.name.trim() : "";
+  return fallbackName;
+}
+
+function getTreeIconBaseName(node) {
+  if (node.kind === "profile") return "Perf";
+  if (node.kind === "page") return "Pag";
+  if (node.kind === "folder") return "Carp";
+
+  if (node.kind === "element") {
+    return node.elementType === "fader" ? "Fad" : "Bot";
+  }
+
+  return null;
+}
+
+function buildTreeIconCandidates(iconBaseName) {
+  if (!iconBaseName) {
+    return [];
+  }
+
+  const extensions = window.styleResolver?.getTopbarIconExtensions?.() || ["png", "svg", "webp"];
+  return extensions.map((extension) => new URL(`./assets/${iconBaseName}.${extension}`, window.location.href).href);
+}
+
 function buildTreeNodes(workspace) {
   const nodes = [];
 
@@ -1644,7 +1679,8 @@ function buildTreeNodes(workspace) {
           profileId: profile.id,
           pageId: page.id,
           elementId: element.id,
-          label: `${getElementTypeLabel(element.type)}: ${element.name}`,
+          elementType: element.type,
+          label: getTreeElementName(element),
           iconAssetId: typeof element.iconAssetId === "string" ? element.iconAssetId : null,
         });
       });
@@ -1671,7 +1707,8 @@ function buildTreeNodes(workspace) {
             pageId: page.id,
             folderId: folder.id,
             elementId: element.id,
-            label: `${getElementTypeLabel(element.type)}: ${element.name}`,
+            elementType: element.type,
+            label: getTreeElementName(element),
             iconAssetId: typeof element.iconAssetId === "string" ? element.iconAssetId : null,
           });
         });
@@ -1823,24 +1860,33 @@ function createTreeItem(node, selection) {
     label.classList.add("selected");
   }
 
-  const prefixMap = {
-    profile: "PERFIL",
-    page: "PÁGINA",
-    folder: "CARPETA",
-    element: "ELEMENTO",
+  const treeIcon = document.createElement("img");
+  treeIcon.className = "rd-tree-icon";
+  treeIcon.alt = "";
+  treeIcon.setAttribute("aria-hidden", "true");
+
+  const treeIconCandidates = buildTreeIconCandidates(getTreeIconBaseName(node));
+  let treeIconCandidateIndex = 0;
+
+  const applyTreeIconCandidate = () => {
+    treeIcon.src = treeIconCandidates[treeIconCandidateIndex] || "";
   };
 
-  const iconUrl = resolveIconUrl(node.iconAssetId, state.workspace?.assets?.icons);
-  if (iconUrl) {
-    const icon = document.createElement("img");
-    icon.className = "icon-preview";
-    icon.src = iconUrl;
-    icon.alt = "icon";
-    label.appendChild(icon);
-  }
+  treeIcon.addEventListener("error", () => {
+    treeIconCandidateIndex += 1;
+    if (treeIconCandidateIndex < treeIconCandidates.length) {
+      applyTreeIconCandidate();
+      return;
+    }
+
+    treeIcon.style.display = "none";
+  });
+
+  applyTreeIconCandidate();
+  label.appendChild(treeIcon);
 
   const text = document.createElement("span");
-  text.textContent = `${prefixMap[node.kind]}: ${node.label}`;
+  text.textContent = node.label;
   label.appendChild(text);
   label.addEventListener("click", () => {
     setSelectionFromNode(node);
