@@ -23,43 +23,25 @@
             {
               "id": "button1",
               "type": "button",
-              "name": "COPIAR",
-              "folderId": "folder1",
-              "iconAssetId": null,
+              "name": "Botón 1",
+              "folderId": null,
+              "iconAssetId": "icon_1771784474555",
               "actionBinding": {
                 "kind": "single",
                 "action": {
-                  "type": "hotkey",
-                  "keys": "Ctrl+C"
+                  "type": "pasteText",
+                  "text": "npm start",
+                  "enterAfter": false
                 }
-              }
-            },
-            {
-              "id": "button2",
-              "type": "button",
-              "name": "CORTAR",
-              "folderId": "folder1",
-              "iconAssetId": null,
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "hotkey",
-                  "keys": "Ctrl+X"
-                }
-              }
-            },
-            {
-              "id": "button3",
-              "type": "button",
-              "name": "PEGAR",
-              "folderId": "folder1",
-              "iconAssetId": null,
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "hotkey",
-                  "keys": "Ctrl+V"
-                }
+              },
+              "style": {
+                "backgroundEnabled": false,
+                "backgroundColor": "#000000",
+                "backgroundOpacity": 1,
+                "borderEnabled": false,
+                "borderColor": "#FFFFFF",
+                "borderOpacity": 1,
+                "showLabel": true
               }
             },
             {
@@ -71,112 +53,21 @@
               "actionBinding": {
                 "kind": "single",
                 "action": {
-                  "type": "midiCc",
-                  "channel": 3,
-                  "cc": 0
+                  "type": "masterVolume"
                 }
               },
               "faderSkin": {
-                "topAssetId": "icon_1770986367540",
-                "middleAssetId": "icon_1770986390460",
-                "bottomAssetId": "icon_1770986394618",
-                "grabAssetId": "icon_1770986396924"
+                "topAssetId": "icon_1771785672696",
+                "middleAssetId": "icon_1771785675517",
+                "bottomAssetId": "icon_1771785761624",
+                "grabAssetId": "icon_1771786356171"
               },
               "faderIconAssetIds": [
-                "icon_1770986367540",
-                "icon_1770986390460",
-                "icon_1770986394618",
-                "icon_1770986396924"
+                "icon_1771785672696",
+                "icon_1771785675517",
+                "icon_1771785761624",
+                "icon_1771786356171"
               ],
-              "style": {
-                "backgroundEnabled": false,
-                "backgroundColor": "#080808",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": false
-              }
-            },
-            {
-              "id": "fader2",
-              "type": "fader",
-              "name": "Fader 2",
-              "folderId": null,
-              "iconAssetId": null,
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "midiCc",
-                  "channel": 2,
-                  "cc": 0
-                }
-              },
-              "faderSkin": {
-                "topAssetId": "icon_1770987956171",
-                "middleAssetId": "icon_1770987958511",
-                "bottomAssetId": "icon_1770987960334",
-                "grabAssetId": "icon_1770987962215"
-              },
-              "faderIconAssetIds": [
-                "icon_1770987956171",
-                "icon_1770987958511",
-                "icon_1770987960334",
-                "icon_1770987962215"
-              ],
-              "style": {
-                "backgroundEnabled": false,
-                "backgroundColor": "#080808",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": false
-              }
-            },
-            {
-              "id": "fader3",
-              "type": "fader",
-              "name": "Fader 3",
-              "folderId": null,
-              "iconAssetId": null,
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "midiCc",
-                  "channel": 1,
-                  "cc": 0
-                }
-              },
-              "faderSkin": {
-                "topAssetId": "icon_1770987966444",
-                "middleAssetId": "icon_1770987967840",
-                "bottomAssetId": "icon_1770987969834",
-                "grabAssetId": "icon_1770987971464"
-              },
-              "faderIconAssetIds": [
-                "icon_1770987966444",
-                "icon_1770987967840",
-                "icon_1770987969834",
-                "icon_1770987971464"
-              ],
-              "style": {
-                "backgroundEnabled": false,
-                "backgroundColor": "#080808",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": false
-              }
-            },
-            {
-              "id": "button4",
-              "type": "button",
-              "name": "IZDA",
-              "folderId": null,
-              "iconAssetId": "icon_1770988227089",
-              "actionBinding": null,
               "style": {
                 "backgroundEnabled": false,
                 "backgroundColor": "#000000",
@@ -188,11 +79,11 @@
               }
             },
             {
-              "id": "button5",
-              "type": "button",
-              "name": "DCHA",
-              "folderId": null,
-              "iconAssetId": "icon_1770988233740",
+              "id": "folderButton1",
+              "type": "folderButton",
+              "name": "Carpeta 1",
+              "folderId": "folder1",
+              "iconAssetId": null,
               "actionBinding": null,
               "style": {
                 "backgroundEnabled": false,
@@ -201,7 +92,7 @@
                 "borderEnabled": false,
                 "borderColor": "#FFFFFF",
                 "borderOpacity": 1,
-                "showLabel": false
+                "showLabel": true
               }
             }
           ],
@@ -210,539 +101,32 @@
               "id": "folder1",
               "name": "Carpeta 1",
               "items": [],
-              "iconAssetId": "icon_1770932405933"
+              "iconAssetId": "icon_1771784506626"
             }
           ],
           "placements": [
             {
+              "id": "placement1",
+              "elementId": "button1",
+              "row": 0,
+              "col": 0,
+              "rowSpan": 1,
+              "colSpan": 1
+            },
+            {
               "id": "placement2",
-              "elementId": "button5",
-              "row": 3,
-              "col": 2,
-              "rowSpan": 1,
-              "colSpan": 1
-            },
-            {
-              "id": "placement3",
-              "elementId": "button4",
-              "row": 3,
-              "col": 0,
-              "rowSpan": 1,
-              "colSpan": 1
-            },
-            {
-              "id": "placement4",
-              "elementId": "fader3",
-              "row": 0,
-              "col": 0,
-              "rowSpan": 3,
-              "colSpan": 1
-            },
-            {
-              "id": "placement5",
-              "elementId": "fader2",
-              "row": 0,
-              "col": 1,
-              "rowSpan": 3,
-              "colSpan": 1
-            },
-            {
-              "id": "placement6",
               "elementId": "fader1",
               "row": 0,
               "col": 2,
               "rowSpan": 3,
               "colSpan": 1
-            }
-          ],
-          "iconAssetId": null
-        }
-      ],
-      "iconAssetId": null
-    },
-    {
-      "id": "profile2",
-      "name": "Perfil 2",
-      "pages": [
-        {
-          "id": "page2",
-          "name": "P - A",
-          "grid": {
-            "rows": 4,
-            "cols": 3
-          },
-          "showGrid": true,
-          "controls": [
-            {
-              "id": "button7",
-              "type": "button",
-              "name": "IZDA",
-              "folderId": null,
-              "iconAssetId": "icon_1771460023844",
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "switchPage",
-                  "pageId": "page2"
-                }
-              },
-              "style": {
-                "backgroundEnabled": false,
-                "backgroundColor": "#000000",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": false
-              }
             },
             {
-              "id": "button9",
-              "type": "button",
-              "name": "DCHA",
-              "folderId": null,
-              "iconAssetId": "icon_1771460074358",
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "switchPage",
-                  "pageId": "page3"
-                }
-              },
-              "style": {
-                "backgroundEnabled": false,
-                "backgroundColor": "#000000",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": false
-              }
-            },
-            {
-              "id": "button10",
-              "type": "button",
-              "name": "A",
-              "folderId": null,
-              "iconAssetId": null,
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "midiNote",
-                  "channel": 1,
-                  "note": 59,
-                  "mode": "hold",
-                  "durationMs": 250
-                }
-              },
-              "style": {
-                "backgroundEnabled": true,
-                "backgroundColor": "#AC2ACF",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": true
-              }
-            },
-            {
-              "id": "button11",
-              "type": "button",
-              "name": "B",
-              "folderId": null,
-              "iconAssetId": null,
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "pasteText",
-                  "text": "HOLA PERRA",
-                  "enterAfter": true
-                }
-              },
-              "style": {
-                "backgroundEnabled": true,
-                "backgroundColor": "#CAE736",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": true
-              }
-            },
-            {
-              "id": "button12",
-              "type": "button",
-              "name": "C",
-              "folderId": null,
-              "iconAssetId": null,
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "hotkey",
-                  "keys": "Down"
-                }
-              },
-              "style": {
-                "backgroundEnabled": true,
-                "backgroundColor": "#BF7373",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": true
-              }
-            }
-          ],
-          "folders": [],
-          "placements": [
-            {
-              "id": "placement7",
-              "elementId": "button7",
-              "row": 3,
-              "col": 0,
-              "rowSpan": 1,
-              "colSpan": 1
-            },
-            {
-              "id": "placement8",
-              "elementId": "button9",
-              "row": 3,
-              "col": 2,
-              "rowSpan": 1,
-              "colSpan": 1
-            },
-            {
-              "id": "placement9",
-              "elementId": "button10",
+              "id": "placement3",
+              "elementId": "folderButton1",
               "row": 1,
               "col": 0,
               "rowSpan": 1,
-              "colSpan": 1
-            },
-            {
-              "id": "placement10",
-              "elementId": "button11",
-              "row": 0,
-              "col": 1,
-              "rowSpan": 1,
-              "colSpan": 1
-            },
-            {
-              "id": "placement11",
-              "elementId": "button12",
-              "row": 1,
-              "col": 2,
-              "rowSpan": 1,
-              "colSpan": 1
-            }
-          ],
-          "iconAssetId": null
-        },
-        {
-          "id": "page3",
-          "name": "P - B",
-          "grid": {
-            "rows": 4,
-            "cols": 3
-          },
-          "showGrid": true,
-          "controls": [
-            {
-              "id": "button6",
-              "type": "button",
-              "name": "IZDA",
-              "folderId": null,
-              "iconAssetId": "icon_1771460023844",
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "switchPage",
-                  "pageId": "page2"
-                }
-              },
-              "style": {
-                "backgroundEnabled": false,
-                "backgroundColor": "#000000",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": false
-              }
-            },
-            {
-              "id": "button8",
-              "type": "button",
-              "name": "DCHA",
-              "folderId": null,
-              "iconAssetId": "icon_1771460074358",
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "switchPage",
-                  "pageId": "page4"
-                }
-              },
-              "style": {
-                "backgroundEnabled": false,
-                "backgroundColor": "#000000",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": false
-              }
-            },
-            {
-              "id": "button13",
-              "type": "button",
-              "name": "D",
-              "folderId": null,
-              "iconAssetId": null,
-              "actionBinding": {
-                "kind": "macro",
-                "steps": [
-                  {
-                    "type": "hotkey",
-                    "keys": "Esc"
-                  },
-                  {
-                    "type": "delay",
-                    "ms": 50
-                  },
-                  {
-                    "type": "typeText",
-                    "text": "Baby Comeback",
-                    "enterAfter": true
-                  }
-                ]
-              },
-              "style": {
-                "backgroundEnabled": true,
-                "backgroundColor": "#952828",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": true
-              }
-            },
-            {
-              "id": "button14",
-              "type": "button",
-              "name": "F",
-              "folderId": null,
-              "iconAssetId": null,
-              "actionBinding": {
-                "kind": "macro",
-                "steps": [
-                  {
-                    "type": "hotkey",
-                    "keys": "Ctrl+C"
-                  },
-                  {
-                    "type": "delay",
-                    "ms": 5000
-                  },
-                  {
-                    "type": "hotkey",
-                    "keys": "Ctrl+X"
-                  }
-                ]
-              },
-              "style": {
-                "backgroundEnabled": true,
-                "backgroundColor": "#2B4AA6",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": true
-              }
-            },
-            {
-              "id": "button15",
-              "type": "button",
-              "name": "G",
-              "folderId": null,
-              "iconAssetId": null,
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "hotkey",
-                  "keys": "Win+Shift+S"
-                }
-              },
-              "style": {
-                "backgroundEnabled": true,
-                "backgroundColor": "#27AA4E",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": true
-              }
-            }
-          ],
-          "folders": [],
-          "placements": [
-            {
-              "id": "placement12",
-              "elementId": "button6",
-              "row": 3,
-              "col": 0,
-              "rowSpan": 1,
-              "colSpan": 1
-            },
-            {
-              "id": "placement13",
-              "elementId": "button8",
-              "row": 3,
-              "col": 2,
-              "rowSpan": 1,
-              "colSpan": 1
-            },
-            {
-              "id": "placement14",
-              "elementId": "button13",
-              "row": 0,
-              "col": 0,
-              "rowSpan": 1,
-              "colSpan": 1
-            },
-            {
-              "id": "placement15",
-              "elementId": "button14",
-              "row": 1,
-              "col": 1,
-              "rowSpan": 1,
-              "colSpan": 1
-            },
-            {
-              "id": "placement16",
-              "elementId": "button15",
-              "row": 0,
-              "col": 2,
-              "rowSpan": 1,
-              "colSpan": 1
-            }
-          ],
-          "iconAssetId": null
-        },
-        {
-          "id": "page4",
-          "name": "P - C",
-          "grid": {
-            "rows": 4,
-            "cols": 3
-          },
-          "showGrid": true,
-          "controls": [
-            {
-              "id": "button16",
-              "type": "button",
-              "name": "IZDA",
-              "folderId": null,
-              "iconAssetId": "icon_1771460023844",
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "switchPage",
-                  "pageId": "page3"
-                }
-              },
-              "style": {
-                "backgroundEnabled": false,
-                "backgroundColor": "#000000",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": false
-              }
-            },
-            {
-              "id": "button17",
-              "type": "button",
-              "name": "DCHA",
-              "folderId": null,
-              "iconAssetId": "icon_1771460074358",
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "switchPage",
-                  "pageId": "page4"
-                }
-              },
-              "style": {
-                "backgroundEnabled": false,
-                "backgroundColor": "#000000",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": false
-              }
-            },
-            {
-              "id": "fader4",
-              "type": "fader",
-              "name": "Fader 4",
-              "folderId": null,
-              "iconAssetId": null,
-              "actionBinding": {
-                "kind": "single",
-                "action": {
-                  "type": "masterVolume"
-                }
-              },
-              "faderSkin": {
-                "topAssetId": null,
-                "middleAssetId": null,
-                "bottomAssetId": null,
-                "grabAssetId": null
-              },
-              "faderIconAssetIds": [
-                null,
-                null,
-                null,
-                null
-              ],
-              "style": {
-                "backgroundEnabled": false,
-                "backgroundColor": "#249799",
-                "backgroundOpacity": 1,
-                "borderEnabled": false,
-                "borderColor": "#FFFFFF",
-                "borderOpacity": 1,
-                "showLabel": true
-              }
-            }
-          ],
-          "folders": [],
-          "placements": [
-            {
-              "id": "placement17",
-              "elementId": "button16",
-              "row": 3,
-              "col": 0,
-              "rowSpan": 1,
-              "colSpan": 1
-            },
-            {
-              "id": "placement18",
-              "elementId": "button17",
-              "row": 3,
-              "col": 2,
-              "rowSpan": 1,
-              "colSpan": 1
-            },
-            {
-              "id": "placement19",
-              "elementId": "fader4",
-              "row": 0,
-              "col": 1,
-              "rowSpan": 3,
               "colSpan": 1
             }
           ],
@@ -1185,6 +569,120 @@
         "type": "icon",
         "path": "assets/icons/1771460074357-RIGHT.png",
         "createdAt": "2026-02-19T00:14:34.358Z"
+      },
+      "icon_1771784474555": {
+        "id": "icon_1771784474555",
+        "type": "icon",
+        "path": "assets/icons/1771784474554-BOT.png",
+        "createdAt": "2026-02-22T18:21:14.555Z"
+      },
+      "icon_1771784491337": {
+        "id": "icon_1771784491337",
+        "type": "icon",
+        "path": "assets/icons/1771784491336-FAD.png",
+        "createdAt": "2026-02-22T18:21:31.337Z"
+      },
+      "icon_1771784493112": {
+        "id": "icon_1771784493112",
+        "type": "icon",
+        "path": "assets/icons/1771784493112-FAD.png",
+        "createdAt": "2026-02-22T18:21:33.112Z"
+      },
+      "icon_1771784494940": {
+        "id": "icon_1771784494940",
+        "type": "icon",
+        "path": "assets/icons/1771784494939-FAD.png",
+        "createdAt": "2026-02-22T18:21:34.940Z"
+      },
+      "icon_1771784497788": {
+        "id": "icon_1771784497788",
+        "type": "icon",
+        "path": "assets/icons/1771784497787-FAD.png",
+        "createdAt": "2026-02-22T18:21:37.788Z"
+      },
+      "icon_1771784506626": {
+        "id": "icon_1771784506626",
+        "type": "icon",
+        "path": "assets/icons/1771784506625-CARP.png",
+        "createdAt": "2026-02-22T18:21:46.626Z"
+      },
+      "icon_1771785230026": {
+        "id": "icon_1771785230026",
+        "type": "icon",
+        "path": "assets/icons/1771785230025-FADER1_TOP.png",
+        "createdAt": "2026-02-22T18:33:50.026Z"
+      },
+      "icon_1771785232907": {
+        "id": "icon_1771785232907",
+        "type": "icon",
+        "path": "assets/icons/1771785232907-FADER1_MID.png",
+        "createdAt": "2026-02-22T18:33:52.907Z"
+      },
+      "icon_1771785235402": {
+        "id": "icon_1771785235402",
+        "type": "icon",
+        "path": "assets/icons/1771785235401-FADER1_BOTTOM.png",
+        "createdAt": "2026-02-22T18:33:55.402Z"
+      },
+      "icon_1771785238204": {
+        "id": "icon_1771785238204",
+        "type": "icon",
+        "path": "assets/icons/1771785238204-FADER1_GRAB.png",
+        "createdAt": "2026-02-22T18:33:58.204Z"
+      },
+      "icon_1771785310237": {
+        "id": "icon_1771785310237",
+        "type": "icon",
+        "path": "assets/icons/1771785310236-FADER1_GRAB.png",
+        "createdAt": "2026-02-22T18:35:10.237Z"
+      },
+      "icon_1771785376347": {
+        "id": "icon_1771785376347",
+        "type": "icon",
+        "path": "assets/icons/1771785376347-FADER1_GRAB.png",
+        "createdAt": "2026-02-22T18:36:16.347Z"
+      },
+      "icon_1771785434918": {
+        "id": "icon_1771785434918",
+        "type": "icon",
+        "path": "assets/icons/1771785434917-FADER1_GRAB.png",
+        "createdAt": "2026-02-22T18:37:14.918Z"
+      },
+      "icon_1771785672696": {
+        "id": "icon_1771785672696",
+        "type": "icon",
+        "path": "assets/icons/1771785672695-FADER1_TOP.png",
+        "createdAt": "2026-02-22T18:41:12.696Z"
+      },
+      "icon_1771785675517": {
+        "id": "icon_1771785675517",
+        "type": "icon",
+        "path": "assets/icons/1771785675516-FADER1_MID.png",
+        "createdAt": "2026-02-22T18:41:15.517Z"
+      },
+      "icon_1771785677584": {
+        "id": "icon_1771785677584",
+        "type": "icon",
+        "path": "assets/icons/1771785677583-FADER1_BOTTOM.png",
+        "createdAt": "2026-02-22T18:41:17.584Z"
+      },
+      "icon_1771785761624": {
+        "id": "icon_1771785761624",
+        "type": "icon",
+        "path": "assets/icons/1771785761624-FADER1_BOTTOM.png",
+        "createdAt": "2026-02-22T18:42:41.624Z"
+      },
+      "icon_1771785874523": {
+        "id": "icon_1771785874523",
+        "type": "icon",
+        "path": "assets/icons/1771785874523-FADER1_GRAB.png",
+        "createdAt": "2026-02-22T18:44:34.523Z"
+      },
+      "icon_1771786356171": {
+        "id": "icon_1771786356171",
+        "type": "icon",
+        "path": "assets/icons/1771786356170-FADER1_GRAB.png",
+        "createdAt": "2026-02-22T18:52:36.171Z"
       }
     }
   },
