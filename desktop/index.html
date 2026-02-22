@@ -240,6 +240,29 @@
         max-width: 100%;
       }
 
+      .nav-inspector-pane {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .nav-inspector-pane h2 {
+        margin-bottom: 8px;
+      }
+
+      #inspector {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 8px 8px 8px 14px;
+        box-sizing: border-box;
+        width: min(100%, 520px);
+        margin-left: auto;
+        margin-right: auto;
+      }
+
       .grid-layout {
         display: block;
         min-height: 0;
@@ -728,6 +751,7 @@
       .inspector-form {
         display: grid;
         gap: 12px;
+        align-content: start;
       }
 
       .inspector-row {
@@ -941,7 +965,7 @@
           <ul id="treeRoot" class="tree-list"></ul>
         </div>
 
-        <div>
+        <div class="nav-inspector-pane">
           <h2>Inspector</h2>
           <div id="inspector" class="inspector-form muted">Selecciona un nodo del árbol.</div>
         </div>
