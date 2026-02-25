@@ -1,9 +1,9 @@
 {
   "activeProfileId": "profile1",
-  "activePageId": "page1",
+  "activePageId": "page2",
   "lastSession": {
     "activeProfileId": "profile1",
-    "activePageId": "page1",
+    "activePageId": "page2",
     "activeFolderId": null
   },
   "profiles": [
@@ -15,7 +15,7 @@
           "id": "page1",
           "name": "Página 1",
           "grid": {
-            "rows": 4,
+            "rows": 8,
             "cols": 3
           },
           "showGrid": true,
@@ -23,9 +23,9 @@
             {
               "id": "button1",
               "type": "button",
-              "name": "Botón 1",
+              "name": "IZDA",
               "folderId": null,
-              "iconAssetId": "icon_1771784474555",
+              "iconAssetId": "icon_1771786635605",
               "actionBinding": {
                 "kind": "single",
                 "action": {
@@ -41,7 +41,7 @@
                 "borderEnabled": false,
                 "borderColor": "#FFFFFF",
                 "borderOpacity": 1,
-                "showLabel": true
+                "showLabel": false
               }
             },
             {
@@ -79,12 +79,19 @@
               }
             },
             {
-              "id": "folderButton1",
-              "type": "folderButton",
-              "name": "Carpeta 1",
-              "folderId": "folder1",
-              "iconAssetId": null,
-              "actionBinding": null,
+              "id": "button2",
+              "type": "button",
+              "name": "DCHA",
+              "folderId": null,
+              "iconAssetId": "icon_1771786672252",
+              "actionBinding": {
+                "kind": "single",
+                "action": {
+                  "type": "pasteText",
+                  "text": "npm start",
+                  "enterAfter": false
+                }
+              },
               "style": {
                 "backgroundEnabled": false,
                 "backgroundColor": "#000000",
@@ -92,23 +99,16 @@
                 "borderEnabled": false,
                 "borderColor": "#FFFFFF",
                 "borderOpacity": 1,
-                "showLabel": true
+                "showLabel": false
               }
             }
           ],
-          "folders": [
-            {
-              "id": "folder1",
-              "name": "Carpeta 1",
-              "items": [],
-              "iconAssetId": "icon_1771784506626"
-            }
-          ],
+          "folders": [],
           "placements": [
             {
               "id": "placement1",
               "elementId": "button1",
-              "row": 0,
+              "row": 7,
               "col": 0,
               "rowSpan": 1,
               "colSpan": 1
@@ -123,14 +123,26 @@
             },
             {
               "id": "placement3",
-              "elementId": "folderButton1",
-              "row": 1,
-              "col": 0,
+              "elementId": "button2",
+              "row": 7,
+              "col": 2,
               "rowSpan": 1,
               "colSpan": 1
             }
           ],
           "iconAssetId": null
+        },
+        {
+          "id": "page2",
+          "name": "Página 2",
+          "grid": {
+            "rows": 4,
+            "cols": 3
+          },
+          "showGrid": true,
+          "controls": [],
+          "folders": [],
+          "placements": []
         }
       ],
       "iconAssetId": null
@@ -683,6 +695,18 @@
         "type": "icon",
         "path": "assets/icons/1771786356170-FADER1_GRAB.png",
         "createdAt": "2026-02-22T18:52:36.171Z"
+      },
+      "icon_1771786635605": {
+        "id": "icon_1771786635605",
+        "type": "icon",
+        "path": "assets/icons/1771786635604-LEFT.png",
+        "createdAt": "2026-02-22T18:57:15.605Z"
+      },
+      "icon_1771786672252": {
+        "id": "icon_1771786672252",
+        "type": "icon",
+        "path": "assets/icons/1771786672251-RIGHT.png",
+        "createdAt": "2026-02-22T18:57:52.252Z"
       }
     }
   },
